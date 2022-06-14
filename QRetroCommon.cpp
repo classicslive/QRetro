@@ -73,20 +73,24 @@ QImage::Format lr2qt_pixel(const retro_pixel_format lr)
   }
 }
 
-#define QT2LRK_RANGE(a, b, c) \
-  case a ... b: \
-    return static_cast<retro_key>(static_cast<Qt::Key>(c) + key - a);
+#define QT2LRK_RANGE(a, b, c, d) \
+  if (a >= b && a <= c) \
+    return static_cast<retro_key>(static_cast<Qt::Key>(d) + a - b)
 retro_key qt2lr_keyboard(int key)
 {
+  QT2LRK_RANGE(key, Qt::Key_A, Qt::Key_Z, RETROK_a);
+  QT2LRK_RANGE(key, Qt::Key_0, Qt::Key_9, RETROK_0);
+  QT2LRK_RANGE(key, Qt::Key_F1, Qt::Key_F15, RETROK_F15);
+  //QT2LRK_RANGE(Qt::Key_, Qt::Key_, RETROK_KP0) TODO: Tenkey, with Qt::KeypadModifier
+
+  // TODO: Add more keys here
   switch (key)
   {
-  //QT2LRK_RANGE(Qt::Key_A, Qt::Key_Z, RETROK_a)
-  //QT2LRK_RANGE(Qt::Key_0, Qt::Key_9, RETROK_0)
-  //QT2LRK_RANGE(Qt::Key_F1, Qt::Key_F15, RETROK_F15)
-  // QT2LRK_RANGE(Qt::Key_, Qt::Key_, RETROK_KP0) TODO: Tenkey, with Qt::KeypadModifier
+  case Qt::Key_Space:
+    return RETROK_SPACE;
+  default:
+    return RETROK_UNKNOWN;
   }
-
-  return RETROK_UNKNOWN;
 }
 
 /* TODO: Caps lock, numlock, etc */
