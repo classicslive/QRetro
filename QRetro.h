@@ -349,7 +349,7 @@ private:
   QPoint           m_PointerPosition;
   bool             m_PointerValid;
   retro_hw_context_type m_PreferredRenderer;
-  bool             m_SupportedEnvCallbacks[RETRO_ENVIRONMENT_SIZE] = { true };
+  bool             m_SupportedEnvCallbacks[RETRO_ENVIRONMENT_SIZE];
   double           m_TargetRefreshRate = 60.0;
   QThread         *m_ThreadSaving;
   QThread         *m_ThreadTiming;

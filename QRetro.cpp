@@ -451,12 +451,13 @@ QRetro::QRetro(QWindow *parent, retro_hw_context_type format)
   setLogLevel(RETRO_LOG_ERROR);
   setPreferredRenderer(RETRO_HW_CONTEXT_OPENGL);
 
-  /* Zero-initialize member variables */
+  /* Initialize member variables */
   m_Active = false;
   memset(&m_Core, 0, sizeof(m_Core));
   m_InputPollHandler = nullptr;
   m_InputStateHandler = nullptr;
   m_Library = nullptr;
+  memset(m_SupportedEnvCallbacks, true, sizeof(m_SupportedEnvCallbacks));
 }
 
 QRetro::~QRetro()
