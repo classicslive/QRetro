@@ -167,6 +167,10 @@ bool core_environment(unsigned cmd, void *data)
     return false;
   }
 
+  /* The user can manually ignore certain environment callback IDs */
+  if (!_this->environmentCallbackSupported(cmd_noflags))
+    return false;
+
   switch (cmd)
   {
   /* 01 */

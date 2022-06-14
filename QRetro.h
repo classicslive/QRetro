@@ -164,6 +164,32 @@ public:
   }
 
   /**
+   * Returns whether or not the frontend is reporting to support a given
+   * environment callback ID.
+   * Will always return true unless "setEnvironmentCallbackSupported" is used to
+   * manually unset it.
+   */
+  bool environmentCallbackSupported(unsigned id)
+  {
+    if (id > RETRO_ENVIRONMENT_SIZE)
+      return false;
+    else
+      return m_SupportedEnvCallbacks[id];
+  }
+
+  /**
+   * Sets whether or not the frontend will report to support a given environment
+   * callback ID.
+   * If set to false, the frontend will do nothing if this callback ID is
+   * requested by the core.
+   */
+  void setEnvironmentCallbackSupported(unsigned id, bool supported)
+  {
+    if (id < RETRO_ENVIRONMENT_SIZE)
+      m_SupportedEnvCallbacks[id] = supported;
+  }
+
+  /**
    * Gets the minimum log level required for a core log message to not be
    * ignored. Accepted messages will be emitted through "onCoreLog".
    * By default, this is RETRO_LOG_ERROR.
@@ -323,7 +349,7 @@ private:
   QPoint           m_PointerPosition;
   bool             m_PointerValid;
   retro_hw_context_type m_PreferredRenderer;
-  bool             m_SupportedEnvCallbacks[RETRO_ENVIRONMENT_SIZE];
+  bool             m_SupportedEnvCallbacks[RETRO_ENVIRONMENT_SIZE] = { true };
   double           m_TargetRefreshRate = 60.0;
   QThread         *m_ThreadSaving;
   QThread         *m_ThreadTiming;
