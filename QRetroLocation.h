@@ -1,7 +1,11 @@
 #ifndef QRETRO_LOCATION_H
 #define QRETRO_LOCATION_H
 
+#ifdef QRETRO_HAVE_LOCATION
 #include <QGeoPositionInfoSource>
+#else
+#include <QObject>
+#endif
 
 class QRetroLocation : public QObject
 {
@@ -13,13 +17,19 @@ public:
     double *vert_accuracy, bool quiet = false);
   void setPosition(double lat, double lon, double horiz_accuracy = 0,
     double vert_accuracy = 0);
-  QGeoPositionInfoSource* infoSource() { return m_InfoSource; }
+  void setUpdateInterval(int ms);
+  bool startUpdates(void);
+  bool stopUpdates(void);
 
+#ifdef QRETRO_HAVE_LOCATION
 public slots:
   void positionUpdated(const QGeoPositionInfo &update);
+#endif
 
 private:
+#ifdef QRETRO_HAVE_LOCATION
   QGeoPositionInfoSource *m_InfoSource;
+#endif
   double m_Latitude = 0;
   double m_Longitude = 0;
   double m_HorizontalAccuracy = 0;

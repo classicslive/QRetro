@@ -51,19 +51,16 @@ static void core_location_set_interval(unsigned ms, unsigned dist)
   Q_UNUSED(dist)
   auto _this = _qrthis();
 
-  if (_this && _this->location() && _this->location()->infoSource())
-    _this->location()->infoSource()->setUpdateInterval(static_cast<int>(ms));
+  if (_this && _this->location())
+    _this->location()->setUpdateInterval(static_cast<int>(ms));
 }
 
 static bool core_location_start(void)
 {
   auto _this = _qrthis();
 
-  if (_this && _this->location() && _this->location()->infoSource())
-  {
-    _this->location()->infoSource()->startUpdates();
-    return true;
-  }
+  if (_this && _this->location() && _this->location())
+    return _this->location()->startUpdates();
 
   return false;
 }
@@ -72,8 +69,8 @@ static void core_location_stop(void)
 {
   auto _this = _qrthis();
 
-  if (_this && _this->location() && _this->location()->infoSource())
-    _this->location()->infoSource()->stopUpdates();
+  if (_this && _this->location())
+    _this->location()->stopUpdates();
 }
 
 static bool core_location_get_position(double *lat, double *lon,

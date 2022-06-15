@@ -4,6 +4,8 @@
 QRetroLocation::QRetroLocation(QObject* parent)
 {
   setParent(parent);
+
+#ifdef QRETRO_HAVE_LOCATION
   m_InfoSource = QGeoPositionInfoSource::createDefaultSource(this);
 
   if (m_InfoSource)
@@ -11,19 +13,20 @@ QRetroLocation::QRetroLocation(QObject* parent)
     connect(m_InfoSource, SIGNAL(positionUpdated(QGeoPositionInfo)),
             this, SLOT(positionUpdated(QGeoPositionInfo)));
   }
+#endif
 }
 
 QRetroLocation::~QRetroLocation()
 {
+#ifdef QRETRO_HAVE_LOCATION
   delete m_InfoSource;
+#endif
 }
 
 bool QRetroLocation::getPosition(double *lat, double *lon,
   double *horiz_accuracy, double *vert_accuracy, bool quiet)
 {
-  if (!m_InfoSource && !m_SetManually)
-    return false;
-  else if (!m_Updated)
+  if (!m_Updated)
     *lat = *lon = *horiz_accuracy = *vert_accuracy = 0;
   else
   {
@@ -39,6 +42,7 @@ bool QRetroLocation::getPosition(double *lat, double *lon,
   return true;
 }
 
+#ifdef QRETRO_HAVE_LOCATION
 void QRetroLocation::positionUpdated(const QGeoPositionInfo &update)
 {
   m_Latitude = update.coordinate().latitude();
@@ -47,6 +51,7 @@ void QRetroLocation::positionUpdated(const QGeoPositionInfo &update)
   m_VerticalAccuracy = update.attribute(QGeoPositionInfo::VerticalAccuracy);
   m_Updated = true;
 }
+#endif
 
 void QRetroLocation::setPosition(double lat, double lon, double horiz_accuracy,
   double vert_accuracy)
@@ -57,4 +62,36 @@ void QRetroLocation::setPosition(double lat, double lon, double horiz_accuracy,
   m_VerticalAccuracy = vert_accuracy;
   m_Updated = true;
   m_SetManually = true;
+}
+
+void QRetroLocation::setUpdateInterval(int ms)
+{
+#ifdef QRETRO_HAVE_LOCATION
+  if (m_InfoSource)
+    m_InfoSource->setUpdateInterval(ms);
+#else
+  Q_UNUSED(ms)
+#endif
+}
+
+bool QRetroLocation::startUpdates(void)
+{
+#ifdef QRETRO_HAVE_LOCATION
+  if (m_InfoSource)
+    m_InfoSource->startUpdates();
+  return true;
+#else
+  return false;
+#endif
+}
+
+bool QRetroLocation::stopUpdates(void)
+{
+#ifdef QRETRO_HAVE_LOCATION
+  if (m_InfoSource)
+    m_InfoSource->stopUpdates();
+  return true;
+#else
+  return false;
+#endif
 }
