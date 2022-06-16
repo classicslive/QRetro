@@ -209,6 +209,7 @@ public:
 public slots:
   void onOptionBoolChanged(int state);
   void onOptionChoiceChanged(const QString&);
+  void onOptionIntChanged(int state);
 
 private:
   std::map<std::string, QRetroOptionCategory*> m_Categories;

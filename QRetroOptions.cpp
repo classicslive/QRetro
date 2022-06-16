@@ -422,6 +422,25 @@ void QRetroOptions::onOptionChoiceChanged(const QString& choice)
                  choice.toStdString().c_str());
 }
 
+void QRetroOptions::onOptionIntChanged(int state)
+{
+  auto option = getOption(sender()->objectName().toStdString().c_str());
+  int value = state;
+
+  if (!option->possibleValues().contains(QString(state)))
+  {
+    for (auto i = option->possibleValues().begin(); i != option->possibleValues().end(); i++)
+    {
+      if (i->toInt() > state)
+      {
+        i--;
+        value = i->toInt();
+      }
+    }
+  }
+  option->setValue(QString(state).toStdString());
+}
+
 void QRetroOptions::update()
 {
   QGridLayout *layout = new QGridLayout();
@@ -455,6 +474,26 @@ void QRetroOptions::update()
       elem->setObjectName(QString::fromStdString(iter->first));
       connect(elem, SIGNAL(stateChanged(int)),
               this, SLOT(onOptionBoolChanged(int)));
+
+      auto label = new QLabel(var->title(), this);
+      label->setBuddy(elem);
+
+      layout->addWidget(label, i, 0);
+      layout->addWidget(elem, i, 1);
+
+      break;
+    }
+
+    case QRetroOption::Int:
+    {
+      auto elem = new QSlider(this);
+      var->possibleValues().sort();
+      elem->setObjectName(QString::fromStdString(iter->first));
+      elem->setMinimum(var->possibleValues().front().toInt());
+      elem->setMaximum(var->possibleValues().back().toInt());
+      elem->setValue(QString(var->getValue()).toInt());
+      connect(elem, SIGNAL(valueChanged()),
+              this, SLOT(onOptionIntChanged(int)));
 
       auto label = new QLabel(var->title(), this);
       label->setBuddy(elem);
