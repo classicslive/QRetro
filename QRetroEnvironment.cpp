@@ -59,7 +59,7 @@ static bool core_location_start(void)
 {
   auto _this = _qrthis();
 
-  if (_this && _this->location() && _this->location())
+  if (_this && _this->location())
     return _this->location()->startUpdates();
 
   return false;
