@@ -492,7 +492,7 @@ void QRetroOptions::update()
       elem->setMinimum(var->possibleValues().front().toInt());
       elem->setMaximum(var->possibleValues().back().toInt());
       elem->setValue(QString(var->getValue()).toInt());
-      connect(elem, SIGNAL(valueChanged()),
+      connect(elem, SIGNAL(valueChanged(int)),
               this, SLOT(onOptionIntChanged(int)));
 
       auto label = new QLabel(var->title(), this);
