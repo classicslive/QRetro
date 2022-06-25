@@ -1,8 +1,26 @@
 #include "QRetroCommon.h"
 
-using namespace std;
+static std::map<std::thread::id, QRetro*> thread_map;
 
-map<thread::id, QRetro*> thread_map;
+/*
+ * TODO: Actually removing it triggers a crash, probably due to race conditions
+ * with other instances. Fix so we don't keep a map of dead pointers.
+ */
+bool _qrdelete(QRetro *retro)
+{
+  if (!retro)
+    return false;
+  for (auto it = thread_map.begin(); it != thread_map.end(); it++)
+  {
+    if (it->second == retro)
+    {
+      it->second = nullptr;
+      return true;
+    }
+  }
+
+  return false;
+}
 
 QString _qrerror(const char *file, int line, QString msg)
 {
@@ -10,6 +28,16 @@ QString _qrerror(const char *file, int line, QString msg)
     QString(file),
     QString::number(line),
     msg);
+}
+
+bool _qrnew(std::thread::id id, QRetro* retro)
+{
+  if (!retro)
+    return false;
+  else
+    thread_map.insert(std::pair<std::thread::id, QRetro*>(id, retro));
+
+  return true;
 }
 
 /*
@@ -23,14 +51,14 @@ QString _qrerror(const char *file, int line, QString msg)
 */
 QRetro* _qrthis()
 {
-  auto it = thread_map.find(this_thread::get_id());
+  auto it = thread_map.find(std::this_thread::get_id());
 
   if (it == thread_map.end())
   {
     auto last_entry = thread_map.rbegin()->second;
 
-    thread_map.insert(pair<thread::id, QRetro*>(
-                      this_thread::get_id(), last_entry));
+    thread_map.insert(std::pair<std::thread::id, QRetro*>(
+                      std::this_thread::get_id(), last_entry));
 
     return last_entry;
   }

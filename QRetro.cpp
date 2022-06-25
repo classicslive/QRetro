@@ -493,11 +493,7 @@ QRetro::~QRetro()
   }
 
   /* Remove the object from our static thread map */
-  /* TODO: Actually removing it triggers a crash. Find out why so we don't
-   * keep a map of dead pointers. */
-  for (auto it = thread_map.begin(); it != thread_map.end(); it++)
-    if (it->second == this)
-      it->second = nullptr;
+  _qrdelete(this);
 }
 
 void QRetro::timing()
@@ -505,7 +501,7 @@ void QRetro::timing()
   auto next = steady_clock::now();
 
   /* Map our emulation thread to this instance of a QRetro object */
-  thread_map.insert(pair<thread::id, QRetro*>(this_thread::get_id(), this));
+  _qrnew(this_thread::get_id(), this);
 
   /* Refresh core info, as it may have changed after retro_init */
   m_Core.retro_get_system_info(&m_Core.system_info);
