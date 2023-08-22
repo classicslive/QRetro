@@ -38,6 +38,10 @@ HEADERS += \
   libretro.h \
   libretro_core.h
 
+INCLUDEPATH += $$PWD
+
+TARGET = QRetro
+
 # Default rules for deployment.
 unix {
   target.path = /usr/lib
