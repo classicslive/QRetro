@@ -3,7 +3,9 @@
 QRetroSensors::QRetroSensors()
 {
   /* Ignore force of gravity */
+#if QRETRO_HAVE_SENSORS
   m_AccelerometerSensor.setAccelerationMode(QAccelerometer::User);
+#endif
 }
 
 bool QRetroSensors::setState(unsigned port, retro_sensor_action action,
@@ -50,6 +52,7 @@ float QRetroSensors::getInput(unsigned port, unsigned id)
     return 0;
   else
   {
+#if QRETRO_HAVE_SENSORS
     switch (id)
     {
     case RETRO_SENSOR_ACCELEROMETER_X:
@@ -75,5 +78,8 @@ float QRetroSensors::getInput(unsigned port, unsigned id)
     default:
       return 0;
     }
+#else
+    return 0;
+#endif
   }
 }
