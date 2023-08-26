@@ -13,6 +13,7 @@
 #include "QRetroAudioVideoEnable.h"
 #include "QRetroDirectories.h"
 #include "QRetroLocation.h"
+#include "QRetroMicrophone.h"
 #include "QRetroProcAddress.h"
 #include "QRetroOptions.h"
 #include "QRetroSensors.h"
@@ -48,6 +49,7 @@ public:
   QRetroAudioVideoEnable* audioVideoEnable(void) { return &m_AudioVideoEnable; }
   retro_core_t*      core(void) { return &m_Core; }
   QRetroLocation*    location(void) { return m_Location; }
+  QRetroMicrophone*  microphone(void) { return &m_Microphone; }
   QRetroOptions*     options(void) { return &m_Options; }
   QRetroDirectories* directories(void) { return &m_Directories; }
   QRetroProcAddress* procAddress(void) { return &m_ProcAddress; }
@@ -319,6 +321,7 @@ private:
   QRetroAudioVideoEnable  m_AudioVideoEnable;
   QRetroDirectories       m_Directories;
   QRetroOptions           m_Options;
+  QRetroMicrophone        m_Microphone;
   QRetroProcAddress       m_ProcAddress;
   QRetroSensors           m_Sensors;
   QRetroUsername          m_Username;

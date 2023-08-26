@@ -2,9 +2,6 @@
 
 #include "QRetroMicrophone.h"
 
-static_assert(RETRO_MICROPHONE_INTERFACE_VERSION == 1,
-              "Microphone API version updated!");
-
 struct qretro_microphone_t
 {
   QAudioFormat format;
@@ -73,9 +70,9 @@ bool QRetroMicrophone::setState(retro_microphone_t *microphone, bool state)
   return true;
 }
 
-bool QRetroMicrophone::getState(retro_microphone_t *microphone)
+bool QRetroMicrophone::getState(const retro_microphone_t *microphone)
 {
-  auto mic = reinterpret_cast<qretro_microphone_t*>(microphone);
+  auto mic = reinterpret_cast<const qretro_microphone_t*>(microphone);
 
   return (mic &&
           mic->input &&

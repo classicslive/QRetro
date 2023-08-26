@@ -141,6 +141,66 @@ static float core_sensor_get_input(unsigned port, unsigned id)
     return _this->sensors()->getInput(port, id);
 }
 
+static void core_microphone_close_mic(retro_microphone_t *microphone)
+{
+  auto _this = _qrthis();
+
+  if (_this)
+    return _this->microphone()->close(microphone);
+}
+
+static bool core_microphone_get_mic_state(const retro_microphone_t *microphone)
+{
+  auto _this = _qrthis();
+
+  if (!_this)
+    return false;
+  else
+    return _this->microphone()->getState(microphone);
+}
+
+static bool core_microphone_set_mic_state(retro_microphone_t *microphone, bool state)
+{
+  auto _this = _qrthis();
+
+  if (!_this)
+    return false;
+  else
+    return _this->microphone()->setState(microphone, state);
+}
+
+static bool core_microphone_get_params(const retro_microphone_t *microphone,
+                                       retro_microphone_params_t *params)
+{
+  auto _this = _qrthis();
+
+  if (!_this)
+    return false;
+  else
+    return _this->microphone()->getParams(microphone, params);
+}
+
+static retro_microphone_t* core_microphone_open_mic(const retro_microphone_params_t *params)
+{
+  auto _this = _qrthis();
+
+  if (!_this)
+    return NULL;
+  else
+    return _this->microphone()->open(params);
+}
+
+static int core_microphone_read_mic(retro_microphone_t *microphone,
+                                    int16_t *samples, size_t num_samples)
+{
+  auto _this = _qrthis();
+
+  if (!_this)
+    return 0;
+  else
+    return _this->microphone()->read(microphone, samples, num_samples);
+}
+
 void core_video_refresh(const void *data, unsigned width,
   unsigned height, size_t pitch)
 {
@@ -529,6 +589,23 @@ bool core_environment(unsigned cmd, void *data)
     {
       auto var = reinterpret_cast<retro_variable*>(data);
       _this->options()->setOptionValue(var->key, var->value);
+    }
+    break;
+  }
+
+  case RETRO_ENVIRONMENT_GET_MICROPHONE_INTERFACE:
+  {
+    if (data)
+    {
+      auto cb = reinterpret_cast<retro_microphone_interface*>(data);
+
+      cb->interface_version = _this->microphone()->interfaceVersion();
+      cb->close_mic = core_microphone_close_mic;
+      cb->get_mic_state = core_microphone_get_mic_state;
+      cb->set_mic_state = core_microphone_set_mic_state;
+      cb->get_params = core_microphone_get_params;
+      cb->open_mic = core_microphone_open_mic;
+      cb->read_mic = core_microphone_read_mic;
     }
     break;
   }
