@@ -6,7 +6,7 @@ greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
 TEMPLATE = lib
 
-DEFINES += QRETRO_LIBRARY
+DEFINES += -DQRETRO_LIBRARY=1
 
 CONFIG += c++11 staticlib
 
@@ -17,6 +17,7 @@ SOURCES += \
   QRetroDirectories.cpp \
   QRetroEnvironment.cpp \
   QRetroLocation.cpp \
+  QRetroMicrophone.cpp \
   QRetroOptions.cpp \
   QRetroProcAddress.cpp \
   QRetroSensors.cpp \
@@ -30,6 +31,8 @@ HEADERS += \
   QRetroDirectories.h \
   QRetroEnvironment.h \
   QRetroLocation.h \
+  QRetroMicrophone.h \
+  QRetroMicrophone.h \
   QRetroOptions.h \
   QRetroProcAddress.h \
   QRetroSensors.h \
@@ -37,8 +40,6 @@ HEADERS += \
   QRetro_global.h \
   libretro.h \
   libretro_core.h
-
-INCLUDEPATH += $$PWD
 
 TARGET = QRetro
 
