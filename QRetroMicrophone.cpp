@@ -4,7 +4,6 @@
 
 struct qretro_microphone_t
 {
-  QAudioFormat format;
   QAudioInput *input;
   QIODevice *device;
 };
@@ -12,21 +11,29 @@ struct qretro_microphone_t
 retro_microphone_t* QRetroMicrophone::open(const retro_microphone_params_t *params)
 {
   auto mic = new qretro_microphone_t;
+  QAudioFormat format;
 
-  mic->format.setSampleRate(params->rate);
-  mic->format.setChannelCount(1);
-  mic->format.setSampleSize(sizeof(int16_t));
-  mic->format.setCodec("audio/pcm");
+  format.setSampleRate(params->rate);
+  format.setChannelCount(1);
+  format.setSampleSize(sizeof(int16_t));
+  format.setCodec("audio/pcm");
   //mic->format.setByteOrder(QAudioFormat::LittleEndian);
-  mic->format.setSampleType(QAudioFormat::SignedInt);
+  format.setSampleType(QAudioFormat::SignedInt);
 
   QAudioDeviceInfo info = QAudioDeviceInfo::defaultInputDevice();
-  if (!info.isFormatSupported(mic->format))
-    mic->format = info.nearestFormat(mic->format);
+  if (!info.isFormatSupported(format))
+    format = info.nearestFormat(format);
 
+  mic->input = new QAudioInput(format);
   mic->device = mic->input->start();
 
-  return reinterpret_cast<retro_microphone_t*>(mic);
+  if (!mic->device)
+  {
+    close(reinterpret_cast<retro_microphone_t*>(mic));
+    return NULL;
+  }
+  else
+    return reinterpret_cast<retro_microphone_t*>(mic);
 }
 
 void QRetroMicrophone::close(retro_microphone_t *microphone)
