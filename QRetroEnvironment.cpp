@@ -479,6 +479,11 @@ bool core_environment(unsigned cmd, void *data)
     break;
   }
 
+  /* 36 */
+  case RETRO_ENVIRONMENT_SET_MEMORY_MAPS:
+    _this->setMemoryMaps(reinterpret_cast<const retro_memory_map*>(data));
+    break;
+
   /* 38 */
   case RETRO_ENVIRONMENT_GET_USERNAME:
     *reinterpret_cast<const char**>(data) = _this->username()->get();
@@ -552,7 +557,7 @@ bool core_environment(unsigned cmd, void *data)
   /* 53 */
   case RETRO_ENVIRONMENT_SET_CORE_OPTIONS:
     _this->options()->setOptions(
-      reinterpret_cast<retro_core_option_definition**>(data));
+      reinterpret_cast<retro_core_option_definition**>(&data));
     break;
 
   /* 54 */

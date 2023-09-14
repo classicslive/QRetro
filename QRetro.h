@@ -142,6 +142,9 @@ public:
   bool supportsAchievements() { return m_Core.supports_achievements; }
   void setSupportsAchievements(bool supports) { m_Core.supports_achievements = supports; }
 
+  const retro_memory_map* memoryMaps(void) { return m_MemoryMaps; }
+  void setMemoryMaps(const retro_memory_map* maps) { m_MemoryMaps = maps; }
+
   double targetRefreshRate() { return m_TargetRefreshRate; }
 
   bool getCurrentSoftwareFramebuffer(retro_framebuffer*);
@@ -295,6 +298,9 @@ public:
 
   void setFastForwardingOverride(retro_fastforwarding_override*);
 
+  void pause(void) { m_Paused = true; }
+  void unpause(void) { m_Paused = false; }
+
 signals:
   void onCoreLog(int level, const QString msg);
   void onCoreMessage(const char *msg);
@@ -346,6 +352,7 @@ private:
   retro_language   m_Language;
   QRETRO_LIBRARY_T m_Library;
   retro_log_level  m_LogLevel;
+  const retro_memory_map *m_MemoryMaps = nullptr;
   QPoint           m_MouseDelta;
   QPoint           m_MousePosition;
   unsigned         m_PerformanceLevel;

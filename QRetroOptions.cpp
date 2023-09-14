@@ -88,14 +88,18 @@ QRetroOption::QRetroOption(retro_core_option_definition* us,
   if (local)
     m_Title[Local] = QString(local->desc).toStdString();
 
-  auto *choice = us->values;
-  while (choice->label && choice->value)
+  auto choice = us->values;
+
+  /* If label is not set, use the actual value */
+  while (choice->value)
   {
     m_PossibleValues[Default].append(choice->value);
     choice++;
   }
 
-  m_DefaultValue = std::string(us->default_value);
+  /* If default value is not set, default to the first value */
+  m_DefaultValue = us->default_value ? std::string(us->default_value) :
+                                       std::string(us->values[0].value);
 
   determineType();
 
