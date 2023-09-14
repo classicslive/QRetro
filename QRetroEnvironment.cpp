@@ -598,9 +598,20 @@ bool core_environment(unsigned cmd, void *data)
     break;
   }
 
+  /* 74 */
+  case RETRO_ENVIRONMENT_GET_JIT_CAPABLE:
+    if (!data)
+      return false;
+    else
+      *reinterpret_cast<bool*>(data) = _this->jitCapable();
+    break;
+
+  /* 75 */
   case RETRO_ENVIRONMENT_GET_MICROPHONE_INTERFACE:
   {
-    if (data)
+    if (!data)
+      return false;
+    else
     {
       auto cb = reinterpret_cast<retro_microphone_interface*>(data);
 

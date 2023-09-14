@@ -301,6 +301,9 @@ public:
   void pause(void) { m_Paused = true; }
   void unpause(void) { m_Paused = false; }
 
+  bool jitCapable(void) { return m_JitCapable; }
+  void setJitCapable(bool capable) { m_JitCapable = capable; }
+
 signals:
   void onCoreLog(int level, const QString msg);
   void onCoreMessage(const char *msg);
@@ -349,6 +352,7 @@ private:
   bool m_InputBitmasks = true;
   bool m_Overscan = true;
 
+  bool m_JitCapable = true;
   retro_language   m_Language;
   QRETRO_LIBRARY_T m_Library;
   retro_log_level  m_LogLevel;
