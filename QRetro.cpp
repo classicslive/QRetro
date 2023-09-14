@@ -291,12 +291,12 @@ static int16_t core_input_state(unsigned port, unsigned device, unsigned index,
   {
     if (id == RETRO_DEVICE_ID_JOYPAD_MASK && _this->supportsInputBitmasks())
     {
-      int16_t bitmask = 0;
+      uint16_t bitmask = 0;
 
       for (int i = 0; i <= RETRO_DEVICE_ID_JOYPAD_R3; i++)
         bitmask |= keys[port][i] ? (1 << i) : 0;
 
-      return bitmask;
+      return static_cast<int16_t>(bitmask);
     }
     else if (port <= 4 && id <= RETRO_DEVICE_ID_JOYPAD_R3)
       return keys[port][id];
@@ -813,12 +813,13 @@ bool QRetro::loadContent(const char *path, const char *meta)
       else
         info.data = nullptr;
 
+      m_ContentPath = path;
+
       info.meta = meta;
-      info.path = path;
+      info.path = m_ContentPath.c_str();
       info.size = size;
       m_Core.game_info = info;
 
-      m_ContentPath = path;
       m_Core.content_loaded = true;
 
       return true;
