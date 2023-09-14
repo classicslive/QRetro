@@ -1,8 +1,6 @@
 #ifndef QRETRO_MICROPHONE_H
 #define QRETRO_MICROPHONE_H
 
-#include <QObject>
-
 #include "libretro.h"
 
 static_assert(RETRO_MICROPHONE_INTERFACE_VERSION == 1,
@@ -14,11 +12,7 @@ static_assert(RETRO_MICROPHONE_INTERFACE_VERSION == 1,
  */
 class QRetroMicrophone
 {
-  Q_OBJECT
-
 public:
-  QRetroMicrophone();
-
   retro_microphone_t* open(const retro_microphone_params_t *params);
 
   void close(retro_microphone_t *microphone);
