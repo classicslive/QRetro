@@ -475,7 +475,7 @@ bool core_environment(unsigned cmd, void *data)
     for (unsigned i = 0; i < info->num_types; i++)
       printf("%0X4: %s\n", info->types[i].id, info->types[i].desc);
 
-    _this->core()->retro_set_controller_port_device(0, 0);
+    _this->core()->retro_set_controller_port_device(0, RETRO_DEVICE_ANALOG);
     break;
   }
 

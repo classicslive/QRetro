@@ -228,8 +228,8 @@ static void core_input_poll(void)
   keys[0][RETRO_DEVICE_ID_JOYPAD_R]  = gamepad.buttonR1();
   keys[0][RETRO_DEVICE_ID_JOYPAD_L2] = static_cast<int16_t>(gamepad.buttonL2() * 0x7FFF);
   keys[0][RETRO_DEVICE_ID_JOYPAD_R2] = static_cast<int16_t>(gamepad.buttonR2() * 0x7FFF);
-  keys[0][RETRO_DEVICE_ID_JOYPAD_L3]  = gamepad.buttonL3();
-  keys[0][RETRO_DEVICE_ID_JOYPAD_R3]  = gamepad.buttonR3();
+  keys[0][RETRO_DEVICE_ID_JOYPAD_L3] = gamepad.buttonL3();
+  keys[0][RETRO_DEVICE_ID_JOYPAD_R3] = gamepad.buttonR3();
 
   keys[0][RETRO_DEVICE_ID_JOYPAD_UP]    = gamepad.buttonUp();
   keys[0][RETRO_DEVICE_ID_JOYPAD_DOWN]  = gamepad.buttonDown();
@@ -281,8 +281,6 @@ static int16_t core_input_state(unsigned port, unsigned device, unsigned index,
 
   if (!_this)
     return 0;
-
-  _this->core()->retro_set_controller_port_device(0, 2);
 
   if (_this->hasInputStateHandler())
     return _this->runInputStateHandler(port, device, index, id);
@@ -562,7 +560,10 @@ void QRetro::timing()
 
   while (m_Active)
   {
-    if (inputReady() && isVisible() && !m_Paused && m_Audio->framesInBuffer() < 2)
+    if (inputReady() && // stall if waiting for input (netplay)
+        isVisible() && // stall if window is not available in context
+        !m_Paused && // stall if content is paused
+        m_Audio->excessFramesInBuffer() <= 0) // stall to play the audio queue
     {
       m_Core.retro_run();
       m_Frames++;
