@@ -6,7 +6,7 @@
   As of now, libretro supports exactly two. If this is ever expanded, this
   value should be made mutable.
 */
-#define CHANNELS 2
+#define QRETRO_AUDIO_CHANNELS 2
 
 QRetroAudio::QRetroAudio()
 {
@@ -56,9 +56,14 @@ QRetroAudio::~QRetroAudio()
   delete m_AudioOutput;
 }
 
-unsigned QRetroAudio::framesInBuffer()
+int QRetroAudio::framesInBuffer()
 {
   return m_AudioBuffer.size() / m_SampleRateBytesPerFrame;
+}
+
+int QRetroAudio::excessFramesInBuffer()
+{
+  return framesInBuffer() - m_BufferFrames;
 }
 
 void QRetroAudio::playFrame()
@@ -74,15 +79,14 @@ void QRetroAudio::pushSamples(const sample_t *data, size_t frames)
 {
   m_AudioBuffer.append(
     reinterpret_cast<const char*>(data),
-    static_cast<int>(frames * CHANNELS * sizeof(sample_t)));
+    static_cast<int>(frames * QRETRO_AUDIO_CHANNELS * sizeof(sample_t)));
 }
 
 void QRetroAudio::setTimingMultiplier(double mult)
 {
   m_SampleRateCurrent = m_SampleRateBase * mult;
-  m_SampleRateBytesPerFrame = static_cast<int>(
-    m_SampleRateBase / m_FramesPerSecond * sizeof(sample_t) * CHANNELS);
-  m_SampleRateBytesPerFrame &= m_SampleRateBytesPerFrame - 1; //hack
+  m_SampleRateBytesPerFrame = static_cast<unsigned>(m_SampleRateBase / m_FramesPerSecond) * sizeof(sample_t) * QRETRO_AUDIO_CHANNELS;
+  m_SampleRateBytesPerFrame &= static_cast<unsigned>(~1); // ensure amount is even (dolphin goes wacky without this)
   m_SampleRateMultiplier = mult;
 }
 
@@ -90,7 +94,7 @@ void QRetroAudio::start()
 {
   QAudioFormat format;
   format.setSampleRate(static_cast<int>(m_SampleRateCurrent));
-  format.setChannelCount(CHANNELS);
+  format.setChannelCount(QRETRO_AUDIO_CHANNELS);
   format.setSampleType(QAudioFormat::SignedInt);
   format.setSampleSize(16);
   format.setCodec("audio/pcm");

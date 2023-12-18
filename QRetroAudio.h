@@ -15,8 +15,20 @@ public:
   QRetroAudio(double frequency, double core_fps, double emu_fps);
   ~QRetroAudio();
 
-  unsigned framesInBuffer();
+  /**
+   * Returns the number of unplayed audio frames stored in the audio buffer.
+   */
+  int framesInBuffer();
+
+  /**
+   * Returns the number of unplayed audio frames stored in the audio buffer,
+   * minus the number of required buffer frames. All excess frames should be
+   * played before emulation continues.
+   */
+  int excessFramesInBuffer();
+
   void playFrame();
+
   void pushSamples(const sample_t *data, size_t frames);
 
   /*
@@ -37,7 +49,7 @@ private:
   double m_FramesPerSecond;
   unsigned m_BufferFrames = 1;
   double m_SampleRateBase;
-  int    m_SampleRateBytesPerFrame;
+  unsigned m_SampleRateBytesPerFrame;
   double m_SampleRateCurrent;
   double m_SampleRateMultiplier;
 };
