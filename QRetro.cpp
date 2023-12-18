@@ -584,7 +584,7 @@ void QRetro::timing()
 
     this_thread::sleep_until(next - milliseconds(2));
     while (steady_clock::now() < next);
-    next += nanoseconds(time);
+    next = steady_clock::now() + nanoseconds(time);
   }
 }
 

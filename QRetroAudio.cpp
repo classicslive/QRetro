@@ -63,7 +63,8 @@ int QRetroAudio::framesInBuffer()
 
 int QRetroAudio::excessFramesInBuffer()
 {
-  return framesInBuffer() - m_BufferFrames;
+  int result = framesInBuffer() - m_BufferFrames;
+  return (result > 0) ? result : 0;
 }
 
 void QRetroAudio::playFrame()
