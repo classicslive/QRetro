@@ -395,8 +395,8 @@ private:
   /* Geolocation */
   QRetroLocation *m_Location;
 
-  bool (*m_InputPollHandler)(void);
-  int16_t (*m_InputStateHandler)(unsigned, unsigned, unsigned, unsigned);
+  bool (*m_InputPollHandler)(void) = nullptr;
+  int16_t (*m_InputStateHandler)(unsigned, unsigned, unsigned, unsigned) = nullptr;
 
   bool inputReady() { return hasInputPollHandler() ? m_InputReady : true; }
   void setupPainter(QPainter *painter);
