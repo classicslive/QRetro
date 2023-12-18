@@ -2,9 +2,9 @@
 
 static std::map<std::thread::id, QRetro*> thread_map;
 
-/*
- * TODO: Actually removing it triggers a crash, probably due to race conditions
- * with other instances. Fix so we don't keep a map of dead pointers.
+/**
+ * @todo Actually removing it triggers a crash, probably due to race conditions
+ * with other instances. Fix so we don't keep a map of dead pointers. 
  */
 bool _qrdelete(QRetro *retro)
 {
@@ -40,15 +40,17 @@ bool _qrnew(std::thread::id id, QRetro* retro)
   return true;
 }
 
-/*
-  To get around needing to send static function pointers to the core while
-  still accessing member variables, we create a map of emulation timing
-  thread IDs to the QRetro objects they're instantiated from.
-
-  Using "_qrthis" will return what is effectively "this" in member
-  contexts, or NULL if the thread ID doesn't reference a managed
-  QRetro object.
-*/
+/**
+ * To get around needing to send static function pointers to the core while
+ * still accessing member variables, we create a map of emulation timing
+ * thread IDs to the QRetro objects they're instantiated from.
+ *
+ * Using "_qrthis" will return what is effectively "this" in member
+ * contexts, or NULL if the thread ID doesn't reference a managed
+ * QRetro object.
+ *
+ * @internal This function is meant for internal use and not for user code.
+ */
 QRetro* _qrthis()
 {
   auto it = thread_map.find(std::this_thread::get_id());
