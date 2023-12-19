@@ -475,7 +475,6 @@ bool core_environment(unsigned cmd, void *data)
     for (unsigned i = 0; i < info->num_types; i++)
       printf("%0X4: %s\n", info->types[i].id, info->types[i].desc);
 
-    _this->core()->retro_set_controller_port_device(0, RETRO_DEVICE_ANALOG);
     break;
   }
 
@@ -546,8 +545,9 @@ bool core_environment(unsigned cmd, void *data)
 
   /* 51 */
   case RETRO_ENVIRONMENT_GET_INPUT_BITMASKS:
-    *(reinterpret_cast<bool*>(data)) = _this->supportsInputBitmasks();
-    break;
+    if (data)
+      *(reinterpret_cast<bool*>(data)) = _this->supportsInputBitmasks();
+    return _this->supportsInputBitmasks();
 
   /* 52 */
   case RETRO_ENVIRONMENT_GET_CORE_OPTIONS_VERSION:
