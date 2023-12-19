@@ -187,7 +187,7 @@ void QRetro::setImagePtr(const void *data, unsigned width, unsigned height,
     return;
 
   /* RETRO_HW_FRAME_BUFFER_VALID generates a warning, so use this instead. */
-  if (data != reinterpret_cast<void*>(-1))
+  if (data && data != reinterpret_cast<void*>(-1))
   {
     m_Image = QImage(
       reinterpret_cast<const uchar*>(data),
@@ -584,7 +584,6 @@ void QRetro::timing()
 
     this_thread::sleep_until(next - milliseconds(2));
     while (steady_clock::now() < next);
-    next = steady_clock::now() + nanoseconds(time);
   }
 }
 
