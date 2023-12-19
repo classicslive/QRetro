@@ -69,7 +69,7 @@ int QRetroAudio::excessFramesInBuffer()
 
 void QRetroAudio::playFrame()
 {
-  if (m_AudioBuffer.size() >= m_SampleRateBytesPerFrame * m_BufferFrames)
+  if (m_AudioBuffer.size() >= m_SampleRateBytesPerFrame)
   {
     m_AudioDevice->write(m_AudioBuffer.data(), m_SampleRateBytesPerFrame);
     m_AudioBuffer.remove(0, m_SampleRateBytesPerFrame);
@@ -109,6 +109,10 @@ void QRetroAudio::start()
   }
   if (m_AudioDevice)
     delete m_AudioDevice;
+
+  m_AudioBuffer.append(
+    reinterpret_cast<const char*>(calloc(m_SampleRateBytesPerFrame, 1)),
+    static_cast<int>(m_BufferFrames * QRETRO_AUDIO_CHANNELS * sizeof(sample_t)));
 
   m_AudioOutput = new QAudioOutput(format);
   m_AudioDevice = m_AudioOutput->start();
