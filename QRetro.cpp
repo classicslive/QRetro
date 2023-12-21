@@ -200,6 +200,7 @@ void QRetro::setImagePtr(const void *data, unsigned width, unsigned height,
 }
 
 static inline int16_t qt2lr_joystick(double qt)
+static inline int16_t qt2lr_analog(double qt)
 {
   return static_cast<int16_t>(qt * 0x7FFF);
 }
@@ -216,6 +217,7 @@ static void core_input_poll(void)
   }
 
   _this->core()->retro_set_controller_port_device(0, RETRO_DEVICE_ANALOG);
+  _this->core()->retro_set_controller_port_device(0, RETRO_DEVICE_JOYPAD);
 
   /* Run the built-in input poll handler */
   keys[0][RETRO_DEVICE_ID_JOYPAD_A]      = gamepad.buttonB();
@@ -223,24 +225,40 @@ static void core_input_poll(void)
   keys[0][RETRO_DEVICE_ID_JOYPAD_X]      = gamepad.buttonY();
   keys[0][RETRO_DEVICE_ID_JOYPAD_Y]      = gamepad.buttonX();
   keys[0][RETRO_DEVICE_ID_JOYPAD_START]  = gamepad.buttonStart();
+  keys[0][RETRO_DEVICE_ID_JOYPAD_A] = gamepad.buttonB();
+  keys[0][RETRO_DEVICE_ID_JOYPAD_B] = gamepad.buttonA();
+  keys[0][RETRO_DEVICE_ID_JOYPAD_X] = gamepad.buttonY();
+  keys[0][RETRO_DEVICE_ID_JOYPAD_Y] = gamepad.buttonX();
+  keys[0][RETRO_DEVICE_ID_JOYPAD_START] = gamepad.buttonStart();
   keys[0][RETRO_DEVICE_ID_JOYPAD_SELECT] = gamepad.buttonSelect();
 
   keys[0][RETRO_DEVICE_ID_JOYPAD_L]  = gamepad.buttonL1();
   keys[0][RETRO_DEVICE_ID_JOYPAD_R]  = gamepad.buttonR1();
   keys[0][RETRO_DEVICE_ID_JOYPAD_L2] = static_cast<int16_t>(gamepad.buttonL2() * 0x7FFF);
   keys[0][RETRO_DEVICE_ID_JOYPAD_R2] = static_cast<int16_t>(gamepad.buttonR2() * 0x7FFF);
+  keys[0][RETRO_DEVICE_ID_JOYPAD_L] = gamepad.buttonL1();
+  keys[0][RETRO_DEVICE_ID_JOYPAD_R] = gamepad.buttonR1();
+  keys[0][RETRO_DEVICE_ID_JOYPAD_L2] = qt2lr_analog(gamepad.buttonL2());
+  keys[0][RETRO_DEVICE_ID_JOYPAD_R2] = qt2lr_analog(gamepad.buttonR2());
   keys[0][RETRO_DEVICE_ID_JOYPAD_L3] = gamepad.buttonL3();
   keys[0][RETRO_DEVICE_ID_JOYPAD_R3] = gamepad.buttonR3();
 
   keys[0][RETRO_DEVICE_ID_JOYPAD_UP]    = gamepad.buttonUp();
   keys[0][RETRO_DEVICE_ID_JOYPAD_DOWN]  = gamepad.buttonDown();
   keys[0][RETRO_DEVICE_ID_JOYPAD_LEFT]  = gamepad.buttonLeft();
+  keys[0][RETRO_DEVICE_ID_JOYPAD_UP] = gamepad.buttonUp();
+  keys[0][RETRO_DEVICE_ID_JOYPAD_DOWN] = gamepad.buttonDown();
+  keys[0][RETRO_DEVICE_ID_JOYPAD_LEFT] = gamepad.buttonLeft();
   keys[0][RETRO_DEVICE_ID_JOYPAD_RIGHT] = gamepad.buttonRight();
 
   sticks[0][0][RETRO_DEVICE_ID_ANALOG_X] = qt2lr_joystick(gamepad.axisLeftX());
   sticks[0][0][RETRO_DEVICE_ID_ANALOG_Y] = qt2lr_joystick(gamepad.axisLeftY());
   sticks[0][1][RETRO_DEVICE_ID_ANALOG_X] = qt2lr_joystick(gamepad.axisRightX());
   sticks[0][1][RETRO_DEVICE_ID_ANALOG_Y] = qt2lr_joystick(gamepad.axisRightY());
+  sticks[0][0][RETRO_DEVICE_ID_ANALOG_X] = qt2lr_analog(gamepad.axisLeftX());
+  sticks[0][0][RETRO_DEVICE_ID_ANALOG_Y] = qt2lr_analog(gamepad.axisLeftY());
+  sticks[0][1][RETRO_DEVICE_ID_ANALOG_X] = qt2lr_analog(gamepad.axisRightX());
+  sticks[0][1][RETRO_DEVICE_ID_ANALOG_Y] = qt2lr_analog(gamepad.axisRightY());
 
   if (_this)
     _this->updateMouse();
