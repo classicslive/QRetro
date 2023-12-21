@@ -39,9 +39,40 @@ long long unsigned QRetro::getCurrentFramebuffer()
   {
     m_ImageRendering = true;
     auto a = m_OpenGlFbo->toImage();
+
     m_Image = a.copy();
+
+    int width = m_Image.width();
+        int height = m_Image.height();
+
+        // Loop through columns to find the range of non-black pixels
+        int minX = width; // Initialize with the maximum possible value
+        int maxX = 0;     // Initialize with the minimum possible value
+
+        for (int x = 0; x < width; ++x) {
+            bool columnIsEmpty = true;
+
+            for (int y = 0; y < height; ++y)
+              {
+                auto c = m_Image.pixelColor(x, y);
+                if (c != QColor(0, 0, 0, 0)) {
+                    columnIsEmpty = false;
+                    break;
+                }
+            }
+
+            if (!columnIsEmpty) {
+                // Found a non-empty column
+                minX = std::min(minX, x);
+                maxX = std::max(maxX, x);
+            }
+        }
+    int usedWidth = std::max(0, maxX - minX + 1);
+
+    m_Image = m_Image.copy(0, 0, usedWidth, m_Image.height());
     if (!m_Core.hw_render.bottom_left_origin)
       m_Image = m_Image.mirrored();
+
     m_ImageRendering = false;
   }
 
@@ -678,7 +709,7 @@ void QRetro::keyPressEvent(QKeyEvent *event)
     case Qt::Key_W:
       setFastForwarding(!m_FastForwarding);
       break;
-    case Qt::Key_9:
+    case Qt::Key_T:
       setRotation(m_Rotation + 90);
       break;
     case Qt::Key_F1:
