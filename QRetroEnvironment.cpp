@@ -488,7 +488,8 @@ bool core_environment(unsigned cmd, void *data)
   {
     auto geo = reinterpret_cast<const retro_game_geometry*>(data);
 
-    _this->setGeometry(geo->base_width, geo->base_height);
+    if (geo)
+      _this->setGeometry(geo->base_width, geo->base_height);
     break;
   }
 
@@ -634,6 +635,11 @@ bool core_environment(unsigned cmd, void *data)
     }
     break;
   }
+
+  /* Callback 76 is deprecated */
+  case 76:
+    core_log(RETRO_LOG_WARN, "Old-style SET_NETPACKET_INTERFACE is deprecated!");
+    return false;
 
   default:
     qWarning("Unimplemented environment callback %u%s%s.",
