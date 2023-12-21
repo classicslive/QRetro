@@ -83,7 +83,6 @@ void QRetro::exposeEvent(QExposeEvent *event)
 void QRetro::setGeometry(const unsigned width, const unsigned height)
 {
   m_BaseRect = QRect(0, 0, static_cast<int>(width), static_cast<int>(height));
-  QWindow::setGeometry(m_BaseRect);
   updateScaling();
 }
 
@@ -536,6 +535,7 @@ void QRetro::timing()
   m_Core.retro_get_system_av_info(&m_Core.av_info);
 
   setGeometry(m_Core.av_info.geometry.base_width, m_Core.av_info.geometry.base_height);
+  QWindow::setGeometry(m_BaseRect);
 
   m_Audio = new QRetroAudio(m_Core.av_info.timing.sample_rate, 60.0, m_TargetRefreshRate);
   m_Audio->start();

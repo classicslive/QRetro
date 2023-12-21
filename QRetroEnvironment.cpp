@@ -483,6 +483,15 @@ bool core_environment(unsigned cmd, void *data)
     _this->setMemoryMaps(reinterpret_cast<const retro_memory_map*>(data));
     break;
 
+  /* 37 */
+  case RETRO_ENVIRONMENT_SET_GEOMETRY:
+  {
+    auto geo = reinterpret_cast<const retro_game_geometry*>(data);
+
+    _this->setGeometry(geo->base_width, geo->base_height);
+    break;
+  }
+
   /* 38 */
   case RETRO_ENVIRONMENT_GET_USERNAME:
     *reinterpret_cast<const char**>(data) = _this->username()->get();
