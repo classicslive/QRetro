@@ -141,6 +141,14 @@ static float core_sensor_get_input(unsigned port, unsigned id)
     return _this->sensors()->getInput(port, id);
 }
 
+static void core_led_set_state(int led, int state)
+{
+  auto _this = _qrthis();
+
+  if (_this && _this->led())
+    _this->led()->setState(led, state);
+}
+
 static void core_microphone_close_mic(retro_microphone_t *microphone)
 {
   auto _this = _qrthis();
@@ -534,6 +542,17 @@ bool core_environment(unsigned cmd, void *data)
     else
       shared_context_stuff();
   */
+
+  /* 46 */
+  case RETRO_ENVIRONMENT_GET_LED_INTERFACE:
+  {
+    auto led = reinterpret_cast<retro_led_interface*>(data);
+
+    if (led)
+      led->set_led_state = core_led_set_state;
+
+    break;
+  }
 
   /* 47 */
   case RETRO_ENVIRONMENT_GET_AUDIO_VIDEO_ENABLE:
