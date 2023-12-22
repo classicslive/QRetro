@@ -329,7 +329,7 @@ bool core_environment(unsigned cmd, void *data)
         reinterpret_cast<retro_hw_get_current_framebuffer_t>(
         core_hw_get_current_framebuffer);
 
-      if (hw->context_reset)
+      if (hw->context_reset && !hw->cache_context)
         hw->context_reset();
 
       _this->core()->hw_render = *hw;

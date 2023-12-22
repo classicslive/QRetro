@@ -449,7 +449,7 @@ QRetro::QRetro(QWindow *parent, retro_hw_context_type format)
   setAutosaveInterval(5);
   setLanguage(RETRO_LANGUAGE_ENGLISH);
   setLogLevel(RETRO_LOG_ERROR);
-  setPreferredRenderer(RETRO_HW_CONTEXT_OPENGL);
+  setPreferredRenderer(format);
 
   /* Initialize member variables */
   m_Active = false;
@@ -525,6 +525,9 @@ void QRetro::timing()
     emit onCoreLog(RETRO_LOG_ERROR, QRETRO_ERROR(QString(
       "Function retro_load_game failed for an unknown reason:\n%1").arg(m_Core.game_info.path)));
   }
+
+  if (m_Core.hw_render.context_reset)
+    m_Core.hw_render.context_reset();
 
   emit onCoreStart();
 
