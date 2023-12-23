@@ -42,7 +42,9 @@ typedef struct retro_core_t
   size_t (*retro_get_memory_size)(unsigned);
 
   /* libretro structs */
+  retro_audio_callback audio_callback;
   retro_fastforwarding_override fastforwarding_override;
+  retro_frame_time_callback frame_time_callback;
   retro_game_info game_info;
   retro_get_proc_address_interface get_proc_address_interface;
   retro_hw_render_callback hw_render;

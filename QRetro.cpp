@@ -215,7 +215,6 @@ static void core_input_poll(void)
     return;
   }
 
-  _this->core()->retro_set_controller_port_device(0, RETRO_DEVICE_ANALOG);
   _this->core()->retro_set_controller_port_device(0, RETRO_DEVICE_JOYPAD);
 
   /* Run the built-in input poll handler */
@@ -544,6 +543,10 @@ void QRetro::timing()
   m_Audio = new QRetroAudio(m_Core.av_info.timing.sample_rate, 60.0, m_TargetRefreshRate);
   m_Audio->start();
 
+  /* Notify core to begin sending audio, if using audio callback */
+  if (m_Core.audio_callback.set_state)
+    m_Core.audio_callback.set_state(true);
+
 #ifdef _WIN32
   if (!SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_HIGHEST))
     printf("Unable to change thread priority.\n");
@@ -571,6 +574,8 @@ void QRetro::timing()
         !m_Paused && // stall if content is paused
         !m_Audio->excessFramesInBuffer()) // stall to play the audio queue
     {
+      if (m_Core.frame_time_callback.callback)
+        m_Core.frame_time_callback.callback(m_Core.frame_time_callback.reference);
       m_Core.retro_run();
       m_Frames++;
     }
@@ -579,6 +584,8 @@ void QRetro::timing()
     m_BaseRect.setSize(QSize(m_Core.av_info.geometry.base_height * (m_UseAspectRatio ? m_Core.av_info.geometry.aspect_ratio : 1), m_Core.av_info.geometry.base_height));
     updateScaling();
 
+    if (m_Core.audio_callback.callback)
+      m_Core.audio_callback.callback();
     m_Audio->playFrame();
 
     auto time = static_cast<unsigned>(1000000000 / m_TargetRefreshRate);

@@ -429,6 +429,28 @@ bool core_environment(unsigned cmd, void *data)
     core_log(RETRO_LOG_WARN, "Old-style SET_AUDIO_CALLBACK is deprecated!");
     return false;
 
+  /* 21 */
+  case RETRO_ENVIRONMENT_SET_FRAME_TIME_CALLBACK:
+  {
+    auto cb = reinterpret_cast<retro_frame_time_callback*>(data);
+
+    if (cb && cb->callback)
+      _this->core()->frame_time_callback = *cb;
+
+    break;
+  }
+
+  /* 22 */
+  case RETRO_ENVIRONMENT_SET_AUDIO_CALLBACK:
+  {
+    auto cb = reinterpret_cast<retro_audio_callback*>(data);
+
+    if (cb && cb->callback && cb->set_state)
+      _this->core()->audio_callback = *cb;
+
+    break;
+  }
+
   /* 23 */
   case RETRO_ENVIRONMENT_GET_RUMBLE_INTERFACE:
   {
