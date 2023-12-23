@@ -30,10 +30,8 @@ static int mousewheel[2];
 long long unsigned QRetro::getCurrentFramebuffer()
 {
   /* Framebuffer hasn't been initialized */
-  if (!m_OpenGlFbo)
-    m_OpenGlFbo = new QOpenGLFramebufferObject(QSize(
-      static_cast<int>(m_Core.av_info.geometry.base_width),
-      static_cast<int>(m_Core.av_info.geometry.base_height)));
+  if (!m_OpenGlFbo || m_OpenGlFbo->size() != m_BaseRect.size())
+    m_OpenGlFbo = new QOpenGLFramebufferObject(m_BaseRect.size());
 
   if (!m_ImageDrawing && m_OpenGlFbo->isValid() && !m_OpenGlFbo->isBound())
   {
@@ -82,8 +80,13 @@ void QRetro::exposeEvent(QExposeEvent *event)
 
 void QRetro::setGeometry(const unsigned width, const unsigned height)
 {
-  m_BaseRect = QRect(0, 0, static_cast<int>(width), static_cast<int>(height));
-  updateScaling();
+  if (m_BaseRect.width() != static_cast<int>(width) ||
+      m_BaseRect.height() != static_cast<int>(height))
+  {
+    m_BaseRect = QRect(0, 0, static_cast<int>(width), static_cast<int>(height));
+    m_Image = QImage(m_BaseRect.size(), m_PixelFormat);
+    updateScaling();
+  }
 }
 
 void QRetro::setupPainter(QPainter *painter)
@@ -134,8 +137,11 @@ bool QRetro::event(QEvent *ev)
 
         painter.fillRect(0, 0, size().width(), size().height(), Qt::black);
         painter.drawImage(m_Rect, m_Image);
+
+#if QRETRO_DRAW_DEBUG
         painter.setPen(Qt::red);
         painter.drawText(16, size().height() - 16, "Software");
+#endif
         painter.end();
 
         m_BackingStore->endPaint();
@@ -165,8 +171,19 @@ bool QRetro::event(QEvent *ev)
 
         painter.fillRect(0, 0, size().width(), size().height(), Qt::black);
         painter.drawImage(m_Rect, m_Image);
-        painter.setPen(Qt::blue);
-        painter.drawText(16, size().height() - 16, "OpenGL");
+
+#if QRETRO_DRAW_DEBUG
+        if (m_OpenGlFbo)
+        {
+          painter.setPen(Qt::yellow);
+          painter.drawText(16, size().height() - 16, "OpenGL HW");
+        }
+        else
+        {
+          painter.setPen(Qt::blue);
+          painter.drawText(16, size().height() - 16, "OpenGL");
+        }
+#endif
 
         m_OpenGlContext->swapBuffers(this);
         m_ImageDrawing = false;
@@ -525,7 +542,7 @@ void QRetro::timing()
       "Function retro_load_game failed for an unknown reason:\n%1").arg(m_Core.game_info.path)));
   }
 
-  if (m_Core.hw_render.context_reset)
+  if (m_Core.hw_render.context_reset && !m_Core.hw_render.cache_context)
     m_Core.hw_render.context_reset();
 
   emit onCoreStart();
@@ -582,10 +599,6 @@ void QRetro::timing()
     }
 
     m_Core.retro_get_system_av_info(&m_Core.av_info);
-    m_BaseRect.setSize(QSize((m_UseAspectRatio && m_Core.av_info.geometry.aspect_ratio > 0) ?
-                               static_cast<int>(static_cast<float>(m_Core.av_info.geometry.base_height) * m_Core.av_info.geometry.aspect_ratio) :
-                               static_cast<int>(m_Core.av_info.geometry.base_width),
-                             static_cast<int>(m_Core.av_info.geometry.base_height)));
     updateScaling();
 
     if (m_Core.audio_callback.callback)
