@@ -209,6 +209,41 @@ static int core_microphone_read_mic(retro_microphone_t *microphone,
     return _this->microphone()->read(microphone, samples, num_samples);
 }
 
+static bool core_midi_input_enabled(void)
+{
+  auto _this = _qrthis();
+
+  return _this && _this->midi()->inputEnabled();
+}
+
+static bool core_midi_output_enabled(void)
+{
+  auto _this = _qrthis();
+
+  return _this && _this->midi()->outputEnabled();
+}
+
+static bool core_midi_read(uint8_t *byte)
+{
+  auto _this = _qrthis();
+
+  return _this && _this->midi()->read(byte);
+}
+
+static bool core_midi_write(uint8_t byte, uint32_t delta_time)
+{
+  auto _this = _qrthis();
+
+  return _this && _this->midi()->write(byte, delta_time);
+}
+
+static bool core_midi_flush()
+{
+  auto _this = _qrthis();
+
+  return _this && _this->midi()->flush();
+}
+
 void core_video_refresh(const void *data, unsigned width,
   unsigned height, size_t pitch)
 {
@@ -394,6 +429,28 @@ bool core_environment(unsigned cmd, void *data)
     core_log(RETRO_LOG_WARN, "Old-style SET_AUDIO_CALLBACK is deprecated!");
     return false;
 
+  /* 21 */
+  case RETRO_ENVIRONMENT_SET_FRAME_TIME_CALLBACK:
+  {
+    auto cb = reinterpret_cast<retro_frame_time_callback*>(data);
+
+    if (cb && cb->callback)
+      _this->core()->frame_time_callback = *cb;
+
+    break;
+  }
+
+  /* 22 */
+  case RETRO_ENVIRONMENT_SET_AUDIO_CALLBACK:
+  {
+    auto cb = reinterpret_cast<retro_audio_callback*>(data);
+
+    if (cb && cb->callback && cb->set_state)
+      _this->core()->audio_callback = *cb;
+
+    break;
+  }
+
   /* 23 */
   case RETRO_ENVIRONMENT_GET_RUMBLE_INTERFACE:
   {
@@ -560,6 +617,22 @@ bool core_environment(unsigned cmd, void *data)
     break;
 
   /* 48 */
+  case RETRO_ENVIRONMENT_GET_MIDI_INTERFACE:
+  {
+    auto midi = reinterpret_cast<retro_midi_interface*>(data);
+
+    if (midi)
+    {
+      midi->input_enabled = core_midi_input_enabled;
+      midi->output_enabled = core_midi_output_enabled;
+      midi->read = core_midi_read;
+      midi->write = core_midi_write;
+      midi->flush = core_midi_flush;
+    }
+
+    break;
+  }
+
 
   /* 49 */
   case RETRO_ENVIRONMENT_GET_FASTFORWARDING:

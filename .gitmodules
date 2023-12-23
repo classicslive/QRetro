@@ -1,0 +1,3 @@
+[submodule "external/QMidi"]
+	path = external/QMidi
+	url = https://github.com/waddlesplash/QMidi
