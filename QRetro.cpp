@@ -574,6 +574,7 @@ void QRetro::timing()
         !m_Paused && // stall if content is paused
         !m_Audio->excessFramesInBuffer()) // stall to play the audio queue
     {
+      /** @todo Properly measure frametime */
       if (m_Core.frame_time_callback.callback)
         m_Core.frame_time_callback.callback(m_Core.frame_time_callback.reference);
       m_Core.retro_run();
@@ -581,7 +582,10 @@ void QRetro::timing()
     }
 
     m_Core.retro_get_system_av_info(&m_Core.av_info);
-    m_BaseRect.setSize(QSize(m_Core.av_info.geometry.base_height * (m_UseAspectRatio ? m_Core.av_info.geometry.aspect_ratio : 1), m_Core.av_info.geometry.base_height));
+    m_BaseRect.setSize(QSize((m_UseAspectRatio && m_Core.av_info.geometry.aspect_ratio > 0) ?
+                               static_cast<int>(static_cast<float>(m_Core.av_info.geometry.base_height) * m_Core.av_info.geometry.aspect_ratio) :
+                               static_cast<int>(m_Core.av_info.geometry.base_width),
+                             static_cast<int>(m_Core.av_info.geometry.base_height)));
     updateScaling();
 
     if (m_Core.audio_callback.callback)

@@ -633,7 +633,6 @@ bool core_environment(unsigned cmd, void *data)
     break;
   }
 
-
   /* 49 */
   case RETRO_ENVIRONMENT_GET_FASTFORWARDING:
     *(reinterpret_cast<bool*>(data)) = _this->fastForwarding();
