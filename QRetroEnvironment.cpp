@@ -145,7 +145,7 @@ static void core_led_set_state(int led, int state)
 {
   auto _this = _qrthis();
 
-  if (_this && _this->led())
+  if (_this)
     _this->led()->setState(led, state);
 }
 

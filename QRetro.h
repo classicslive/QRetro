@@ -49,7 +49,7 @@ public:
   QRetroAudio*       audio(void) { return m_Audio; }
   QRetroAudioVideoEnable* audioVideoEnable(void) { return &m_AudioVideoEnable; }
   retro_core_t*      core(void) { return &m_Core; }
-  QRetroLed          led(void) { return &m_Led; }
+  QRetroLed*         led(void) { return &m_Led; }
   QRetroLocation*    location(void) { return m_Location; }
   QRetroMicrophone*  microphone(void) { return &m_Microphone; }
   QRetroOptions*     options(void) { return &m_Options; }
