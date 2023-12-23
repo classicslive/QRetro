@@ -52,13 +52,19 @@ QRetroAudio::QRetroAudio(double frequency, double core_fps, double emu_fps)
 
 QRetroAudio::~QRetroAudio()
 {
-  m_AudioOutput->stop();
-  delete m_AudioOutput;
+  if (m_AudioOutput)
+  {
+    m_AudioOutput->stop();
+    delete m_AudioOutput;
+  }
 }
 
 int QRetroAudio::framesInBuffer()
 {
-  return m_AudioBuffer.size() / m_SampleRateBytesPerFrame;
+  if (m_AudioOutput)
+    return m_AudioBuffer.size() / m_SampleRateBytesPerFrame;
+  else
+    return 0;
 }
 
 int QRetroAudio::excessFramesInBuffer()
@@ -69,7 +75,7 @@ int QRetroAudio::excessFramesInBuffer()
 
 void QRetroAudio::playFrame()
 {
-  if (m_AudioBuffer.size() >= m_SampleRateBytesPerFrame)
+  if (m_AudioOutput && m_AudioBuffer.size() >= m_SampleRateBytesPerFrame)
   {
     m_AudioDevice->write(m_AudioBuffer.data(), m_SampleRateBytesPerFrame);
     m_AudioBuffer.remove(0, m_SampleRateBytesPerFrame);
@@ -99,6 +105,9 @@ void QRetroAudio::start()
   format.setSampleType(QAudioFormat::SignedInt);
   format.setSampleSize(16);
   format.setCodec("audio/pcm");
+
+  if (m_SampleRateCurrent <= 0)
+    return;
 
   m_AudioBuffer.clear();
 

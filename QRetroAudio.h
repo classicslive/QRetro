@@ -18,16 +18,16 @@ public:
   /**
    * Returns the number of unplayed audio frames stored in the audio buffer.
    */
-  int framesInBuffer();
+  int framesInBuffer(void);
 
   /**
    * Returns the number of unplayed audio frames stored in the audio buffer,
    * minus the number of required buffer frames. All excess frames should be
    * played before emulation continues.
    */
-  int excessFramesInBuffer();
+  int excessFramesInBuffer(void);
 
-  void playFrame();
+  void playFrame(void);
 
   void pushSamples(const sample_t *data, size_t frames);
 
@@ -39,7 +39,8 @@ public:
   void setBufferFrames(unsigned frames) { m_BufferFrames = frames; }
 
   void setTimingMultiplier(double mult);
-  void start();
+
+  void start(void);
 
 private:
   QAudioOutput *m_AudioOutput;
