@@ -15,6 +15,7 @@
 #include "QRetroLed.h"
 #include "QRetroLocation.h"
 #include "QRetroMicrophone.h"
+#include "QRetroMidi.h"
 #include "QRetroProcAddress.h"
 #include "QRetroOptions.h"
 #include "QRetroSensors.h"
@@ -52,6 +53,7 @@ public:
   QRetroLed*         led(void) { return &m_Led; }
   QRetroLocation*    location(void) { return m_Location; }
   QRetroMicrophone*  microphone(void) { return &m_Microphone; }
+  QRetroMidi*        midi(void) { return &m_Midi; }
   QRetroOptions*     options(void) { return &m_Options; }
   QRetroDirectories* directories(void) { return &m_Directories; }
   QRetroProcAddress* procAddress(void) { return &m_ProcAddress; }
@@ -334,6 +336,7 @@ private:
   QRetroOptions           m_Options;
   QRetroLed               m_Led;
   QRetroMicrophone        m_Microphone;
+  QRetroMidi              m_Midi;
   QRetroProcAddress       m_ProcAddress;
   QRetroSensors           m_Sensors;
   QRetroUsername          m_Username;
