@@ -29,9 +29,13 @@ static int mousewheel[2];
 
 long long unsigned QRetro::getCurrentFramebuffer()
 {
-  /* Framebuffer hasn't been initialized */
+  /* Create framebuffer if it is invalid or null */
   if (!m_OpenGlFbo || m_OpenGlFbo->size() != m_BaseRect.size())
+  {
+    if (m_OpenGlFbo)
+      delete m_OpenGlFbo;
     m_OpenGlFbo = new QOpenGLFramebufferObject(m_BaseRect.size());
+  }
 
   if (!m_ImageDrawing && m_OpenGlFbo->isValid() && !m_OpenGlFbo->isBound())
   {
