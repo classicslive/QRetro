@@ -31,9 +31,12 @@ CONFIG(debug, debug|release) {
 }
 
 !QRETRO_CONFIG_NO_MIDI {
-  include(QMidi/src/QMidi.pri)
-  DEFINES += QRETRO_HAVE_MIDI=1
-  message("MIDI module added.")
+  include(QMidi/src/QMidi.pri) {
+    DEFINES += QRETRO_HAVE_MIDI=1
+    message("MIDI module added.")
+  } else {
+    warning("MIDI module requested, but is not available. Did you update submodules?")
+  }
 }
 
 !QRETRO_CONFIG_NO_OPENGL {
