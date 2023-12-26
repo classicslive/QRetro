@@ -2,12 +2,7 @@ message("QRetro: Start build")
 
 QT += core gui multimedia
 
-CONFIG += \
-  QRETRO_CONFIG_GAMEPAD \
-  QRETRO_CONFIG_LOCATION \
-  QRETRO_CONFIG_MIDI \
-  QRETRO_CONFIG_OPENGL \
-  QRETRO_CONFIG_SENSORS
+greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
 CONFIG(debug, debug|release) {
   DEFINES += QRETRO_DRAW_DEBUG=1
@@ -15,11 +10,7 @@ CONFIG(debug, debug|release) {
   DEFINES += QRETRO_DRAW_DEBUG=0
 }
 
-greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
-
-CONFIG += c++11
-
-QRETRO_CONFIG_GAMEPAD {
+!QRETRO_CONFIG_NO_GAMEPAD {
   qtHaveModule(gamepad) {
     QT += gamepad
     DEFINES += QRETRO_HAVE_GAMEPAD=1
@@ -29,7 +20,7 @@ QRETRO_CONFIG_GAMEPAD {
   }
 }
 
-QRETRO_CONFIG_LOCATION {
+!QRETRO_CONFIG_NO_LOCATION {
   qtHaveModule(positioning) {
     QT += positioning
     DEFINES += QRETRO_HAVE_LOCATION=1
@@ -39,13 +30,13 @@ QRETRO_CONFIG_LOCATION {
   }
 }
 
-QRETRO_CONFIG_MIDI {
+!QRETRO_CONFIG_NO_MIDI {
   include(QMidi/src/QMidi.pri)
   DEFINES += QRETRO_HAVE_MIDI=1
   message("MIDI module added.")
 }
 
-QRETRO_CONFIG_OPENGL {
+!QRETRO_CONFIG_NO_OPENGL {
   !isEmpty(QMAKE_LIBS_OPENGL) {
     LIBS += -lOpengl32
     DEFINES += QRETRO_HAVE_OPENGL=1
@@ -55,7 +46,7 @@ QRETRO_CONFIG_OPENGL {
   }
 }
 
-QRETRO_CONFIG_SENSORS {
+!QRETRO_CONFIG_NO_SENSORS {
   qtHaveModule(sensors) {
     QT += sensors
     DEFINES += QRETRO_HAVE_SENSORS=1
