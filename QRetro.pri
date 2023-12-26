@@ -40,7 +40,7 @@ QRETRO_CONFIG_LOCATION {
 }
 
 QRETRO_CONFIG_MIDI {
-  include(external/QMidi/src/QMidi.pri)
+  include(QMidi/src/QMidi.pri)
   DEFINES += QRETRO_HAVE_MIDI=1
   message("MIDI module added.")
 }
