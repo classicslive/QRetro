@@ -3,6 +3,7 @@
 
 #if QRETRO_HAVE_SENSORS
 #include <QAccelerometer>
+#include <QAmbientLightSensor>
 #include <QRotationSensor>
 #endif
 
@@ -34,6 +35,9 @@ private:
   bool m_GyroscopeEnabled = false;
   unsigned m_GyroscopeRate = 0;
 
+#if QRETRO_HAVE_SENSORS
+  QAmbientLightSensor m_IlluminanceSensor;
+#endif
   bool m_IlluminanceEnabled = false;
   unsigned m_IlluminanceRate = 0;
   float m_IlluminanceValue = 0;

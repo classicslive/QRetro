@@ -20,23 +20,44 @@ bool QRetroSensors::setState(unsigned port, retro_sensor_action action,
     case RETRO_SENSOR_ACCELEROMETER_ENABLE:
       m_AccelerometerEnabled = true;
       m_AccelerometerRate = rate;
+#if QRETRO_HAVE_SENSORS
+      m_AccelerometerSensor.setDataRate(rate);
+      m_AccelerometerSensor.start();
+#endif
       break;
     case RETRO_SENSOR_ACCELEROMETER_DISABLE:
       m_AccelerometerEnabled = false;
+#if QRETRO_HAVE_SENSORS
+      m_AccelerometerSensor.stop();
+#endif
       break;
     case RETRO_SENSOR_GYROSCOPE_ENABLE:
       m_GyroscopeEnabled = true;
       m_GyroscopeRate = rate;
+#if QRETRO_HAVE_SENSORS
+      m_GyroscopeSensor.setDataRate(rate);
+      m_GyroscopeSensor.start();
+#endif
       break;
     case RETRO_SENSOR_GYROSCOPE_DISABLE:
       m_GyroscopeEnabled = false;
+#if QRETRO_HAVE_SENSORS
+      m_GyroscopeSensor.stop();
+#endif
       break;
     case RETRO_SENSOR_ILLUMINANCE_ENABLE:
       m_IlluminanceEnabled = true;
       m_IlluminanceRate = rate;
+#if QRETRO_HAVE_SENSORS
+      m_IlluminanceSensor.setDataRate(rate);
+      m_IlluminanceSensor.start();
+#endif
       break;
     case RETRO_SENSOR_ILLUMINANCE_DISABLE:
       m_IlluminanceEnabled = false;
+#if QRETRO_HAVE_SENSORS
+      m_IlluminanceSensor.stop();
+#endif
       break;
     default:
       return false;
@@ -74,7 +95,25 @@ float QRetroSensors::getInput(unsigned port, unsigned id)
       return m_GyroscopeEnabled ?
         static_cast<float>(m_GyroscopeSensor.reading()->z()) : 0;
     case RETRO_SENSOR_ILLUMINANCE:
-      return m_IlluminanceEnabled ? m_IlluminanceValue : 0;
+      if (m_IlluminanceEnabled)
+      {
+        switch (m_IlluminanceSensor.reading()->lightLevel())
+        {
+        case QAmbientLightReading::Undefined:
+        case QAmbientLightReading::Dark:
+          return 0/4;
+        case QAmbientLightReading::Twilight:
+          return 1/4;
+        case QAmbientLightReading::Light:
+          return 2/4;
+        case QAmbientLightReading::Bright:
+          return 3/4;
+        case QAmbientLightReading::Sunny:
+          return 4/4;
+        }
+      }
+      else
+        return 0;
     default:
       return 0;
     }
