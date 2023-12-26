@@ -42,6 +42,13 @@ If you plan to use hardware-accelerated cores using OpenGL, include the followin
 QCoreApplication::setAttribute(Qt::AA_ShareOpenGLContexts);
 ```
 
+## Compatibility
+
+See the following wiki pages for information on QRetro's compatibility with specific libretro cores and features:
+
+- https://github.com/classicslive/QRetro/wiki/Cores
+- https://github.com/classicslive/QRetro/wiki/Environment_callbacks
+
 ## Building
 
 QRetro requires the following Qt modules:
