@@ -11,6 +11,7 @@
 #include "libretro_core.h"
 #include "QRetroAudio.h"
 #include "QRetroAudioVideoEnable.h"
+#include "QRetroDevicePower.h"
 #include "QRetroDirectories.h"
 #include "QRetroLed.h"
 #include "QRetroLocation.h"
@@ -50,6 +51,7 @@ public:
   QRetroAudio*       audio(void) { return m_Audio; }
   QRetroAudioVideoEnable* audioVideoEnable(void) { return &m_AudioVideoEnable; }
   retro_core_t*      core(void) { return &m_Core; }
+  QRetroDevicePower* devicePower(void) { return &m_DevicePower; }
   QRetroLed*         led(void) { return &m_Led; }
   QRetroLocation*    location(void) { return m_Location; }
   QRetroMicrophone*  microphone(void) { return &m_Microphone; }
@@ -332,6 +334,7 @@ protected:
 private:
   QRetroAudio            *m_Audio;
   QRetroAudioVideoEnable  m_AudioVideoEnable;
+  QRetroDevicePower       m_DevicePower;
   QRetroDirectories       m_Directories;
   QRetroOptions           m_Options;
   QRetroLed               m_Led;

@@ -732,6 +732,10 @@ bool core_environment(unsigned cmd, void *data)
     core_log(RETRO_LOG_WARN, "Old-style SET_NETPACKET_INTERFACE is deprecated!");
     return false;
 
+  /* 77 */
+  case RETRO_ENVIRONMENT_GET_DEVICE_POWER:
+    return _this->devicePower()->get(reinterpret_cast<retro_device_power*>(data));
+
   default:
     qWarning("Unimplemented environment callback %u%s%s.",
       cmd_noflags,
