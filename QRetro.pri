@@ -44,7 +44,12 @@ CONFIG(debug, debug|release) {
 
 !QRETRO_CONFIG_NO_OPENGL {
   !isEmpty(QMAKE_LIBS_OPENGL) {
-    LIBS += -lOpengl32
+    win32 {
+      LIBS += -lOpengl32
+    }
+    linux* {
+      LIBS += -lGL
+    }
     DEFINES += QRETRO_HAVE_OPENGL=1
     message("OpenGL module added.")
   } else {
