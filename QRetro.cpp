@@ -609,6 +609,9 @@ void QRetro::timing()
       /** @todo Properly measure frametime */
       if (m_Core.frame_time_callback.callback)
         m_Core.frame_time_callback.callback(m_Core.frame_time_callback.reference);
+
+      m_Camera.update();
+
       m_Core.retro_run();
       m_Frames++;
     }

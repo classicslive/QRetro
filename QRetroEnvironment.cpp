@@ -25,6 +25,24 @@ size_t core_audio_sample_batch(const int16_t *data, size_t frames)
   return frames;
 }
 
+static bool core_camera_start(void)
+{
+  auto _this = _qrthis();
+
+  if (_this && _this->camera())
+    return _this->camera()->start();
+  else
+    return false;
+}
+
+static void core_camera_stop(void)
+{
+  auto _this = _qrthis();
+
+  if (_this && _this->camera())
+    _this->camera()->stop();
+}
+
 static long long unsigned core_hw_get_current_framebuffer()
 {
   auto _this = _qrthis();
@@ -467,6 +485,21 @@ bool core_environment(unsigned cmd, void *data)
 
     cb->set_sensor_state = core_sensor_set_state;
     cb->get_sensor_input = core_sensor_get_input;
+
+    break;
+  }
+
+  /* 26 */
+  case RETRO_ENVIRONMENT_GET_CAMERA_INTERFACE:
+  {
+    auto cb = reinterpret_cast<retro_camera_callback*>(data);
+
+    if (cb)
+    {
+      cb->start = core_camera_start;
+      cb->stop = core_camera_stop;
+      _this->camera()->init(cb);
+    }
 
     break;
   }

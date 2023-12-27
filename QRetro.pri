@@ -10,6 +10,16 @@ CONFIG(debug, debug|release) {
   DEFINES += QRETRO_DRAW_DEBUG=0
 }
 
+CONFIG += QRETRO_CONFIG_NO_CAMERA
+
+!QRETRO_CONFIG_NO_CAMERA {
+  DEFINES += QRETRO_HAVE_CAMERA=1
+  message("Camera module added.")
+} else {
+  DEFINES += QRETRO_HAVE_CAMERA=0
+  message("Camera module disabled.")
+}
+
 !QRETRO_CONFIG_NO_GAMEPAD {
   qtHaveModule(gamepad) {
     QT += gamepad
@@ -39,6 +49,17 @@ CONFIG(debug, debug|release) {
   } else {
     DEFINES += QRETRO_HAVE_MIDI=0
     warning("MIDI module requested, but is not available. Did you update submodules?")
+  }
+}
+
+!QRETRO_CONFIG_NO_MULTIMEDIA {
+  qtHaveModule(multimedia) {
+    QT += multimedia
+    DEFINES += QRETRO_HAVE_MULTIMEDIA=1
+    message("Multimedia module added.")
+  } else {
+    DEFINES += QRETRO_HAVE_MULTIMEDIA=0
+    warning("Multimedia module requested, but is not available.")
   }
 }
 
@@ -84,6 +105,7 @@ CONFIG(debug, debug|release) {
 SOURCES += \
   $$PWD/QRetro.cpp \
   $$PWD/QRetroAudio.cpp \
+  $$PWD/QRetroCamera.cpp \
   $$PWD/QRetroCommon.cpp \
   $$PWD/QRetroDevicePower.cpp \
   $$PWD/QRetroDirectories.cpp \
@@ -103,6 +125,7 @@ HEADERS += \
   $$PWD/QRetro.h \
   $$PWD/QRetroAudio.h \
   $$PWD/QRetroAudioVideoEnable.h \
+  $$PWD/QRetroCamera.h \
   $$PWD/QRetroCommon.h \
   $$PWD/QRetroDevicePower.h \
   $$PWD/QRetroDirectories.h \
@@ -118,3 +141,9 @@ HEADERS += \
   $$PWD/QRetro_global.h \
   $$PWD/libretro.h \
   $$PWD/libretro_core.h
+
+DISTFILES += \
+  $$PWD/resources/camera.png
+
+RESOURCES += \
+  $$PWD/resources/resources.qrc
