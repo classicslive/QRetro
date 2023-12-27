@@ -70,6 +70,7 @@ public:
   bool loadCore(const char *path);
   bool loadContent(const char *path, const char *meta = nullptr);
   bool startCore(bool force = false);
+  bool startCore(void);
 
   QPoint mouseDelta() { return m_MouseDelta; }
   QPoint mousePosition() { return m_MousePosition; }

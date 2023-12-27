@@ -540,10 +540,21 @@ void QRetro::timing()
   m_Core.retro_init();
   m_Core.inited = true;
 
-  if (!m_Core.retro_load_game(&m_Core.game_info))
+  if (m_Core.content_loaded && !m_Core.retro_load_game(&m_Core.game_info))
   {
-    emit onCoreLog(RETRO_LOG_ERROR, QRETRO_ERROR(QString(
-      "Function retro_load_game failed for an unknown reason:\n%1").arg(m_Core.game_info.path)));
+    emit onCoreLog(RETRO_LOG_ERROR,
+                   QRETRO_ERROR(QString("Function retro_load_game failed for "
+                                "an unknown reason:\n%1").arg(
+                                m_Core.game_info.path)));
+    return;
+  }
+  else if (!m_Core.content_loaded && !m_Core.supports_no_game)
+  {
+    emit onCoreLog(RETRO_LOG_ERROR,
+                   QRETRO_ERROR("The core attempted to start without content, "
+                                "but there is no hint that it doing so is "
+                                "supported."));
+    return;
   }
 
   if (m_Core.hw_render.context_reset && !m_Core.hw_render.cache_context)
@@ -782,19 +793,12 @@ void QRetro::saving()
   }
 }
 
-bool QRetro::startCore(bool force)
+bool QRetro::startCore(void)
 {
   if (!m_Core.symbols_inited)
   {
     emit onCoreLog(RETRO_LOG_ERROR,
       "The core attempted to start without first being initialized.");
-    return false;
-  }
-  else if (!m_Core.supports_no_game && !m_Core.content_loaded && !force)
-  {
-    emit onCoreLog(RETRO_LOG_ERROR,
-      "The core attempted to start without content, but there is no hint that "
-      "it doing so is supported.");
     return false;
   }
   else
