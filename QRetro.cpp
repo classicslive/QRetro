@@ -614,6 +614,8 @@ void QRetro::timing()
       m_Camera.update();
 
       m_Core.retro_run();
+      emit onFrame();
+
       m_Frames++;
     }
 

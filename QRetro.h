@@ -316,6 +316,7 @@ signals:
   void onCoreLog(int level, const QString msg);
   void onCoreMessage(const char *msg);
   void onCoreStart(void);
+  void onFrame(void);
   void onSave(void);
   void onVideoRefresh(const void *ptr, unsigned width, unsigned height,
                       unsigned bytes_per_line);
@@ -405,7 +406,7 @@ private:
   bool m_ImageRendering = false;
 
   /* Geolocation */
-  QRetroLocation *m_Location;
+  QRetroLocation *m_Location = nullptr;
 
   bool (*m_InputPollHandler)(void) = nullptr;
   int16_t (*m_InputStateHandler)(unsigned, unsigned, unsigned, unsigned) = nullptr;
