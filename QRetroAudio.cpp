@@ -1,17 +1,15 @@
 #include <QAudioOutput>
 #include "QRetroAudio.h"
 
-/*
-  The number of channels the implementation plays audio through by default.
-  As of now, libretro supports exactly two. If this is ever expanded, this
-  value should be made mutable.
-*/
+/**
+ * The number of channels the implementation plays audio through by default.
+ * As of now, libretro supports exactly two. If this is ever expanded, this
+ * value should be made mutable.
+ */
 #define QRETRO_AUDIO_CHANNELS 2
 
-QRetroAudio::QRetroAudio()
+QRetroAudio::QRetroAudio(void)
 {
-  m_AudioDevice = nullptr;
-  m_AudioOutput = nullptr;
   m_SampleRateBase = 44100;
   m_FramesPerSecond = 60.0;
   setTimingMultiplier(1.0);
@@ -19,8 +17,6 @@ QRetroAudio::QRetroAudio()
 
 QRetroAudio::QRetroAudio(double frequency, double core_fps)
 {
-  m_AudioDevice = nullptr;
-  m_AudioOutput = nullptr;
   m_SampleRateBase = frequency;
   m_FramesPerSecond = core_fps;
   setTimingMultiplier(1.0);
@@ -30,8 +26,6 @@ QRetroAudio::QRetroAudio(double frequency, double core_fps, double emu_fps)
 {
   double mult = emu_fps / core_fps;
 
-  m_AudioDevice = nullptr;
-  m_AudioOutput = nullptr;
   m_SampleRateBase = frequency;
   m_FramesPerSecond = emu_fps;
 
@@ -50,7 +44,7 @@ QRetroAudio::QRetroAudio(double frequency, double core_fps, double emu_fps)
          mult);
 }
 
-QRetroAudio::~QRetroAudio()
+QRetroAudio::~QRetroAudio(void)
 {
   if (m_AudioOutput)
   {
@@ -59,7 +53,7 @@ QRetroAudio::~QRetroAudio()
   }
 }
 
-int QRetroAudio::framesInBuffer()
+int QRetroAudio::framesInBuffer(void)
 {
   if (m_AudioOutput)
     return m_AudioBuffer.size() / m_SampleRateBytesPerFrame;
@@ -67,13 +61,13 @@ int QRetroAudio::framesInBuffer()
     return 0;
 }
 
-int QRetroAudio::excessFramesInBuffer()
+int QRetroAudio::excessFramesInBuffer(void)
 {
   int result = framesInBuffer() - m_BufferFrames;
   return (result > 0) ? result : 0;
 }
 
-void QRetroAudio::playFrame()
+void QRetroAudio::playFrame(void)
 {
   if (m_AudioOutput && m_AudioBuffer.size() >= m_SampleRateBytesPerFrame)
   {
@@ -97,31 +91,47 @@ void QRetroAudio::setTimingMultiplier(double mult)
   m_SampleRateMultiplier = mult;
 }
 
-void QRetroAudio::start()
+bool QRetroAudio::start(void)
 {
-  QAudioFormat format;
-  format.setSampleRate(static_cast<int>(m_SampleRateCurrent));
-  format.setChannelCount(QRETRO_AUDIO_CHANNELS);
-  format.setSampleType(QAudioFormat::SignedInt);
-  format.setSampleSize(16);
-  format.setCodec("audio/pcm");
-
-  if (m_SampleRateCurrent <= 0)
-    return;
-
-  m_AudioBuffer.clear();
-
-  if (m_AudioOutput)
+  if (m_SampleRateCurrent > 0)
   {
-    m_AudioOutput->stop();
-    delete m_AudioOutput;
+    QAudioFormat format;
+
+    format.setSampleRate(m_SampleRateCurrent);
+    format.setChannelCount(QRETRO_AUDIO_CHANNELS);
+    format.setSampleType(QAudioFormat::SignedInt);
+    format.setSampleSize(8 * sizeof(sample_t));
+    format.setCodec("audio/pcm");
+
+    /* Close and free audio handlers if they exist */
+    if (m_AudioOutput)
+    {
+      m_AudioOutput->stop();
+      delete m_AudioOutput;
+      m_AudioOutput = nullptr;
+    }
+    if (m_AudioDevice)
+    {
+      m_AudioDevice->close();
+      delete m_AudioDevice;
+      m_AudioDevice = nullptr;
+    }
+
+    /* Fill the buffer with dummy data */
+    m_AudioBuffer.clear();
+    m_AudioBuffer.resize(m_BufferFrames *
+                         QRETRO_AUDIO_CHANNELS *
+                         sizeof(sample_t));
+    m_AudioBuffer.fill(0);
+
+    /* Start the new audio output */
+    m_AudioOutput = new QAudioOutput(format);
+    if (m_AudioOutput->error() != QAudio::NoError)
+    {
+      m_AudioDevice = m_AudioOutput->start();
+      return true;
+    }
   }
-  if (m_AudioDevice)
-    delete m_AudioDevice;
 
-  m_AudioBuffer.resize(m_BufferFrames * QRETRO_AUDIO_CHANNELS * sizeof(sample_t));
-  m_AudioBuffer.fill(0);
-
-  m_AudioOutput = new QAudioOutput(format);
-  m_AudioDevice = m_AudioOutput->start();
+  return false;
 }

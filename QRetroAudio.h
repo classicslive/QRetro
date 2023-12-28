@@ -10,10 +10,10 @@ QT_FORWARD_DECLARE_CLASS(QAudioOutput);
 class QRetroAudio
 {
 public:
-  QRetroAudio();
+  QRetroAudio(void);
   QRetroAudio(double frequency, double core_fps);
   QRetroAudio(double frequency, double core_fps, double emu_fps);
-  ~QRetroAudio();
+  ~QRetroAudio(void);
 
   /**
    * Returns the number of unplayed audio frames stored in the audio buffer.
@@ -40,12 +40,12 @@ public:
 
   void setTimingMultiplier(double mult);
 
-  void start(void);
+  bool start(void);
 
 private:
-  QAudioOutput *m_AudioOutput;
+  QAudioOutput *m_AudioOutput = nullptr;
   QByteArray    m_AudioBuffer;
-  QIODevice    *m_AudioDevice;
+  QIODevice    *m_AudioDevice = nullptr;
 
   double m_FramesPerSecond;
   unsigned m_BufferFrames = 1;
