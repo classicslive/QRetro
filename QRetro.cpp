@@ -236,7 +236,8 @@ static void core_input_poll(void)
     return;
   }
 
-  _this->core()->retro_set_controller_port_device(0, RETRO_DEVICE_JOYPAD);
+  if (_this && _this->core()->retro_set_controller_port_device)
+    _this->core()->retro_set_controller_port_device(0, RETRO_DEVICE_JOYPAD);
 
   /* Run the built-in input poll handler */
   keys[0][RETRO_DEVICE_ID_JOYPAD_A] = gamepad.buttonB();
