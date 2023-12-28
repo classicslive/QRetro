@@ -69,7 +69,9 @@ int QRetroAudio::excessFramesInBuffer(void)
 
 void QRetroAudio::playFrame(void)
 {
-  if (m_AudioOutput && m_AudioBuffer.size() >= m_SampleRateBytesPerFrame)
+  if (m_AudioOutput &&
+      m_AudioDevice &&
+      m_AudioBuffer.size() >= m_SampleRateBytesPerFrame)
   {
     m_AudioDevice->write(m_AudioBuffer.data(), m_SampleRateBytesPerFrame);
     m_AudioBuffer.remove(0, m_SampleRateBytesPerFrame);
@@ -126,7 +128,7 @@ bool QRetroAudio::start(void)
 
     /* Start the new audio output */
     m_AudioOutput = new QAudioOutput(format);
-    if (m_AudioOutput->error() != QAudio::NoError)
+    if (m_AudioOutput->error() == QAudio::NoError)
     {
       m_AudioDevice = m_AudioOutput->start();
       return true;
