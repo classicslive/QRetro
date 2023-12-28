@@ -99,17 +99,19 @@ float QRetroSensors::getInput(unsigned port, unsigned id)
       {
         switch (m_IlluminanceSensor.reading()->lightLevel())
         {
-        case QAmbientLightReading::Undefined:
         case QAmbientLightReading::Dark:
-          return 0/4;
+          return 1/5;
         case QAmbientLightReading::Twilight:
-          return 1/4;
+          return 2/5;
         case QAmbientLightReading::Light:
-          return 2/4;
+          return 3/5;
         case QAmbientLightReading::Bright:
-          return 3/4;
+          return 4/5;
         case QAmbientLightReading::Sunny:
-          return 4/4;
+          return 5/5;
+        case QAmbientLightReading::Undefined:
+        default:
+          return 0;
         }
       }
       else
