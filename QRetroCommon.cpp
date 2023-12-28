@@ -1,6 +1,6 @@
 #include "QRetroCommon.h"
 
-static std::map<std::thread::id, QRetro*> thread_map;
+std::map<std::thread::id, QRetro*> _qr_thread_map;
 
 /**
  * @todo Actually removing it triggers a crash, probably due to race conditions
@@ -10,7 +10,7 @@ bool _qrdelete(QRetro *retro)
 {
   if (!retro)
     return false;
-  for (auto it = thread_map.begin(); it != thread_map.end(); it++)
+  for (auto it = _qr_thread_map.begin(); it != _qr_thread_map.end(); it++)
   {
     if (it->second == retro)
     {
@@ -24,10 +24,9 @@ bool _qrdelete(QRetro *retro)
 
 QString _qrerror(const char *file, int line, QString msg)
 {
-  return QString("Error in %1, line %2:\n\n%3").arg(
-    QString(file),
-    QString::number(line),
-    msg);
+  return QString("Error in %1, line %2:\n\n%3").arg(QString(file),
+                                                    QString::number(line),
+                                                    msg);
 }
 
 bool _qrnew(std::thread::id id, QRetro* retro)
@@ -35,7 +34,7 @@ bool _qrnew(std::thread::id id, QRetro* retro)
   if (!retro)
     return false;
   else
-    thread_map.insert(std::pair<std::thread::id, QRetro*>(id, retro));
+    _qr_thread_map.insert(std::pair<std::thread::id, QRetro*>(id, retro));
 
   return true;
 }
@@ -53,14 +52,14 @@ bool _qrnew(std::thread::id id, QRetro* retro)
  */
 QRetro* _qrthis()
 {
-  auto it = thread_map.find(std::this_thread::get_id());
+  auto it = _qr_thread_map.find(std::this_thread::get_id());
 
-  if (it == thread_map.end())
+  if (it == _qr_thread_map.end())
   {
-    auto last_entry = thread_map.rbegin()->second;
+    auto last_entry = _qr_thread_map.rbegin()->second;
 
-    thread_map.insert(std::pair<std::thread::id, QRetro*>(
-                      std::this_thread::get_id(), last_entry));
+    _qr_thread_map.insert(std::pair<std::thread::id, QRetro*>(
+                          std::this_thread::get_id(), last_entry));
 
     return last_entry;
   }

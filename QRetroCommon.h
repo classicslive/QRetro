@@ -6,6 +6,8 @@
 
 #include "QRetro.h"
 
+extern std::map<std::thread::id, QRetro*> _qr_thread_map;
+
 #define QRETRO_ERROR(a) _qrerror(__FILE__, __LINE__, a)
 QString _qrerror(const char *file, int line, QString msg);
 
