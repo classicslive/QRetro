@@ -50,7 +50,7 @@ private:
   double m_FramesPerSecond;
   unsigned m_BufferFrames = 1;
   double m_SampleRateBase;
-  unsigned m_SampleRateBytesPerFrame;
+  int m_SampleRateBytesPerFrame;
   double m_SampleRateCurrent;
   double m_SampleRateMultiplier;
 };

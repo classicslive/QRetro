@@ -119,9 +119,8 @@ void QRetroAudio::start()
   if (m_AudioDevice)
     delete m_AudioDevice;
 
-  m_AudioBuffer.append(
-    reinterpret_cast<const char*>(calloc(m_SampleRateBytesPerFrame, 1)),
-    static_cast<int>(m_BufferFrames * QRETRO_AUDIO_CHANNELS * sizeof(sample_t)));
+  m_AudioBuffer.resize(m_BufferFrames * QRETRO_AUDIO_CHANNELS * sizeof(sample_t));
+  m_AudioBuffer.fill(0);
 
   m_AudioOutput = new QAudioOutput(format);
   m_AudioDevice = m_AudioOutput->start();
