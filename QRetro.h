@@ -150,8 +150,37 @@ public:
   bool supportsAchievements() { return m_Core.supports_achievements; }
   void setSupportsAchievements(bool supports) { m_Core.supports_achievements = supports; }
 
-  const retro_memory_map* memoryMaps(void) { return m_MemoryMaps; }
-  void setMemoryMaps(const retro_memory_map* maps) { m_MemoryMaps = maps; }
+  retro_memory_map* memoryMaps(void) { return &m_MemoryMaps; }
+  void setMemoryMaps(const struct retro_memory_map* maps)
+  {
+    m_MemoryMaps.num_descriptors = maps->num_descriptors;
+    auto descs = static_cast<retro_memory_descriptor*>(
+      calloc(m_MemoryMaps.num_descriptors, sizeof(retro_memory_descriptor)));
+
+    /* Do a deep copy */
+    for (unsigned i = 0; i < m_MemoryMaps.num_descriptors; i++)
+    {
+      auto dst = &descs[i];
+      auto src = &maps->descriptors[i];
+
+      dst->flags = src->flags;
+      dst->ptr = src->ptr;
+      dst->offset = src->offset;
+      dst->start = src->start;
+      dst->select = src->start;
+      dst->disconnect = src->disconnect;
+      dst->len = src->len;
+
+      if (src->addrspace)
+      {
+        auto addr = static_cast<char*>(malloc(strlen(src->addrspace) + 1));
+
+        strncpy(addr, src->addrspace, strlen(src->addrspace));
+        dst->addrspace = addr;
+      }
+    }
+    m_MemoryMaps.descriptors = descs;
+  }
 
   double targetRefreshRate() { return m_TargetRefreshRate; }
 
@@ -369,7 +398,7 @@ private:
   retro_language   m_Language;
   QRETRO_LIBRARY_T m_Library;
   retro_log_level  m_LogLevel;
-  const retro_memory_map *m_MemoryMaps = nullptr;
+  retro_memory_map m_MemoryMaps = { nullptr, 0 };
   QPoint           m_MouseDelta;
   QPoint           m_MousePosition;
   unsigned         m_PerformanceLevel;
