@@ -163,19 +163,13 @@ public:
       auto dst = &descs[i];
       auto src = &maps->descriptors[i];
 
-      dst->flags = src->flags;
-      dst->ptr = src->ptr;
-      dst->offset = src->offset;
-      dst->start = src->start;
-      dst->select = src->start;
-      dst->disconnect = src->disconnect;
-      dst->len = src->len;
-
+      memcpy(dst, src, sizeof(retro_memory_descriptor));
       if (src->addrspace)
       {
         auto addr = static_cast<char*>(malloc(strlen(src->addrspace) + 1));
 
-        strncpy(addr, src->addrspace, strlen(src->addrspace));
+        memcpy(addr, src->addrspace, strlen(src->addrspace) + 1);
+        addr[strlen(src->addrspace)] = '\0';
         dst->addrspace = addr;
       }
     }
