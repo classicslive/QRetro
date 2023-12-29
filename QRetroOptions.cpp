@@ -447,7 +447,7 @@ void QRetroOptions::update()
   {
     auto var = iter->second;
 
-    if (!var || !var->getVisibility())
+    if (!var)
       continue;
     else switch (var->type())
     {
@@ -461,6 +461,7 @@ void QRetroOptions::update()
               this, SLOT(onOptionBoolChanged(int)));
 
       auto label = new QLabel(var->title(), this);
+      label->setEnabled(var->getVisibility());
       label->setBuddy(elem);
 
       layout->addWidget(label, i, 0);
@@ -479,6 +480,7 @@ void QRetroOptions::update()
               this, SLOT(onOptionChoiceChanged(const QString&)));
 
       auto label = new QLabel(var->title(), this);
+      label->setEnabled(var->getVisibility());
       label->setBuddy(elem);
 
       layout->addWidget(label, i, 0);
