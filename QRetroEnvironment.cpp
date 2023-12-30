@@ -680,8 +680,8 @@ bool core_environment(unsigned cmd, void *data)
   /* 51 */
   case RETRO_ENVIRONMENT_GET_INPUT_BITMASKS:
     if (data)
-      *(reinterpret_cast<bool*>(data)) = _this->supportsInputBitmasks();
-    return _this->supportsInputBitmasks();
+      *(reinterpret_cast<bool*>(data)) = _this->input()->supportsBitmasks();
+    return _this->input()->supportsBitmasks();
 
   /* 52 */
   case RETRO_ENVIRONMENT_GET_CORE_OPTIONS_VERSION:
@@ -712,6 +712,12 @@ bool core_environment(unsigned cmd, void *data)
   /* 56 */
   case RETRO_ENVIRONMENT_GET_PREFERRED_HW_RENDER:
     *reinterpret_cast<unsigned*>(data) = _this->getPreferredRenderer();
+    break;
+
+  /* 61 */
+  case RETRO_ENVIRONMENT_GET_INPUT_MAX_USERS:
+    if (data)
+      *reinterpret_cast<unsigned*>(data) = _this->input()->maxUsers();
     break;
 
   /* 64 */

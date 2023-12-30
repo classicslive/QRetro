@@ -30,8 +30,16 @@ bool _qrnew(std::thread::id id, QRetro* retro);
 
 QRetro* _qrthis();
 
+/**
+ * Converts a Qt Gamepad analog input reading as double to a libretro one as
+ * signed short. Used for gamepad sticks and analog triggers.
+ */
+int16_t qt2lr_analog(double qt);
+
 retro_pixel_format qt2lr_pixel(const QImage::Format qt);
+
 retro_key qt2lr_keyboard(int key);
+
 uint16_t qt2lr_keymod(Qt::KeyboardModifiers qt);
 
 QImage::Format lr2qt_pixel(const retro_pixel_format lr);

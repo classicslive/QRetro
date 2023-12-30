@@ -10,7 +10,7 @@ CONFIG(debug, debug|release) {
   DEFINES += QRETRO_DRAW_DEBUG=0
 }
 
-CONFIG += QRETRO_CONFIG_NO_CAMERA
+CONFIG += QRETRO_CONFIG_NO_GAMEPAD
 
 !QRETRO_CONFIG_NO_CAMERA {
   DEFINES += QRETRO_HAVE_CAMERA=1
@@ -110,6 +110,7 @@ SOURCES += \
   $$PWD/QRetroDevicePower.cpp \
   $$PWD/QRetroDirectories.cpp \
   $$PWD/QRetroEnvironment.cpp \
+  $$PWD/QRetroInput.cpp \
   $$PWD/QRetroLocation.cpp \
   $$PWD/QRetroMicrophone.cpp \
   $$PWD/QRetroMidi.cpp \
@@ -130,6 +131,7 @@ HEADERS += \
   $$PWD/QRetroDevicePower.h \
   $$PWD/QRetroDirectories.h \
   $$PWD/QRetroEnvironment.h \
+  $$PWD/QRetroInput.h \
   $$PWD/QRetroLed.h \
   $$PWD/QRetroLocation.h \
   $$PWD/QRetroMicrophone.h \

@@ -10,7 +10,7 @@ QRetroUsername::QRetroUsername()
 
 void QRetroUsername::set(const char *username)
 {
-  strncpy_s(m_Username, username, QRETRO_USERNAME_LENGTH);
+  strncpy(m_Username, username, QRETRO_USERNAME_LENGTH);
 }
 
 void QRetroUsername::set(const std::string &username)

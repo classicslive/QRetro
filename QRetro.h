@@ -14,6 +14,7 @@
 #include "QRetroCamera.h"
 #include "QRetroDevicePower.h"
 #include "QRetroDirectories.h"
+#include "QRetroInput.h"
 #include "QRetroLed.h"
 #include "QRetroLocation.h"
 #include "QRetroMicrophone.h"
@@ -54,6 +55,7 @@ public:
   QRetroCamera*      camera(void) { return &m_Camera; }
   retro_core_t*      core(void) { return &m_Core; }
   QRetroDevicePower* devicePower(void) { return &m_DevicePower; }
+  QRetroInput*       input(void) { return &m_Input; }
   QRetroLed*         led(void) { return &m_Led; }
   QRetroLocation*    location(void) { return m_Location; }
   QRetroMicrophone*  microphone(void) { return &m_Microphone; }
@@ -131,15 +133,6 @@ public:
 
   float fastForwardingRatio() { return m_FastForwardRatio; }
   void setFastForwardingRatio(float ratio) { m_FastForwardRatio = ratio; }
-
-  bool supportsInputBitmasks() { return m_InputBitmasks; }
-
-  /**
-   * Sets whether or not the frontend reports to support input bitmasks.
-   * QRetro's default input implementation does, but if this is manually set to
-   * false, it will pretend not to.
-   */
-  void setSupportsInputBitmasks(bool supports) { m_InputBitmasks = supports; }
 
   bool getOverscan() { return m_Overscan; }
   void setOverscan(bool overscan) { m_Overscan = overscan; }
@@ -354,6 +347,7 @@ protected:
   bool event(QEvent *event) override;
   void exposeEvent(QExposeEvent *event) override;
   void keyPressEvent(QKeyEvent *event) override;
+  void keyReleaseEvent(QKeyEvent *event) override;
   void resizeEvent(QResizeEvent *event) override;
   void wheelEvent(QWheelEvent *event) override;
 
@@ -363,10 +357,11 @@ private:
   QRetroCamera            m_Camera;
   QRetroDevicePower       m_DevicePower;
   QRetroDirectories       m_Directories;
-  QRetroOptions           m_Options;
+  QRetroInput             m_Input;
   QRetroLed               m_Led;
   QRetroMicrophone        m_Microphone;
   QRetroMidi              m_Midi;
+  QRetroOptions           m_Options;
   QRetroProcAddress       m_ProcAddress;
   QRetroSensors           m_Sensors;
   QRetroUsername          m_Username;
@@ -385,10 +380,9 @@ private:
   bool             m_Paused = false;
 
   bool m_CanDupe = true;
-  bool m_InputBitmasks = true;
+  bool m_JitCapable = true;
   bool m_Overscan = true;
 
-  bool m_JitCapable = true;
   retro_language   m_Language;
   QRETRO_LIBRARY_T m_Library;
   retro_log_level  m_LogLevel;

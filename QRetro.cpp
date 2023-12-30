@@ -3,13 +3,13 @@
 #include <QDebug>
 #include <QFile>
 #include <QFileInfo>
-#include <QGamepad>
 #include <QKeyEvent>
 #include <QPainter>
 #include <QThread>
 
 #include <iostream>
 #ifndef _WIN32
+#include <dlfcn.h>
 #include <pthread.h>
 #endif
 
@@ -22,9 +22,6 @@
 using namespace std;
 using namespace std::chrono;
 
-static QGamepad gamepad;
-static int16_t keys[4][RETRO_DEVICE_ID_JOYPAD_R3 + 1];
-static int16_t sticks[4][2][2];
 static int mousewheel[2];
 
 long long unsigned QRetro::getCurrentFramebuffer()
@@ -220,14 +217,12 @@ void QRetro::setImagePtr(const void *data, unsigned width, unsigned height,
   requestUpdate();
 }
 
-static inline int16_t qt2lr_analog(double qt)
-{
-  return static_cast<int16_t>(qt * 0x7FFF);
-}
-
 static void core_input_poll(void)
 {
   auto _this = _qrthis();
+
+  if (_this)
+    _this->input()->poll();
 
   /* If a custom input poll handler has been installed, use that instead */
   if (_this && _this->hasInputPollHandler())
@@ -238,31 +233,6 @@ static void core_input_poll(void)
 
   if (_this && _this->core()->retro_set_controller_port_device)
     _this->core()->retro_set_controller_port_device(0, RETRO_DEVICE_JOYPAD);
-
-  /* Run the built-in input poll handler */
-  keys[0][RETRO_DEVICE_ID_JOYPAD_A] = gamepad.buttonB();
-  keys[0][RETRO_DEVICE_ID_JOYPAD_B] = gamepad.buttonA();
-  keys[0][RETRO_DEVICE_ID_JOYPAD_X] = gamepad.buttonY();
-  keys[0][RETRO_DEVICE_ID_JOYPAD_Y] = gamepad.buttonX();
-  keys[0][RETRO_DEVICE_ID_JOYPAD_START] = gamepad.buttonStart();
-  keys[0][RETRO_DEVICE_ID_JOYPAD_SELECT] = gamepad.buttonSelect();
-
-  keys[0][RETRO_DEVICE_ID_JOYPAD_L] = gamepad.buttonL1();
-  keys[0][RETRO_DEVICE_ID_JOYPAD_R] = gamepad.buttonR1();
-  keys[0][RETRO_DEVICE_ID_JOYPAD_L2] = qt2lr_analog(gamepad.buttonL2());
-  keys[0][RETRO_DEVICE_ID_JOYPAD_R2] = qt2lr_analog(gamepad.buttonR2());
-  keys[0][RETRO_DEVICE_ID_JOYPAD_L3] = gamepad.buttonL3();
-  keys[0][RETRO_DEVICE_ID_JOYPAD_R3] = gamepad.buttonR3();
-
-  keys[0][RETRO_DEVICE_ID_JOYPAD_UP] = gamepad.buttonUp();
-  keys[0][RETRO_DEVICE_ID_JOYPAD_DOWN] = gamepad.buttonDown();
-  keys[0][RETRO_DEVICE_ID_JOYPAD_LEFT] = gamepad.buttonLeft();
-  keys[0][RETRO_DEVICE_ID_JOYPAD_RIGHT] = gamepad.buttonRight();
-
-  sticks[0][0][RETRO_DEVICE_ID_ANALOG_X] = qt2lr_analog(gamepad.axisLeftX());
-  sticks[0][0][RETRO_DEVICE_ID_ANALOG_Y] = qt2lr_analog(gamepad.axisLeftY());
-  sticks[0][1][RETRO_DEVICE_ID_ANALOG_X] = qt2lr_analog(gamepad.axisRightX());
-  sticks[0][1][RETRO_DEVICE_ID_ANALOG_Y] = qt2lr_analog(gamepad.axisRightY());
 
   if (_this)
     _this->updateMouse();
@@ -308,29 +278,8 @@ static int16_t core_input_state(unsigned port, unsigned device, unsigned index,
   if (_this->hasInputStateHandler())
     return _this->runInputStateHandler(port, device, index, id);
 
-  if (device == RETRO_DEVICE_JOYPAD)
-  {
-    if (id == RETRO_DEVICE_ID_JOYPAD_MASK && _this->supportsInputBitmasks())
-    {
-      uint16_t bitmask = 0;
-
-      for (int i = 0; i <= RETRO_DEVICE_ID_JOYPAD_R3; i++)
-        bitmask |= keys[port][i] ? (1 << i) : 0;
-
-      return static_cast<int16_t>(bitmask);
-    }
-    else if (port <= 4 && id <= RETRO_DEVICE_ID_JOYPAD_R3)
-      return keys[port][id];
-    else
-      return 0;
-  }
-  else if (device == RETRO_DEVICE_ANALOG)
-  {
-    if (index == RETRO_DEVICE_INDEX_ANALOG_BUTTON)
-      return keys[port][id];
-    else
-      return sticks[port][index][id];
-  }
+  if (device == RETRO_DEVICE_JOYPAD || device == RETRO_DEVICE_ANALOG)
+    return _this->input()->state(port, device, index, id);
   else if (device == RETRO_DEVICE_POINTER)
   {
     switch (id)
@@ -680,16 +629,30 @@ void QRetro::setFastForwardingOverride(retro_fastforwarding_override* ffo)
   setFastForwardingRatio(ffo->ratio);
 }
 
+void QRetro::keyReleaseEvent(QKeyEvent *event)
+{
+  auto key = qt2lr_keyboard(event->key());
+
+  m_Input.setKey(key, false);
+
+  if (m_Core.keyboard.callback)
+    m_Core.keyboard.callback(false,
+                             key,
+                             event->nativeVirtualKey(),
+                             qt2lr_keymod(event->modifiers()));
+}
+
 void QRetro::keyPressEvent(QKeyEvent *event)
 {
+  auto key = qt2lr_keyboard(event->key());
+
+  m_Input.setKey(key, true);
+
   if (m_Core.keyboard.callback)
-    m_Core.keyboard.callback
-    (
-      event->type() == QEvent::KeyPress,
-      qt2lr_keyboard(event->key()),
-      event->nativeVirtualKey(),
-      qt2lr_keymod(event->modifiers())
-    );
+    m_Core.keyboard.callback(true,
+                             key,
+                             event->nativeVirtualKey(),
+                             qt2lr_keymod(event->modifiers()));
 
   if (event->modifiers().testFlag(Qt::ShiftModifier))
   {
@@ -812,7 +775,6 @@ bool QRetro::startCore(void)
     m_Active = true;
     m_ThreadSaving = QThread::create([this]{saving();});
     m_ThreadSaving->start();
-    gamepad.setDeviceId(0);
 
     m_ThreadTiming = QThread::create([this]{timing();});
     m_ThreadTiming->start();
@@ -893,7 +855,7 @@ bool QRetro::loadCore(const char *path)
   /* TODO: Will this work on paths with unicode characters? */
   m_Library = LoadLibraryA(path);
 #else
-  m_Library = dlopen(path, RTLD_LAZY)
+  m_Library = dlopen(path, RTLD_LAZY);
 #endif
 
   if (!m_Library)

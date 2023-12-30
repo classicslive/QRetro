@@ -67,6 +67,11 @@ QRetro* _qrthis()
     return it->second;
 }
 
+int16_t qt2lr_analog(double qt)
+{
+  return static_cast<int16_t>(qt * 0x7FFF);
+}
+
 /* Converts a Qt pixel format enum to its libretro equivalent */
 retro_pixel_format qt2lr_pixel(const QImage::Format qt)
 {
@@ -115,8 +120,18 @@ retro_key qt2lr_keyboard(int key)
   // TODO: Add more keys here
   switch (key)
   {
+  case Qt::Key_Up:
+    return RETROK_UP;
+  case Qt::Key_Down:
+    return RETROK_DOWN;
+  case Qt::Key_Left:
+    return RETROK_LEFT;
+  case Qt::Key_Right:
+    return RETROK_RIGHT;
   case Qt::Key_Space:
     return RETROK_SPACE;
+  case Qt::Key_Return:
+    return RETROK_RETURN;
   default:
     return RETROK_UNKNOWN;
   }

@@ -4,10 +4,10 @@
 #include <libretro.h>
 
 #ifdef WIN32
-#include <Windows.h>
+#include <windows.h>
 #define QRETRO_LIBRARY_T HINSTANCE
 #else
-#error "This library is only meant to be used with Windows for now."
+#define QRETRO_LIBRARY_T void*
 #endif
 
 typedef void (*QRETRO_FUNCTION_T)(void);
