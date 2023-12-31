@@ -36,11 +36,21 @@ QRetro* _qrthis();
  */
 int16_t qt2lr_analog(double qt);
 
-retro_pixel_format qt2lr_pixel(const QImage::Format qt);
-
 retro_key qt2lr_keyboard(int key);
 
 uint16_t qt2lr_keymod(Qt::KeyboardModifiers qt);
+
+/**
+ * Returns the relevant libretro language for a Qt locale.
+ */
+retro_language qt2lr_language(const QLocale &qt);
+
+/**
+ * Returns the relevant libretro language for the current system Qt locale.
+ */
+retro_language qt2lr_language_system(void);
+
+retro_pixel_format qt2lr_pixel(const QImage::Format qt);
 
 QImage::Format lr2qt_pixel(const retro_pixel_format lr);
 

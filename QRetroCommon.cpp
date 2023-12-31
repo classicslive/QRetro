@@ -1,3 +1,5 @@
+#include <QLocale>
+
 #include "QRetroCommon.h"
 
 std::map<std::thread::id, QRetro*> _qr_thread_map;
@@ -148,4 +150,79 @@ uint16_t qt2lr_keymod(Qt::KeyboardModifiers qt)
   lr |= qt.testFlag(Qt::MetaModifier)    ? RETROKMOD_META  : 0;
 
   return lr;
+}
+
+retro_language qt2lr_language(const QLocale &qt)
+{
+  switch (qt.language())
+  {
+  case QLocale::English:
+    return qt.country() == QLocale::UnitedKingdom ?
+      RETRO_LANGUAGE_BRITISH_ENGLISH : RETRO_LANGUAGE_ENGLISH;
+  case QLocale::Japanese:
+    return RETRO_LANGUAGE_JAPANESE;
+  case QLocale::French:
+    return RETRO_LANGUAGE_FRENCH;
+  case QLocale::German:
+    return RETRO_LANGUAGE_GERMAN;
+  case QLocale::Spanish:
+    return RETRO_LANGUAGE_SPANISH;
+  case QLocale::Italian:
+    return RETRO_LANGUAGE_ITALIAN;
+  case QLocale::Dutch:
+    return RETRO_LANGUAGE_DUTCH;
+  case QLocale::Portuguese:
+    return qt.country() == QLocale::Brazil ?
+      RETRO_LANGUAGE_PORTUGUESE_BRAZIL : RETRO_LANGUAGE_PORTUGUESE_PORTUGAL;
+  case QLocale::Russian:
+    return RETRO_LANGUAGE_RUSSIAN;
+  case QLocale::Korean:
+    return RETRO_LANGUAGE_KOREAN;
+  case QLocale::Chinese:
+    return qt.script() == QLocale::TraditionalChineseScript ?
+      RETRO_LANGUAGE_CHINESE_TRADITIONAL : RETRO_LANGUAGE_CHINESE_SIMPLIFIED;
+  case QLocale::Esperanto:
+    return RETRO_LANGUAGE_ESPERANTO;
+  case QLocale::Polish:
+    return RETRO_LANGUAGE_POLISH;
+  case QLocale::Vietnamese:
+    return RETRO_LANGUAGE_VIETNAMESE;
+  case QLocale::Arabic:
+    return RETRO_LANGUAGE_ARABIC;
+  case QLocale::Greek:
+    return RETRO_LANGUAGE_GREEK;
+  case QLocale::Turkish:
+    return RETRO_LANGUAGE_TURKISH;
+  case QLocale::Slovak:
+    return RETRO_LANGUAGE_SLOVAK;
+  case QLocale::Persian:
+    return RETRO_LANGUAGE_PERSIAN;
+  case QLocale::Hebrew:
+    return RETRO_LANGUAGE_HEBREW;
+  case QLocale::Asturian:
+    return RETRO_LANGUAGE_ASTURIAN;
+  case QLocale::Finnish:
+    return RETRO_LANGUAGE_FINNISH;
+  case QLocale::Indonesian:
+    return RETRO_LANGUAGE_INDONESIAN;
+  case QLocale::Swedish:
+    return RETRO_LANGUAGE_SWEDISH;
+  case QLocale::Ukrainian:
+    return RETRO_LANGUAGE_UKRAINIAN;
+  case QLocale::Czech:
+    return RETRO_LANGUAGE_CZECH;
+  case QLocale::Catalan:
+    return RETRO_LANGUAGE_CATALAN; /// @todo Catalan (Valencian)?
+  case QLocale::Hungarian:
+    return RETRO_LANGUAGE_HUNGARIAN;
+  case QLocale::Belarusian:
+    return RETRO_LANGUAGE_BELARUSIAN;
+  default:
+    return RETRO_LANGUAGE_ENGLISH;
+  }
+}
+
+retro_language qt2lr_language_system(void)
+{
+  return qt2lr_language(QLocale::system());
 }

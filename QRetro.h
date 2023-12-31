@@ -372,18 +372,8 @@ private:
 
   retro_core_t m_Core;
 
-  bool m_CanDupe = true;
-  bool m_FastForwarding = false;
-  float m_FastForwardRatio = 0.0;
   bool m_JitCapable = true;
   bool m_Overscan = true;
-
-  /**
-   * A pointer to a framebuffer the frontend manages, rather than the core.
-   * Used with environment callback
-   * RETRO_ENVIRONMENT_GET_CURRENT_SOFTWARE_FRAMEBUFFER.
-   */
-  unsigned char *m_SoftwareFramebuffer = nullptr;
 
   /// Whether or not the core is running
   bool m_Active = false;
@@ -391,35 +381,71 @@ private:
   /// Number of seconds to wait before flushing save RAM to disk
   unsigned m_AutosaveInterval = 5;
 
+  /// Whether or not the core reports to duplicate frames
+  bool m_CanDupe = true;
+
   /// Directory of the currently loaded content
   std::string m_ContentPath;
 
   /// Directory of the currently loaded core
   std::string m_CorePath;
 
-  /// Whether or not input has been received between calls to retro_run
-  bool m_InputReady = false;
+  /// Whether or not the frontend is fast-forwarding
+  bool m_FastForwarding = false;
+
+  /// The maximum amount the frontend will fast-forward
+  float m_FastForwardRatio = 0.0;
 
   /// Number of calls to retro_run completed
   unsigned long m_Frames = 0;
 
+  /// Whether or not input has been received between calls to retro_run
+  bool m_InputReady = false;
+
+  /// The preferred language reported by the frontend
+  retro_language m_Language = RETRO_LANGUAGE_ENGLISH;
+
+  /// The platform-specific handle to the libretro dynamic library
+  QRETRO_LIBRARY_T m_Library = nullptr;
+
+  /// The minimum log level for messages to be emitted as signals
+  retro_log_level m_LogLevel = RETRO_LOG_ERROR;
+
+  /// The memory map reported by the core
+  retro_memory_map m_MemoryMaps = { nullptr, 0 };
+
+  /// The x and y values of how much mouse has moved since last input poll
+  QPoint m_MouseDelta;
+
+  /// The previous mouse position, used to calculate delta
+  QPoint m_MousePosition;
+
   /// Whether the user has paused the frontend. Will halt calls to retro_run
   bool m_Paused = false;
 
-  retro_language   m_Language;
-  QRETRO_LIBRARY_T m_Library = nullptr;
-  retro_log_level  m_LogLevel;
-  retro_memory_map m_MemoryMaps = { nullptr, 0 };
-  QPoint           m_MouseDelta;
-  QPoint           m_MousePosition;
-  unsigned         m_PerformanceLevel;
-  QPoint           m_PointerPosition;
-  bool             m_PointerValid;
+  /// The performance level reported by the core
+  /// @see RETRO_ENVIRONMENT_SET_PERFORMANCE_LEVEL
+  unsigned m_PerformanceLevel = 0;
+
+  /// The position of the pointer in content screen space
+  QPoint m_PointerPosition;
+
+  /// Whether or not the pointer was in the content screenspace on last poll
+  bool m_PointerValid;
+
+  /// The preferred renderer reported by the frontend
   retro_hw_context_type m_PreferredRenderer;
-  bool             m_SupportedEnvCallbacks[RETRO_ENVIRONMENT_SIZE];
-  double           m_TargetRefreshRate = 60.0;
-  QThread         *m_ThreadSaving;
-  QThread         *m_ThreadTiming;
+
+  /// A pointer to a framebuffer the frontend manages, rather than the core.
+  /// @see RETRO_ENVIRONMENT_GET_CURRENT_SOFTWARE_FRAMEBUFFER
+  unsigned char *m_SoftwareFramebuffer = nullptr;
+
+  /// Whether or not the frontend reports to support each environment callback
+  bool m_SupportedEnvCallbacks[RETRO_ENVIRONMENT_SIZE];
+
+  double m_TargetRefreshRate = 60.0;
+  QThread *m_ThreadSaving;
+  QThread *m_ThreadTiming;
 
   /* General video parameters */
   QImage m_Image;

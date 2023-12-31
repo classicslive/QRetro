@@ -411,9 +411,7 @@ QRetro::QRetro(QWindow *parent, retro_hw_context_type format)
 
   m_Location = new QRetroLocation(this);
 
-  /* Default value initialization */
-  setLanguage(RETRO_LANGUAGE_ENGLISH);
-  setLogLevel(RETRO_LOG_ERROR);
+  setLanguage(qt2lr_language_system());
   setPreferredRenderer(format);
 
   /* Initialize member variables */
