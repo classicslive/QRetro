@@ -211,7 +211,7 @@ static retro_microphone_t* core_microphone_open_mic(const retro_microphone_param
   auto _this = _qrthis();
 
   if (!_this)
-    return NULL;
+    return nullptr;
   else
     return _this->microphone()->open(params);
 }
@@ -513,14 +513,12 @@ bool core_environment(unsigned cmd, void *data)
     break;
   }
 
-  /* 28 / TODO */
+  /* 28 / TODO
   case RETRO_ENVIRONMENT_GET_PERF_INTERFACE:
   {
     auto cb = reinterpret_cast<retro_perf_callback*>(data);
-
-    cb = nullptr;
-    return false;
   }
+  */
 
   /* 29 */
   case RETRO_ENVIRONMENT_GET_LOCATION_INTERFACE:
