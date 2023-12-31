@@ -21,7 +21,7 @@ bool QRetroSensors::setState(unsigned port, retro_sensor_action action,
       m_AccelerometerEnabled = true;
       m_AccelerometerRate = rate;
 #if QRETRO_HAVE_SENSORS
-      m_AccelerometerSensor.setDataRate(rate);
+      m_AccelerometerSensor.setDataRate(static_cast<int>(rate));
       m_AccelerometerSensor.start();
 #endif
       break;
@@ -35,7 +35,7 @@ bool QRetroSensors::setState(unsigned port, retro_sensor_action action,
       m_GyroscopeEnabled = true;
       m_GyroscopeRate = rate;
 #if QRETRO_HAVE_SENSORS
-      m_GyroscopeSensor.setDataRate(rate);
+      m_GyroscopeSensor.setDataRate(static_cast<int>(rate));
       m_GyroscopeSensor.start();
 #endif
       break;
@@ -49,7 +49,7 @@ bool QRetroSensors::setState(unsigned port, retro_sensor_action action,
       m_IlluminanceEnabled = true;
       m_IlluminanceRate = rate;
 #if QRETRO_HAVE_SENSORS
-      m_IlluminanceSensor.setDataRate(rate);
+      m_IlluminanceSensor.setDataRate(static_cast<int>(rate));
       m_IlluminanceSensor.start();
 #endif
       break;
@@ -109,7 +109,6 @@ float QRetroSensors::getInput(unsigned port, unsigned id)
           return 4/5;
         case QAmbientLightReading::Sunny:
           return 5/5;
-        case QAmbientLightReading::Undefined:
         default:
           return 0;
         }
