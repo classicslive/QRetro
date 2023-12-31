@@ -1,18 +1,26 @@
 # QRetro
 
-QRetro is a libretro API frontend implemented within a Qt QWindow. It supports multi-instancing, allowing multiple instances of libretro cores simultaneously.
+QRetro is a libretro API frontend implemented within a Qt QWindow. It supports multi-instancing, allowing multiple instances of libretro cores to run simultaneously.
 
-## Usage
+## Getting started
+
+To use QRetro in your project, use one of the following options:
 
 ### Static compilation
 
-Clone the project and include the .pri file in your qmake project:
+If you wish to statically compile QRetro into your project, clone this repo and include the .pri file in your qmake project:
 
 ```qmake
 include(QRetro/QRetro.pri)
 ```
 
-Then instantiate a QRetro object, set it up, and display it:
+### Linking the QRetro binary
+
+If you wish to instead link against a QRetro binary, build QRetro using the .pro file instead. Pre-built binaries are not yet available.
+
+## Usage
+
+To instantiate a QRetro object, set it up, and display it:
 
 ```c++
 #include <QRetro.h>
@@ -58,13 +66,16 @@ QRetro requires the following Qt modules:
 
 The following modules and libraries are optional, and can be disabled by including the associated CONFIG define in your qmake project:
 
-| Feature                   | Configuration Flag           |
+| Dependency | Configuration Flag |
 |---------------------------|------------------------------|
-| Qt Gamepad Module         | `QRETRO_CONFIG_NO_GAMEPAD`   |
-| Qt Positioning Module     | `QRETRO_CONFIG_NO_LOCATION`  |
-| [QMidi](https://github.com/waddlesplash/QMidi) submodule | `QRETRO_CONFIG_NO_MIDI`      |
-| OpenGL libraries          | `QRETRO_CONFIG_NO_OPENGL`    |
-| Qt Sensors Module         | `QRETRO_CONFIG_NO_SENSORS`   |
+| QCamera / Qt multimedia module | `QRETRO_CONFIG_NO_CAMERA` |
+| Qt gamepad module | `QRETRO_CONFIG_NO_GAMEPAD` |
+| Qt positioning module | `QRETRO_CONFIG_NO_LOCATION` |
+| [QMidi](https://github.com/waddlesplash/QMidi) submodule | `QRETRO_CONFIG_NO_MIDI` |
+| Qt multimedia module | `QRETRO_CONFIG_NO_MULTIMEDIA` |
+| Qt opengl module / OpenGL libraries | `QRETRO_CONFIG_NO_OPENGL` |
+| Qt sensors module | `QRETRO_CONFIG_NO_SENSORS` |
+| Qt Mobility systeminfo module | `QRETRO_CONFIG_NO_SYSTEMINFO` |
 
 ```qmake
 CONFIG += QRETRO_CONFIG_NO_LOCATION
