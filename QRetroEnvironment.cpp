@@ -601,7 +601,7 @@ bool core_environment(unsigned cmd, void *data)
     *reinterpret_cast<unsigned*>(data) = _this->getLanguage();
     break;
 
-  /* 40 / TODO: Test */
+  /* 40 */
   case RETRO_ENVIRONMENT_GET_CURRENT_SOFTWARE_FRAMEBUFFER:
     return _this->getCurrentSoftwareFramebuffer(
       reinterpret_cast<retro_framebuffer*>(data));

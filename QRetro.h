@@ -2,9 +2,11 @@
 #define QRETRO_H
 
 #include <QBackingStore>
+#if QRETRO_HAVE_OPENGL
 #include <QOpenGLFramebufferObject>
 #include <QOpenGLFunctions>
 #include <QOpenGLPaintDevice>
+#endif
 #include <QWindow>
 
 #include "QRetro_global.h"
@@ -30,41 +32,42 @@
  */
 #define RETRO_ENVIRONMENT_SIZE (RETRO_ENVIRONMENT_SET_NETPACKET_INTERFACE & 0xFF) + 1
 
+#if QRETRO_HAVE_OPENGL
 class QRETRO_EXPORT QRetro : public QWindow, protected QOpenGLFunctions
+#else
+class QRETRO_EXPORT QRetro : public QWindow
+#endif
 {
   Q_OBJECT
 
 public:
 
-/*
-================================================================================
-    Constructors and destructors
-================================================================================
-*/
-  QRetro(QWindow *parent = nullptr,
-         retro_hw_context_type format = RETRO_HW_CONTEXT_OPENGL);
-  ~QRetro() override;
+  /* Initializers and deconstructors */
 
-/*
-================================================================================
-    Public member variables
-================================================================================
-*/
-  QRetroAudio*       audio(void) { return m_Audio; }
+#if QRETRO_HAVE_OPENGL
+  QRetro(QWindow *parent = nullptr, retro_hw_context_type format = RETRO_HW_CONTEXT_OPENGL);
+#else
+  QRetro(QWindow *parent = nullptr, retro_hw_context_type format = RETRO_HW_CONTEXT_NONE);
+#endif
+  ~QRetro(void) override;
+
+  /* Functions that return pointers to subclasses */
+
+  QRetroAudio* audio(void) { return m_Audio; }
   QRetroAudioVideoEnable* audioVideoEnable(void) { return &m_AudioVideoEnable; }
-  QRetroCamera*      camera(void) { return &m_Camera; }
-  retro_core_t*      core(void) { return &m_Core; }
+  QRetroCamera* camera(void) { return &m_Camera; }
+  retro_core_t* core(void) { return &m_Core; }
   QRetroDevicePower* devicePower(void) { return &m_DevicePower; }
-  QRetroInput*       input(void) { return &m_Input; }
-  QRetroLed*         led(void) { return &m_Led; }
-  QRetroLocation*    location(void) { return m_Location; }
-  QRetroMicrophone*  microphone(void) { return &m_Microphone; }
-  QRetroMidi*        midi(void) { return &m_Midi; }
-  QRetroOptions*     options(void) { return &m_Options; }
+  QRetroInput* input(void) { return &m_Input; }
+  QRetroLed* led(void) { return &m_Led; }
+  QRetroLocation* location(void) { return m_Location; }
+  QRetroMicrophone* microphone(void) { return &m_Microphone; }
+  QRetroMidi* midi(void) { return &m_Midi; }
+  QRetroOptions* options(void) { return &m_Options; }
   QRetroDirectories* directories(void) { return &m_Directories; }
   QRetroProcAddress* procAddress(void) { return &m_ProcAddress; }
-  QRetroSensors*     sensors(void) { return &m_Sensors; }
-  QRetroUsername*    username(void) { return &m_Username; }
+  QRetroSensors* sensors(void) { return &m_Sensors; }
+  QRetroUsername* username(void) { return &m_Username; }
 
 /*
 ================================================================================
@@ -352,39 +355,59 @@ protected:
   void wheelEvent(QWheelEvent *event) override;
 
 private:
-  QRetroAudio            *m_Audio;
-  QRetroAudioVideoEnable  m_AudioVideoEnable;
-  QRetroCamera            m_Camera;
-  QRetroDevicePower       m_DevicePower;
-  QRetroDirectories       m_Directories;
-  QRetroInput             m_Input;
-  QRetroLed               m_Led;
-  QRetroMicrophone        m_Microphone;
-  QRetroMidi              m_Midi;
-  QRetroOptions           m_Options;
-  QRetroProcAddress       m_ProcAddress;
-  QRetroSensors           m_Sensors;
-  QRetroUsername          m_Username;
+  QRetroAudio *m_Audio;
+  QRetroAudioVideoEnable m_AudioVideoEnable;
+  QRetroCamera m_Camera;
+  QRetroDevicePower m_DevicePower;
+  QRetroDirectories m_Directories;
+  QRetroInput m_Input;
+  QRetroLed m_Led;
+  QRetroLocation *m_Location = nullptr;
+  QRetroMicrophone m_Microphone;
+  QRetroMidi m_Midi;
+  QRetroOptions m_Options;
+  QRetroProcAddress m_ProcAddress;
+  QRetroSensors m_Sensors;
+  QRetroUsername m_Username;
 
-  uchar           *m_SoftwareFbBuffer = nullptr;
-
-  bool             m_Active = false;
-  unsigned         m_AutosaveInterval;
-  std::string      m_ContentPath;
-  retro_core_t     m_Core;
-  std::string      m_CorePath;
-  bool             m_InputReady = false;
-  bool             m_FastForwarding = false;
-  float            m_FastForwardRatio = 0.0;
-  unsigned long    m_Frames = 0;
-  bool             m_Paused = false;
+  retro_core_t m_Core;
 
   bool m_CanDupe = true;
+  bool m_FastForwarding = false;
+  float m_FastForwardRatio = 0.0;
   bool m_JitCapable = true;
   bool m_Overscan = true;
 
+  /**
+   * A pointer to a framebuffer the frontend manages, rather than the core.
+   * Used with environment callback
+   * RETRO_ENVIRONMENT_GET_CURRENT_SOFTWARE_FRAMEBUFFER.
+   */
+  unsigned char *m_SoftwareFramebuffer = nullptr;
+
+  /// Whether or not the core is running
+  bool m_Active = false;
+
+  /// Number of seconds to wait before flushing save RAM to disk
+  unsigned m_AutosaveInterval = 5;
+
+  /// Directory of the currently loaded content
+  std::string m_ContentPath;
+
+  /// Directory of the currently loaded core
+  std::string m_CorePath;
+
+  /// Whether or not input has been received between calls to retro_run
+  bool m_InputReady = false;
+
+  /// Number of calls to retro_run completed
+  unsigned long m_Frames = 0;
+
+  /// Whether the user has paused the frontend. Will halt calls to retro_run
+  bool m_Paused = false;
+
   retro_language   m_Language;
-  QRETRO_LIBRARY_T m_Library;
+  QRETRO_LIBRARY_T m_Library = nullptr;
   retro_log_level  m_LogLevel;
   retro_memory_map m_MemoryMaps = { nullptr, 0 };
   QPoint           m_MouseDelta;
@@ -400,30 +423,29 @@ private:
 
   /* General video parameters */
   QImage m_Image;
-  QRect  m_BaseRect;
-  QRect  m_Rect;
+  QRect m_BaseRect;
+  QRect m_Rect;
 
   QImage::Format m_PixelFormat;
 
-  bool     m_BilinearFilter = true;
-  bool     m_IntegerScaling = false;
-  unsigned m_Rotation       = 0;
-  double   m_ScalingFactor  = 1.0;
-  bool     m_UseAspectRatio = true;
+  bool m_BilinearFilter = true;
+  bool m_IntegerScaling = false;
+  unsigned m_Rotation = 0;
+  double m_ScalingFactor = 1.0;
+  bool m_UseAspectRatio = true;
 
   /* Software surface */
   QBackingStore *m_BackingStore = nullptr;
 
   /* OpenGL surface */
-  QOpenGLContext           *m_OpenGlContext     = nullptr;
-  QOpenGLContext           *m_OpenGlContextCore = nullptr;
-  QOpenGLPaintDevice       *m_OpenGlDevice      = nullptr;
-  QOpenGLFramebufferObject *m_OpenGlFbo         = nullptr;
-  bool m_ImageDrawing   = false;
+#if QRETRO_HAVE_OPENGL
+  QOpenGLContext *m_OpenGlContext = nullptr;
+  QOpenGLContext *m_OpenGlContextCore = nullptr;
+  QOpenGLPaintDevice *m_OpenGlDevice = nullptr;
+  QOpenGLFramebufferObject *m_OpenGlFbo = nullptr;
+#endif
+  bool m_ImageDrawing = false;
   bool m_ImageRendering = false;
-
-  /* Geolocation */
-  QRetroLocation *m_Location = nullptr;
 
   bool (*m_InputPollHandler)(void) = nullptr;
   int16_t (*m_InputStateHandler)(unsigned, unsigned, unsigned, unsigned) = nullptr;

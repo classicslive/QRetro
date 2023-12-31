@@ -10,8 +10,6 @@ CONFIG(debug, debug|release) {
   DEFINES += QRETRO_DRAW_DEBUG=0
 }
 
-CONFIG += QRETRO_CONFIG_NO_GAMEPAD
-
 !QRETRO_CONFIG_NO_CAMERA {
   DEFINES += QRETRO_HAVE_CAMERA=1
   message("Camera module added.")
@@ -64,19 +62,15 @@ CONFIG += QRETRO_CONFIG_NO_GAMEPAD
 }
 
 !QRETRO_CONFIG_NO_OPENGL {
-  !isEmpty(QMAKE_LIBS_OPENGL) {
-    win32 {
-      LIBS += -lOpengl32
-    }
-    linux* {
-      LIBS += -lGL
-    }
-    DEFINES += QRETRO_HAVE_OPENGL=1
-    message("OpenGL module added.")
-  } else {
-    DEFINES += QRETRO_HAVE_OPENGL=0
-    message("OpenGL module requested, but is not available.")
+  win32 {
+    LIBS += -lOpengl32
   }
+  linux* {
+    LIBS += -lGL
+  }
+  QT += opengl
+  DEFINES += QRETRO_HAVE_OPENGL=1
+  message("OpenGL module added.")
 }
 
 !QRETRO_CONFIG_NO_SENSORS {

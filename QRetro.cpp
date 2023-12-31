@@ -416,21 +416,16 @@ QRetro::QRetro(QWindow *parent, retro_hw_context_type format)
   m_Location = new QRetroLocation(this);
 
   /* Default value initialization */
-  setAutosaveInterval(5);
   setLanguage(RETRO_LANGUAGE_ENGLISH);
   setLogLevel(RETRO_LOG_ERROR);
   setPreferredRenderer(format);
 
   /* Initialize member variables */
-  m_Active = false;
   memset(&m_Core, 0, sizeof(m_Core));
-  m_InputPollHandler = nullptr;
-  m_InputStateHandler = nullptr;
-  m_Library = nullptr;
   memset(m_SupportedEnvCallbacks, true, sizeof(m_SupportedEnvCallbacks));
 }
 
-QRetro::~QRetro()
+QRetro::~QRetro(void)
 {
   /* Stop processing the core */
   m_Active = false;
@@ -596,26 +591,26 @@ bool QRetro::getCurrentSoftwareFramebuffer(retro_framebuffer *fb)
   auto format = lr2qt_pixel(fb->format);
 
   /* Free our buffer if it's being reconstructed to a new size */
-  if (m_SoftwareFbBuffer && (m_Image.width() != width ||
-                             m_Image.height() != height ||
-                             m_Image.format() != format))
+  if (m_SoftwareFramebuffer && (m_Image.width() != width ||
+                                m_Image.height() != height ||
+                                m_Image.format() != format))
   {
-    free(m_SoftwareFbBuffer);
-    m_SoftwareFbBuffer = nullptr;
+    free(m_SoftwareFramebuffer);
+    m_SoftwareFramebuffer = nullptr;
   }
 
-  if (!m_SoftwareFbBuffer)
+  if (!m_SoftwareFramebuffer)
   {
     /* Allocate buffer as black canvas */
-    m_SoftwareFbBuffer = reinterpret_cast<uchar*>(
+    m_SoftwareFramebuffer = reinterpret_cast<uchar*>(
       calloc(fb->width * fb->height * fb->pitch, sizeof(uchar)));
 
     /* Update our renderable */
-    m_Image = QImage(m_SoftwareFbBuffer, width, height, format);
+    m_Image = QImage(m_SoftwareFramebuffer, width, height, format);
   }
 
   /* Finalize data to send back to core */
-  fb->data = m_SoftwareFbBuffer;
+  fb->data = m_SoftwareFramebuffer;
   fb->memory_flags = RETRO_MEMORY_TYPE_CACHED;
 
   return m_Image.bits();
