@@ -104,12 +104,14 @@ QImage::Format lr2qt_pixel(const retro_pixel_format lr)
     return QImage::Format_RGB16;
   case RETRO_PIXEL_FORMAT_XRGB8888:
     return QImage::Format_RGB32;
-  default:
+  case RETRO_PIXEL_FORMAT_UNKNOWN:
     return QImage::Format_Invalid;
   }
+
+  return QImage::Format_Invalid;
 }
 
-int lr2qt_kayboard(retro_key key)
+int lr2qt_keyboard(retro_key key)
 {
   switch (key)
   {

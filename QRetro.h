@@ -106,14 +106,8 @@ public:
    **/
   void* getProcAddress(QThread *caller, const char *sym);
 
-  /*
-  ------------------------------------------------------------------------------
-    Returns a hint that the core can be started without loading content first.
-    It is recommended to only call this after "initCore" has been called, as
-    this hint can be set during "retro_init" or earlier.
-  ------------------------------------------------------------------------------
-  */
-  bool getSupportsNoGame() { return m_Core.supports_no_game; }
+  bool supportsNoGame(void) { return m_SupportsNoGame; }
+  void setSupportsNoGame(bool supports) { m_SupportsNoGame = supports; }
 
   /**
    * Gets how many seconds the saving thread waits before autosaving SRAM
@@ -140,11 +134,14 @@ public:
   bool getOverscan() { return m_Overscan; }
   void setOverscan(bool overscan) { m_Overscan = overscan; }
 
-  retro_hw_context_type getPreferredRenderer() { return m_PreferredRenderer; }
+  retro_hw_context_type getPreferredRenderer(void) { return m_PreferredRenderer; }
   void setPreferredRenderer(retro_hw_context_type hw) { m_PreferredRenderer = hw; }
 
-  bool supportsAchievements() { return m_Core.supports_achievements; }
-  void setSupportsAchievements(bool supports) { m_Core.supports_achievements = supports; }
+  bool supportsAchievements(void) { return m_SupportsAchievements; }
+  void setSupportsAchievements(bool supports) { m_SupportsAchievements = supports; }
+
+  uint64_t serializationQuirks(void) { return m_SerializationQuirks; }
+  void setSerializationQuirks(uint64_t sq) { m_SerializationQuirks = sq; }
 
   retro_memory_map* memoryMaps(void) { return &m_MemoryMaps; }
   void setMemoryMaps(const struct retro_memory_map* maps)
@@ -203,7 +200,7 @@ public:
    */
   bool environmentCallbackSupported(unsigned id)
   {
-    if (id > RETRO_ENVIRONMENT_SIZE)
+    if (id >= RETRO_ENVIRONMENT_SIZE)
       return false;
     else
       return m_SupportedEnvCallbacks[id];
@@ -247,23 +244,6 @@ public:
    * @warning This should only be called automatically by the core itself.
    */
   void setPerformanceLevel(const unsigned lvl) { m_PerformanceLevel = lvl; }
-
-  /**
-   * Sets a hint that the core can be started without loading content first.
-   *
-   * @warning This should only be called automatically by the core itself. If
-   * you would like to force a core to start without content although it does
-   * not support doing so, use the "force" parameter in "startCore".
-   **/
-  bool setSupportsNoGame(bool enabled)
-  {
-    if (m_Core.inited)
-      m_Core.supports_no_game = enabled;
-    else
-      return false;
-
-    return true;
-  }
 
   /**
    * Returns whether or not a custom handler for polling inputs has been
@@ -436,12 +416,21 @@ private:
   /// The preferred renderer reported by the frontend
   retro_hw_context_type m_PreferredRenderer;
 
+  /// The reported serialization quirk flags of the core
+  uint64_t m_SerializationQuirks = 0;
+
   /// A pointer to a framebuffer the frontend manages, rather than the core.
   /// @see RETRO_ENVIRONMENT_GET_CURRENT_SOFTWARE_FRAMEBUFFER
   unsigned char *m_SoftwareFramebuffer = nullptr;
 
   /// Whether or not the frontend reports to support each environment callback
-  bool m_SupportedEnvCallbacks[RETRO_ENVIRONMENT_SIZE];
+  bool m_SupportedEnvCallbacks[RETRO_ENVIRONMENT_SIZE] = { true };
+
+  /// Whether or not the core reports to support achievements
+  bool m_SupportsAchievements = false;
+
+  /// Whether or not the core reports to support starting with no content
+  bool m_SupportsNoGame = false;
 
   double m_TargetRefreshRate = 60.0;
   QThread *m_ThreadSaving;

@@ -62,9 +62,6 @@ typedef struct retro_core_t
   bool has_set_subsystems;
   bool has_set_input_descriptors;
   uint64_t serialization_quirks_v;
-  bool supports_no_game;
-  bool variables_dirty;
-  bool supports_achievements;
 } retro_core_t;
 
 bool load_function(void *func_ptr, QRETRO_LIBRARY_T library, const char *name);

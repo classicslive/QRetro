@@ -622,14 +622,14 @@ bool core_environment(unsigned cmd, void *data)
   //}
 
   /* 44 / TODO / There is an API clash here. Special casing is needed until
-   * it's fixed.
+   * it's fixed. */
   case RETRO_ENVIRONMENT_SET_SERIALIZATION_QUIRKS:
   case RETRO_ENVIRONMENT_SET_HW_SHARED_CONTEXT:
     if (!experimental)
-      quirk_stuff();
+      _this->setSerializationQuirks(*reinterpret_cast<uint64_t*>(data));
     else
-      shared_context_stuff();
-  */
+      return false;
+    break;
 
   /* 46 */
   case RETRO_ENVIRONMENT_GET_LED_INTERFACE:

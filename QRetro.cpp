@@ -487,7 +487,7 @@ void QRetro::timing()
                                 m_Core.game_info.path)));
     return;
   }
-  else if (!m_Core.content_loaded && !m_Core.supports_no_game)
+  else if (!m_Core.content_loaded && !m_SupportsNoGame)
   {
     emit onCoreLog(RETRO_LOG_ERROR,
                    QRETRO_ERROR("The core attempted to start without content, "
