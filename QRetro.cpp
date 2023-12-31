@@ -253,13 +253,9 @@ void QRetro::updateMouse(void)
   double x = ((static_cast<double>(new_pos.x()) / m_Rect.width()  * 2.0) - 1.0) * 0x7FFF;
   double y = ((static_cast<double>(new_pos.y()) / m_Rect.height() * 2.0) - 1.0) * 0x7FFF;
 
-  if (fabs(x) > 0x8000 || fabs(y) > 0x8000)
-    m_PointerValid = false;
-  else
-  {
-    m_PointerPosition = QPoint(static_cast<int>(x), static_cast<int>(y));
-    m_PointerValid = true;
-  }
+  m_PointerPosition.setX(fabs(x) >= 0x8000 ? (x > 0 ? 0x7FFF : 0x8000) : static_cast<int>(x));
+  m_PointerPosition.setY(fabs(y) >= 0x8000 ? (y > 0 ? 0x7FFF : 0x8000) : static_cast<int>(y));
+  m_PointerValid = fabs(x) < 0x8000 && fabs(y) < 0x8000;
 }
 
 void QRetro::setRotation(const unsigned degrees)
