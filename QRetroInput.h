@@ -36,10 +36,18 @@ public:
   void setAnalogButton(unsigned id, int16_t value);
 
   int16_t analogStick(unsigned index, unsigned id);
+  void setAnalogStick(unsigned index, unsigned id, int16_t value);
+
+  bool analogStickToDigitalPad(void) { return m_AnalogStickToDigitalPad; }
+  void setAnalogStickToDigitalPad(bool on) { m_AnalogStickToDigitalPad = on; }
+
   int16_t bitmask(void) { return m_Bitmask; }
 
   bool digitalButton(unsigned id);
   void setDigitalButton(unsigned id, bool value);
+
+  bool digitalPadToAnalogStick(void) { return m_DigitalPadToAnalogStick; }
+  void setDigitalPadToAnalogStick(bool on) { m_DigitalPadToAnalogStick = on; }
 
   unsigned inputMethods(void) { return m_InputMethods; }
   void setInputMethods(unsigned method);
@@ -56,8 +64,11 @@ public:
 
 private:
   int16_t m_AnalogButtonDeadzone = QRETRO_INPUT_DEFAULT_BUTTON_DEADZONE;
+  int16_t m_AnalogStickDeadzone = 0;
+  bool m_AnalogStickToDigitalPad = false;
   int16_t m_Bitmask;
   int16_t m_Buttons[RETRO_DEVICE_ID_JOYPAD_R3 + 1];
+  bool m_DigitalPadToAnalogStick = false;
   unsigned m_InputMethods = InputMethodGamepad | InputMethodKeyboard;
   unsigned m_Port = 0;
   int16_t m_Sticks[2][2];

@@ -69,8 +69,26 @@ bool QRetroInputJoypad::digitalButton(unsigned id)
 {
   if (id > RETRO_DEVICE_ID_JOYPAD_R3)
     return 0;
-  else
-    return m_Buttons[id] > m_AnalogButtonDeadzone;
+  else if (m_AnalogStickToDigitalPad)
+  {
+    switch (id)
+    {
+    case RETRO_DEVICE_ID_JOYPAD_UP:
+      return m_Sticks[RETRO_DEVICE_INDEX_ANALOG_LEFT][RETRO_DEVICE_ID_ANALOG_Y]
+        > m_AnalogStickDeadzone;
+    case RETRO_DEVICE_ID_JOYPAD_DOWN:
+      return m_Sticks[RETRO_DEVICE_INDEX_ANALOG_LEFT][RETRO_DEVICE_ID_ANALOG_Y]
+        < -m_AnalogStickDeadzone;
+    case RETRO_DEVICE_ID_JOYPAD_LEFT:
+      return m_Sticks[RETRO_DEVICE_INDEX_ANALOG_LEFT][RETRO_DEVICE_ID_ANALOG_X]
+        > m_AnalogStickDeadzone;
+    case RETRO_DEVICE_ID_JOYPAD_RIGHT:
+      return m_Sticks[RETRO_DEVICE_INDEX_ANALOG_LEFT][RETRO_DEVICE_ID_ANALOG_X]
+        < -m_AnalogStickDeadzone;
+    }
+  }
+
+  return m_Buttons[id] > m_AnalogButtonDeadzone;
 }
 
 void QRetroInputJoypad::setDigitalButton(unsigned id, bool value)
@@ -87,6 +105,15 @@ int16_t QRetroInputJoypad::analogStick(unsigned index, unsigned id)
     return 0;
   else
     return m_Sticks[index][id];
+}
+
+void QRetroInputJoypad::setAnalogStick(unsigned index, unsigned id,
+                                       int16_t value)
+{
+  if (index > RETRO_DEVICE_INDEX_ANALOG_RIGHT || id > RETRO_DEVICE_ID_ANALOG_Y)
+    return;
+  else
+    m_Sticks[index][id] = value;
 }
 
 QRetroInput::QRetroInput(void)
