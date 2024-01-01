@@ -293,18 +293,25 @@ bool core_environment(unsigned cmd, void *data)
   {
   /* 01 */
   case RETRO_ENVIRONMENT_SET_ROTATION:
-    _this->setRotation(*(reinterpret_cast<const unsigned*>(data)) * 90);
+    if (data)
+      _this->setRotation(*(reinterpret_cast<const unsigned*>(data)) * 90);
+    else
+      return false;
     break;
 
   /* 02 / Deprecated */
   case RETRO_ENVIRONMENT_GET_OVERSCAN:
     core_log(RETRO_LOG_WARN, "RETRO_ENVIRONMENT_GET_OVERSCAN is deprecated!");
-    *(reinterpret_cast<bool*>(data)) = _this->getOverscan();
+    if (data)
+      *(reinterpret_cast<bool*>(data)) = _this->getOverscan();
+    else
+      return false;
     break;
 
   /* 03 */
   case RETRO_ENVIRONMENT_GET_CAN_DUPE:
-    *(reinterpret_cast<bool*>(data)) = _this->supportsDuping();
+    if (data)
+      *(reinterpret_cast<bool*>(data)) = _this->supportsDuping();
     break;
 
   /* Callbacks 04 - 05 are deprecated, and their IDs are reserved. */
@@ -424,22 +431,26 @@ bool core_environment(unsigned cmd, void *data)
 
   /* 16 */
   case RETRO_ENVIRONMENT_SET_VARIABLES:
-    _this->options()->setOptions(reinterpret_cast<retro_variable*>(data));
+    if (data)
+      _this->options()->setOptions(reinterpret_cast<retro_variable*>(data));
     break;
 
   /* 17 / TODO: Test */
   case RETRO_ENVIRONMENT_GET_VARIABLE_UPDATE:
-    *reinterpret_cast<bool*>(data) = _this->options()->variablesUpdated();
+    if (data)
+      *reinterpret_cast<bool*>(data) = _this->options()->variablesUpdated();
     break;
 
   /* 18 */
   case RETRO_ENVIRONMENT_SET_SUPPORT_NO_GAME:
-    _this->setSupportsNoGame(*(reinterpret_cast<bool*>(data)));
+    if (data)
+      _this->setSupportsNoGame(*(reinterpret_cast<bool*>(data)));
     break;
 
   /* 19 */
   case RETRO_ENVIRONMENT_GET_LIBRETRO_PATH:
-    *reinterpret_cast<const char**>(data) = _this->corePath();
+    if (data)
+      *reinterpret_cast<const char**>(data) = _this->corePath();
     break;
 
   /* Callback 20 is deprecated/unused. */
@@ -626,7 +637,7 @@ bool core_environment(unsigned cmd, void *data)
   case RETRO_ENVIRONMENT_SET_SERIALIZATION_QUIRKS:
   case RETRO_ENVIRONMENT_SET_HW_SHARED_CONTEXT:
     if (!experimental)
-      _this->setSerializationQuirks(*reinterpret_cast<uint64_t*>(data));
+      _this->setSerializationQuirks(reinterpret_cast<uint64_t*>(data));
     else
       return false;
     break;

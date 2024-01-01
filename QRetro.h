@@ -141,7 +141,11 @@ public:
   void setSupportsAchievements(bool supports) { m_SupportsAchievements = supports; }
 
   uint64_t serializationQuirks(void) { return m_SerializationQuirks; }
-  void setSerializationQuirks(uint64_t sq) { m_SerializationQuirks = sq; }
+  void setSerializationQuirks(uint64_t *sq)
+  {
+    m_SerializationQuirks = *sq;
+    *sq = 0;
+  }
 
   retro_memory_map* memoryMaps(void) { return &m_MemoryMaps; }
   void setMemoryMaps(const struct retro_memory_map* maps)
