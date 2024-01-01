@@ -131,6 +131,8 @@ public:
   float fastForwardingRatio() { return m_FastForwardRatio; }
   void setFastForwardingRatio(float ratio) { m_FastForwardRatio = ratio; }
 
+  unsigned frames(void) { return m_Frames; }
+
   bool getOverscan() { return m_Overscan; }
   void setOverscan(bool overscan) { m_Overscan = overscan; }
 

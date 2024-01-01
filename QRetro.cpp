@@ -27,21 +27,32 @@ static int mousewheel[2];
 long long unsigned QRetro::getCurrentFramebuffer()
 {
   /* Create framebuffer if it is invalid or null */
-  if (!m_OpenGlFbo || m_OpenGlFbo->size() != m_BaseRect.size())
+  if ((!m_OpenGlFbo || m_OpenGlFbo->size() != m_BaseRect.size()) &&
+      !m_BaseRect.size().isEmpty())
   {
     if (m_OpenGlFbo)
       delete m_OpenGlFbo;
-    m_OpenGlFbo = new QOpenGLFramebufferObject(m_BaseRect.size());
+
+    QOpenGLFramebufferObjectFormat format;
+
+    if (m_Core.hw_render.stencil)
+      format.setAttachment(QOpenGLFramebufferObject::CombinedDepthStencil);
+    else if (m_Core.hw_render.depth)
+      format.setAttachment(QOpenGLFramebufferObject::Depth);
+    else
+      format.setAttachment(QOpenGLFramebufferObject::NoAttachment);
+
+    m_OpenGlFbo = new QOpenGLFramebufferObject(m_BaseRect.size(), format);
   }
 
-  if (!m_ImageDrawing && m_OpenGlFbo->isValid() && !m_OpenGlFbo->isBound())
+  if (m_OpenGlFbo && !m_ImageDrawing && m_OpenGlFbo->isValid() && !m_OpenGlFbo->isBound())
   {
     m_ImageRendering = true;
     m_Image = m_OpenGlFbo->toImage(m_Core.hw_render.bottom_left_origin);
     m_ImageRendering = false;
   }
 
-  return m_OpenGlFbo->handle();
+  return m_OpenGlFbo ? m_OpenGlFbo->handle() : 0;
 }
 
 void QRetro::updateScaling()
@@ -162,6 +173,9 @@ bool QRetro::event(QEvent *ev)
         /* Remake the viewport if the window dimensions have changed */
         if (!m_OpenGlDevice ||  m_OpenGlDevice->size() != size())
           m_OpenGlDevice = new QOpenGLPaintDevice(size());
+
+        if (m_Core.hw_render.cache_context)
+          getCurrentFramebuffer();
 
         m_ImageDrawing = true;
         painter.begin(m_OpenGlDevice);
@@ -493,7 +507,7 @@ void QRetro::timing()
     return;
   }
 
-  if (m_Core.hw_render.context_reset && !m_Core.hw_render.cache_context)
+  if (m_Core.hw_render.context_reset)
     m_Core.hw_render.context_reset();
 
   emit onCoreStart();
