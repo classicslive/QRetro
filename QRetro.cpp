@@ -37,10 +37,7 @@ long long unsigned QRetro::getCurrentFramebuffer()
   if (!m_ImageDrawing && m_OpenGlFbo->isValid() && !m_OpenGlFbo->isBound())
   {
     m_ImageRendering = true;
-    auto a = m_OpenGlFbo->toImage();
-    m_Image = a.copy();
-    if (!m_Core.hw_render.bottom_left_origin)
-      m_Image = m_Image.mirrored();
+    m_Image = m_OpenGlFbo->toImage(m_Core.hw_render.bottom_left_origin);
     m_ImageRendering = false;
   }
 
@@ -910,6 +907,9 @@ bool QRetro::initVideo(retro_hw_context_type format)
     break;
   case RETRO_HW_CONTEXT_OPENGL:
   case RETRO_HW_CONTEXT_OPENGL_CORE:
+  case RETRO_HW_CONTEXT_OPENGLES2:
+  case RETRO_HW_CONTEXT_OPENGLES3:
+  case RETRO_HW_CONTEXT_OPENGLES_VERSION:
     setSurfaceType(QSurface::OpenGLSurface);
     create();
 
