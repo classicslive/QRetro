@@ -116,6 +116,26 @@ void QRetroInputJoypad::setAnalogStick(unsigned index, unsigned id,
     m_Sticks[index][id] = value;
 }
 
+#define QRETRO_DEFAULT_MAP_JOYPAD(a, b) \
+  m_KeyboardMaps.push_back( \
+  { \
+    { a, -1 }, \
+    { \
+      { 0, RETRO_DEVICE_JOYPAD, 0, b, true }, \
+      { -1, 0, 0, 0, 0 } \
+    } \
+  })
+
+#define QRETRO_DEFAULT_MAP_ANALOG(a, b, c, d) \
+  m_KeyboardMaps.push_back( \
+  { \
+    { a, -1 }, \
+    { \
+      { 0, RETRO_DEVICE_ANALOG, b, c, d }, \
+      { -1, 0, 0, 0, 0 } \
+    } \
+  })
+
 QRetroInput::QRetroInput(void)
 {
   for (unsigned i = 0; i < m_MaxUsers; i++)
@@ -126,21 +146,37 @@ QRetroInput::QRetroInput(void)
 #endif
 
     /* Setup default P1 keyboard controls */
-    m_KeyboardMaps.push_back({ 0, { RETROK_UP, -1 }, { RETRO_DEVICE_ID_JOYPAD_UP, -1 } });
-    m_KeyboardMaps.push_back({ 0, { RETROK_DOWN, -1 }, { RETRO_DEVICE_ID_JOYPAD_DOWN, -1 } });
-    m_KeyboardMaps.push_back({ 0, { RETROK_LEFT, -1 }, { RETRO_DEVICE_ID_JOYPAD_LEFT, -1 } });
-    m_KeyboardMaps.push_back({ 0, { RETROK_RIGHT, -1 }, { RETRO_DEVICE_ID_JOYPAD_RIGHT, -1 } });
+    /* Digital buttons */
+    QRETRO_DEFAULT_MAP_JOYPAD(RETROK_UP, RETRO_DEVICE_ID_JOYPAD_UP);
+    QRETRO_DEFAULT_MAP_JOYPAD(RETROK_DOWN, RETRO_DEVICE_ID_JOYPAD_DOWN);
+    QRETRO_DEFAULT_MAP_JOYPAD(RETROK_LEFT, RETRO_DEVICE_ID_JOYPAD_LEFT);
+    QRETRO_DEFAULT_MAP_JOYPAD(RETROK_RIGHT, RETRO_DEVICE_ID_JOYPAD_RIGHT);
+    QRETRO_DEFAULT_MAP_JOYPAD(RETROK_z, RETRO_DEVICE_ID_JOYPAD_B);
+    QRETRO_DEFAULT_MAP_JOYPAD(RETROK_x, RETRO_DEVICE_ID_JOYPAD_A);
+    QRETRO_DEFAULT_MAP_JOYPAD(RETROK_a, RETRO_DEVICE_ID_JOYPAD_Y);
+    QRETRO_DEFAULT_MAP_JOYPAD(RETROK_s, RETRO_DEVICE_ID_JOYPAD_X);
+    QRETRO_DEFAULT_MAP_JOYPAD(RETROK_SPACE, RETRO_DEVICE_ID_JOYPAD_SELECT);
+    QRETRO_DEFAULT_MAP_JOYPAD(RETROK_RETURN, RETRO_DEVICE_ID_JOYPAD_START);
+    QRETRO_DEFAULT_MAP_JOYPAD(RETROK_q, RETRO_DEVICE_ID_JOYPAD_L);
+    QRETRO_DEFAULT_MAP_JOYPAD(RETROK_w, RETRO_DEVICE_ID_JOYPAD_R);
+    QRETRO_DEFAULT_MAP_JOYPAD(RETROK_t, RETRO_DEVICE_ID_JOYPAD_L3);
+    QRETRO_DEFAULT_MAP_JOYPAD(RETROK_y, RETRO_DEVICE_ID_JOYPAD_R3);
 
-    m_KeyboardMaps.push_back({ 0, { RETROK_q, -1 }, { RETRO_DEVICE_ID_JOYPAD_L, -1 } });
-    m_KeyboardMaps.push_back({ 0, { RETROK_w, -1 }, { RETRO_DEVICE_ID_JOYPAD_R, -1 } });
+    /* Analog sticks */
+    QRETRO_DEFAULT_MAP_ANALOG(RETROK_UP, 0, RETRO_DEVICE_ID_ANALOG_Y, -32767);
+    QRETRO_DEFAULT_MAP_ANALOG(RETROK_DOWN, 0, RETRO_DEVICE_ID_ANALOG_Y, 32767);
+    QRETRO_DEFAULT_MAP_ANALOG(RETROK_LEFT, 0, RETRO_DEVICE_ID_ANALOG_X, -32767);
+    QRETRO_DEFAULT_MAP_ANALOG(RETROK_RIGHT, 0, RETRO_DEVICE_ID_ANALOG_X, 32767);
+    QRETRO_DEFAULT_MAP_ANALOG(RETROK_i, 1, RETRO_DEVICE_ID_ANALOG_Y, -32767);
+    QRETRO_DEFAULT_MAP_ANALOG(RETROK_k, 1, RETRO_DEVICE_ID_ANALOG_Y, 32767);
+    QRETRO_DEFAULT_MAP_ANALOG(RETROK_j, 1, RETRO_DEVICE_ID_ANALOG_X, -32767);
+    QRETRO_DEFAULT_MAP_ANALOG(RETROK_l, 1, RETRO_DEVICE_ID_ANALOG_X, 32767);
 
-    m_KeyboardMaps.push_back({ 0, { RETROK_z, -1 }, { RETRO_DEVICE_ID_JOYPAD_B, -1 } });
-    m_KeyboardMaps.push_back({ 0, { RETROK_x, -1 }, { RETRO_DEVICE_ID_JOYPAD_A, -1 } });
-    m_KeyboardMaps.push_back({ 0, { RETROK_a, -1 }, { RETRO_DEVICE_ID_JOYPAD_Y, -1 } });
-    m_KeyboardMaps.push_back({ 0, { RETROK_s, -1 }, { RETRO_DEVICE_ID_JOYPAD_X, -1 } });
-
-    m_KeyboardMaps.push_back({ 0, { RETROK_RSHIFT, -1 }, { RETRO_DEVICE_ID_JOYPAD_SELECT, -1 } });
-    m_KeyboardMaps.push_back({ 0, { RETROK_RETURN, -1 }, { RETRO_DEVICE_ID_JOYPAD_START, -1 } });
+    /* Analog triggers; full and half press */
+    QRETRO_DEFAULT_MAP_ANALOG(RETROK_e, 2, RETRO_DEVICE_ID_JOYPAD_L2, 32767);
+    QRETRO_DEFAULT_MAP_ANALOG(RETROK_r, 2, RETRO_DEVICE_ID_JOYPAD_R2, 32767);
+    QRETRO_DEFAULT_MAP_ANALOG(RETROK_e, 2, RETRO_DEVICE_ID_JOYPAD_L2, 32767/2);
+    QRETRO_DEFAULT_MAP_ANALOG(RETROK_r, 2, RETRO_DEVICE_ID_JOYPAD_R2, 32767/2);
   }
 }
 
@@ -156,7 +192,7 @@ void QRetroInput::poll(void)
     auto key = &map.keys[0];
     bool pressed = true;
 
-    for (unsigned i = 0; i < sizeof(map.keys) / sizeof(retro_key); i++)
+    for (unsigned i = 0; i < QRETRO_INPUT_MAPPING_MAX; i++)
     {
       if (*key <= RETROK_UNKNOWN)
         break;
@@ -164,12 +200,29 @@ void QRetroInput::poll(void)
       key++;
     }
 
-    for (unsigned i = 0; i < sizeof(map.buttons) / sizeof(int); i++)
+    for (unsigned i = 0; i < QRETRO_INPUT_MAPPING_MAX; i++)
     {
-      if (*button < 0)
+      if (button->port < 0)
         break;
-      m_Joypads[map.port].setDigitalButton(static_cast<unsigned>(*button),
-                                           pressed);
+      switch (button->device)
+      {
+      case RETRO_DEVICE_JOYPAD:
+        m_Joypads[button->port].setDigitalButton(button->id,
+                                                 pressed ? button->value : !button->value);
+        break;
+      case RETRO_DEVICE_ANALOG:
+        if (button->index != RETRO_DEVICE_INDEX_ANALOG_BUTTON)
+        {
+          if (pressed)
+            m_Joypads[button->port].setAnalogStick(button->index, button->id, static_cast<int16_t>(button->value));
+          else if (m_Joypads[button->port].analogStick(button->index, button->id) == button->value)
+            m_Joypads[button->port].setAnalogStick(button->index, button->id, 0);
+        }
+        else
+          m_Joypads[button->port].setAnalogButton(button->id,
+                                                  pressed ? button->value : 0);
+        break;
+      }
       button++;
     }
   }

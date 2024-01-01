@@ -12,11 +12,21 @@
 #define QRETRO_INPUT_DEFAULT_MAX_JOYPADS 16
 #define QRETRO_INPUT_DEFAULT_BUTTON_DEADZONE 0
 
+/// The maximum number of keys that can be combined in one mapping, and the
+/// number of buttons one macro can press
+#define QRETRO_INPUT_MAPPING_MAX 8
+
 typedef struct
 {
   int port;
-  int keys[8];
-  int buttons[8];
+  unsigned device, index, id;
+  int value;
+} qretro_input_t;
+
+typedef struct
+{
+  int keys[QRETRO_INPUT_MAPPING_MAX];
+  qretro_input_t buttons[QRETRO_INPUT_MAPPING_MAX];
 } qretro_input_kb_map_t;
 
 class QRetroInputJoypad
