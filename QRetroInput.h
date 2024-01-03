@@ -127,6 +127,9 @@ public:
    */
   void setSupportsBitmasks(bool supports) { m_SupportsBitmasks = supports; }
 
+  bool useMaps(void) { return m_UseMaps; }
+  void setUseMaps(bool use) { m_UseMaps = use; }
+
 private:
   int16_t m_AnalogButtonDeadzone = QRETRO_INPUT_DEFAULT_BUTTON_DEADZONE;
   QRetroInputJoypad m_Joypads[QRETRO_INPUT_DEFAULT_MAX_JOYPADS];
@@ -134,6 +137,11 @@ private:
   bool m_Keys[RETROK_LAST] = { false };
   unsigned m_MaxUsers = QRETRO_INPUT_DEFAULT_MAX_JOYPADS;
   bool m_SupportsBitmasks = true;
+#if QRETRO_HAVE_GAMEPAD
+  bool m_UseMaps = false;
+#else
+  bool m_UseMaps = true;
+#endif
 };
 
 #endif

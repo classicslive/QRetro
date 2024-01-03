@@ -6,7 +6,7 @@ void QRetroInputJoypad::poll(void)
   uint16_t bitmask = 0;
 
   /* Reset all button values */
-  //memset(m_Buttons, 0, sizeof(m_Buttons));
+  memset(m_Buttons, 0, sizeof(m_Buttons));
 
 #if QRETRO_HAVE_GAMEPAD
   if (m_InputMethods & InputMethodGamepad && m_Gamepad.isConnected())
@@ -186,7 +186,9 @@ void QRetroInput::poll(void)
     m_Joypads[i].poll();
 
   /* Check keyboard macros */
-  for (const auto& map : m_KeyboardMaps)
+  if (!m_UseMaps)
+    return;
+  else for (const auto& map : m_KeyboardMaps)
   {
     auto button = &map.buttons[0];
     auto key = &map.keys[0];
