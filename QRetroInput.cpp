@@ -5,44 +5,6 @@ void QRetroInputJoypad::poll(void)
 {
   uint16_t bitmask = 0;
 
-  /* Reset all button values */
-  memset(m_Buttons, 0, sizeof(m_Buttons));
-
-#if QRETRO_HAVE_GAMEPAD
-  if (m_InputMethods & InputMethodGamepad && m_Gamepad.isConnected())
-  {
-    m_Buttons[RETRO_DEVICE_ID_JOYPAD_A] |= m_Gamepad.buttonB();
-    m_Buttons[RETRO_DEVICE_ID_JOYPAD_B] |= m_Gamepad.buttonA();
-    m_Buttons[RETRO_DEVICE_ID_JOYPAD_X] |= m_Gamepad.buttonY();
-    m_Buttons[RETRO_DEVICE_ID_JOYPAD_Y] |= m_Gamepad.buttonX();
-    m_Buttons[RETRO_DEVICE_ID_JOYPAD_START] |= m_Gamepad.buttonStart();
-    m_Buttons[RETRO_DEVICE_ID_JOYPAD_SELECT] |= m_Gamepad.buttonSelect();
-
-    m_Buttons[RETRO_DEVICE_ID_JOYPAD_L] |= m_Gamepad.buttonL1();
-    m_Buttons[RETRO_DEVICE_ID_JOYPAD_R] |= m_Gamepad.buttonR1();
-    m_Buttons[RETRO_DEVICE_ID_JOYPAD_L2] =
-      qt2lr_analog(m_Gamepad.buttonL2());
-    m_Buttons[RETRO_DEVICE_ID_JOYPAD_R2] =
-      qt2lr_analog(m_Gamepad.buttonR2());
-    m_Buttons[RETRO_DEVICE_ID_JOYPAD_L3] |= m_Gamepad.buttonL3();
-    m_Buttons[RETRO_DEVICE_ID_JOYPAD_R3] |= m_Gamepad.buttonR3();
-
-    m_Buttons[RETRO_DEVICE_ID_JOYPAD_UP] |= m_Gamepad.buttonUp();
-    m_Buttons[RETRO_DEVICE_ID_JOYPAD_DOWN] |= m_Gamepad.buttonDown();
-    m_Buttons[RETRO_DEVICE_ID_JOYPAD_LEFT] |= m_Gamepad.buttonLeft();
-    m_Buttons[RETRO_DEVICE_ID_JOYPAD_RIGHT] |= m_Gamepad.buttonRight();
-
-    m_Sticks[RETRO_DEVICE_INDEX_ANALOG_LEFT][RETRO_DEVICE_ID_ANALOG_X] =
-      qt2lr_analog(m_Gamepad.axisLeftX());
-    m_Sticks[RETRO_DEVICE_INDEX_ANALOG_LEFT][RETRO_DEVICE_ID_ANALOG_Y] =
-      qt2lr_analog(m_Gamepad.axisLeftY());
-    m_Sticks[RETRO_DEVICE_INDEX_ANALOG_RIGHT][RETRO_DEVICE_ID_ANALOG_X] =
-      qt2lr_analog(m_Gamepad.axisRightX());
-    m_Sticks[RETRO_DEVICE_INDEX_ANALOG_RIGHT][RETRO_DEVICE_ID_ANALOG_Y] =
-      qt2lr_analog(m_Gamepad.axisRightY());
-  }
-#endif
-
   /* Update the input bitmask, even if reporting not to support it. */
   for (int i = 0; i <= RETRO_DEVICE_ID_JOYPAD_R3; i++)
     bitmask |= m_Buttons[i] ? (1 << i) : 0;
@@ -136,48 +98,106 @@ void QRetroInputJoypad::setAnalogStick(unsigned index, unsigned id,
     } \
   })
 
-QRetroInput::QRetroInput(void)
+#define QRETRO_CONNECT_DIGITAL(a, b) \
+  connect(m_Joypads[i].gamepad(), \
+          &a, \
+          this, \
+          [this, i](bool pressed) \
+          { m_Joypads[i].setDigitalButton(b, pressed); })
+
+#define QRETRO_CONNECT_STICK(a, b, c) \
+  connect(m_Joypads[i].gamepad(), \
+          &a, \
+          this, \
+          [this, i](double value) \
+          { m_Joypads[i].setAnalogStick(b, c, qt2lr_analog(value)); })
+
+#define QRETRO_CONNECT_TRIGGER(a, b) \
+  connect(m_Joypads[i].gamepad(), \
+          &a, \
+          this, \
+          [this, i](double value) \
+          { m_Joypads[i].setAnalogButton(b, qt2lr_analog(value)); })
+
+QRetroInput::QRetroInput(QObject *parent)
 {
+  setParent(parent);
+
+#if QRETRO_HAVE_GAMEPAD
+  auto gamepads = QGamepadManager::instance()->connectedGamepads();
+#endif
+
   for (unsigned i = 0; i < m_MaxUsers; i++)
   {
     m_Joypads[i].setPort(i);
+
 #if QRETRO_HAVE_GAMEPAD
+#if _WIN32
+    /* On Windows, just allow xinput controllers to populate at any time */
     m_Joypads[i].setGamepadPort(i);
+#else
+    /* On Linux, use the actual IDs of connected gamepads */
+    if (gamepads.size() <= static_cast<int>(i))
+      break;
+    m_Joypads[i].setGamepadPort(gamepads.at(static_cast<int>(i)));
 #endif
+    QRETRO_CONNECT_DIGITAL(QGamepad::buttonUpChanged, RETRO_DEVICE_ID_JOYPAD_UP);
+    QRETRO_CONNECT_DIGITAL(QGamepad::buttonDownChanged, RETRO_DEVICE_ID_JOYPAD_DOWN);
+    QRETRO_CONNECT_DIGITAL(QGamepad::buttonLeftChanged, RETRO_DEVICE_ID_JOYPAD_LEFT);
+    QRETRO_CONNECT_DIGITAL(QGamepad::buttonRightChanged, RETRO_DEVICE_ID_JOYPAD_RIGHT);
+    QRETRO_CONNECT_DIGITAL(QGamepad::buttonAChanged, RETRO_DEVICE_ID_JOYPAD_B);
+    QRETRO_CONNECT_DIGITAL(QGamepad::buttonBChanged, RETRO_DEVICE_ID_JOYPAD_A);
+    QRETRO_CONNECT_DIGITAL(QGamepad::buttonXChanged, RETRO_DEVICE_ID_JOYPAD_Y);
+    QRETRO_CONNECT_DIGITAL(QGamepad::buttonYChanged, RETRO_DEVICE_ID_JOYPAD_X);
+    QRETRO_CONNECT_DIGITAL(QGamepad::buttonL1Changed, RETRO_DEVICE_ID_JOYPAD_L);
+    QRETRO_CONNECT_DIGITAL(QGamepad::buttonL3Changed, RETRO_DEVICE_ID_JOYPAD_L3);
+    QRETRO_CONNECT_DIGITAL(QGamepad::buttonR1Changed, RETRO_DEVICE_ID_JOYPAD_R);
+    QRETRO_CONNECT_DIGITAL(QGamepad::buttonR3Changed, RETRO_DEVICE_ID_JOYPAD_R3);
+    QRETRO_CONNECT_DIGITAL(QGamepad::buttonStartChanged, RETRO_DEVICE_ID_JOYPAD_START);
+    QRETRO_CONNECT_DIGITAL(QGamepad::buttonSelectChanged, RETRO_DEVICE_ID_JOYPAD_SELECT);
 
-    /* Setup default P1 keyboard controls */
-    /* Digital buttons */
-    QRETRO_DEFAULT_MAP_JOYPAD(RETROK_UP, RETRO_DEVICE_ID_JOYPAD_UP);
-    QRETRO_DEFAULT_MAP_JOYPAD(RETROK_DOWN, RETRO_DEVICE_ID_JOYPAD_DOWN);
-    QRETRO_DEFAULT_MAP_JOYPAD(RETROK_LEFT, RETRO_DEVICE_ID_JOYPAD_LEFT);
-    QRETRO_DEFAULT_MAP_JOYPAD(RETROK_RIGHT, RETRO_DEVICE_ID_JOYPAD_RIGHT);
-    QRETRO_DEFAULT_MAP_JOYPAD(RETROK_z, RETRO_DEVICE_ID_JOYPAD_B);
-    QRETRO_DEFAULT_MAP_JOYPAD(RETROK_x, RETRO_DEVICE_ID_JOYPAD_A);
-    QRETRO_DEFAULT_MAP_JOYPAD(RETROK_a, RETRO_DEVICE_ID_JOYPAD_Y);
-    QRETRO_DEFAULT_MAP_JOYPAD(RETROK_s, RETRO_DEVICE_ID_JOYPAD_X);
-    QRETRO_DEFAULT_MAP_JOYPAD(RETROK_SPACE, RETRO_DEVICE_ID_JOYPAD_SELECT);
-    QRETRO_DEFAULT_MAP_JOYPAD(RETROK_RETURN, RETRO_DEVICE_ID_JOYPAD_START);
-    QRETRO_DEFAULT_MAP_JOYPAD(RETROK_q, RETRO_DEVICE_ID_JOYPAD_L);
-    QRETRO_DEFAULT_MAP_JOYPAD(RETROK_w, RETRO_DEVICE_ID_JOYPAD_R);
-    QRETRO_DEFAULT_MAP_JOYPAD(RETROK_t, RETRO_DEVICE_ID_JOYPAD_L3);
-    QRETRO_DEFAULT_MAP_JOYPAD(RETROK_y, RETRO_DEVICE_ID_JOYPAD_R3);
+    QRETRO_CONNECT_STICK(QGamepad::axisLeftXChanged, 0, 0);
+    QRETRO_CONNECT_STICK(QGamepad::axisLeftYChanged, 0, 1);
+    QRETRO_CONNECT_STICK(QGamepad::axisRightXChanged, 1, 0);
+    QRETRO_CONNECT_STICK(QGamepad::axisRightYChanged, 1, 1);
 
-    /* Analog sticks */
-    QRETRO_DEFAULT_MAP_ANALOG(RETROK_UP, 0, RETRO_DEVICE_ID_ANALOG_Y, -32767);
-    QRETRO_DEFAULT_MAP_ANALOG(RETROK_DOWN, 0, RETRO_DEVICE_ID_ANALOG_Y, 32767);
-    QRETRO_DEFAULT_MAP_ANALOG(RETROK_LEFT, 0, RETRO_DEVICE_ID_ANALOG_X, -32767);
-    QRETRO_DEFAULT_MAP_ANALOG(RETROK_RIGHT, 0, RETRO_DEVICE_ID_ANALOG_X, 32767);
-    QRETRO_DEFAULT_MAP_ANALOG(RETROK_i, 1, RETRO_DEVICE_ID_ANALOG_Y, -32767);
-    QRETRO_DEFAULT_MAP_ANALOG(RETROK_k, 1, RETRO_DEVICE_ID_ANALOG_Y, 32767);
-    QRETRO_DEFAULT_MAP_ANALOG(RETROK_j, 1, RETRO_DEVICE_ID_ANALOG_X, -32767);
-    QRETRO_DEFAULT_MAP_ANALOG(RETROK_l, 1, RETRO_DEVICE_ID_ANALOG_X, 32767);
-
-    /* Analog triggers; full and half press */
-    QRETRO_DEFAULT_MAP_ANALOG(RETROK_e, 2, RETRO_DEVICE_ID_JOYPAD_L2, 32767);
-    QRETRO_DEFAULT_MAP_ANALOG(RETROK_r, 2, RETRO_DEVICE_ID_JOYPAD_R2, 32767);
-    QRETRO_DEFAULT_MAP_ANALOG(RETROK_e, 2, RETRO_DEVICE_ID_JOYPAD_L2, 32767/2);
-    QRETRO_DEFAULT_MAP_ANALOG(RETROK_r, 2, RETRO_DEVICE_ID_JOYPAD_R2, 32767/2);
+    QRETRO_CONNECT_TRIGGER(QGamepad::buttonL2Changed, RETRO_DEVICE_ID_JOYPAD_L2);
+    QRETRO_CONNECT_TRIGGER(QGamepad::buttonR2Changed, RETRO_DEVICE_ID_JOYPAD_R2);
+#endif
   }
+
+  /* Setup default P1 keyboard controls */
+  /* Digital buttons */
+  QRETRO_DEFAULT_MAP_JOYPAD(RETROK_UP, RETRO_DEVICE_ID_JOYPAD_UP);
+  QRETRO_DEFAULT_MAP_JOYPAD(RETROK_DOWN, RETRO_DEVICE_ID_JOYPAD_DOWN);
+  QRETRO_DEFAULT_MAP_JOYPAD(RETROK_LEFT, RETRO_DEVICE_ID_JOYPAD_LEFT);
+  QRETRO_DEFAULT_MAP_JOYPAD(RETROK_RIGHT, RETRO_DEVICE_ID_JOYPAD_RIGHT);
+  QRETRO_DEFAULT_MAP_JOYPAD(RETROK_z, RETRO_DEVICE_ID_JOYPAD_B);
+  QRETRO_DEFAULT_MAP_JOYPAD(RETROK_x, RETRO_DEVICE_ID_JOYPAD_A);
+  QRETRO_DEFAULT_MAP_JOYPAD(RETROK_a, RETRO_DEVICE_ID_JOYPAD_Y);
+  QRETRO_DEFAULT_MAP_JOYPAD(RETROK_s, RETRO_DEVICE_ID_JOYPAD_X);
+  QRETRO_DEFAULT_MAP_JOYPAD(RETROK_SPACE, RETRO_DEVICE_ID_JOYPAD_SELECT);
+  QRETRO_DEFAULT_MAP_JOYPAD(RETROK_RETURN, RETRO_DEVICE_ID_JOYPAD_START);
+  QRETRO_DEFAULT_MAP_JOYPAD(RETROK_q, RETRO_DEVICE_ID_JOYPAD_L);
+  QRETRO_DEFAULT_MAP_JOYPAD(RETROK_w, RETRO_DEVICE_ID_JOYPAD_R);
+  QRETRO_DEFAULT_MAP_JOYPAD(RETROK_t, RETRO_DEVICE_ID_JOYPAD_L3);
+  QRETRO_DEFAULT_MAP_JOYPAD(RETROK_y, RETRO_DEVICE_ID_JOYPAD_R3);
+
+  /* Analog sticks */
+  QRETRO_DEFAULT_MAP_ANALOG(RETROK_UP, 0, RETRO_DEVICE_ID_ANALOG_Y, -32767);
+  QRETRO_DEFAULT_MAP_ANALOG(RETROK_DOWN, 0, RETRO_DEVICE_ID_ANALOG_Y, 32767);
+  QRETRO_DEFAULT_MAP_ANALOG(RETROK_LEFT, 0, RETRO_DEVICE_ID_ANALOG_X, -32767);
+  QRETRO_DEFAULT_MAP_ANALOG(RETROK_RIGHT, 0, RETRO_DEVICE_ID_ANALOG_X, 32767);
+  QRETRO_DEFAULT_MAP_ANALOG(RETROK_i, 1, RETRO_DEVICE_ID_ANALOG_Y, -32767);
+  QRETRO_DEFAULT_MAP_ANALOG(RETROK_k, 1, RETRO_DEVICE_ID_ANALOG_Y, 32767);
+  QRETRO_DEFAULT_MAP_ANALOG(RETROK_j, 1, RETRO_DEVICE_ID_ANALOG_X, -32767);
+  QRETRO_DEFAULT_MAP_ANALOG(RETROK_l, 1, RETRO_DEVICE_ID_ANALOG_X, 32767);
+
+  /* Analog triggers; full and half press */
+  QRETRO_DEFAULT_MAP_ANALOG(RETROK_e, 2, RETRO_DEVICE_ID_JOYPAD_L2, 32767);
+  QRETRO_DEFAULT_MAP_ANALOG(RETROK_r, 2, RETRO_DEVICE_ID_JOYPAD_R2, 32767);
+  QRETRO_DEFAULT_MAP_ANALOG(RETROK_e, 2, RETRO_DEVICE_ID_JOYPAD_L2, 32767/2);
+  QRETRO_DEFAULT_MAP_ANALOG(RETROK_r, 2, RETRO_DEVICE_ID_JOYPAD_R2, 32767/2);
 }
 
 void QRetroInput::poll(void)

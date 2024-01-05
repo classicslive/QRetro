@@ -29,8 +29,10 @@ typedef struct
   qretro_input_t buttons[QRETRO_INPUT_MAPPING_MAX];
 } qretro_input_kb_map_t;
 
-class QRetroInputJoypad
+class QRetroInputJoypad : public QObject
 {
+  Q_OBJECT
+
 public:
   enum InputMethod
   {
@@ -69,7 +71,7 @@ public:
 
 #if QRETRO_HAVE_GAMEPAD
   QGamepad *gamepad() { return &m_Gamepad; }
-  void setGamepadPort(unsigned port) { m_Gamepad.setDeviceId(port); }
+  void setGamepadPort(int port) { m_Gamepad.setDeviceId(port); }
 #endif
 
 private:
@@ -88,10 +90,12 @@ private:
 #endif
 };
 
-class QRetroInput
+class QRetroInput : public QObject
 {
+  Q_OBJECT
+
 public:
-  QRetroInput(void);
+  QRetroInput(QObject *parent = nullptr);
 
   void poll(void);
 
