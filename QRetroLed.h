@@ -1,12 +1,15 @@
 #ifndef QRETRO_LED_H
 #define QRETRO_LED_H
 
+#include <QObject>
 #include <map>
 
 #define QRETRO_LED_DEFAULT_STATE 0
 
-class QRetroLed
+class QRetroLed : public QObject
 {
+  Q_OBJECT
+
 public:
   /**
    * @brief Get the state of the LED with the specified index.
@@ -25,7 +28,17 @@ public:
    * @param state The new state to set for the LED.
    * @note If an LED with the index does not exist, it will be created.
    */
-  void setState(int index, int state) { m_Leds[index] = state; }
+  void setState(int index, int state)
+  {
+    if (m_Leds[index] != state)
+    {
+      m_Leds[index] = state;
+      emit changed(index, state);
+    }
+  }
+
+signals:
+  void changed(int index, int state);
 
 private:
   std::map<int, int> m_Leds;
