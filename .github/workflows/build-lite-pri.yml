@@ -1,4 +1,4 @@
-name: Include build with all optional modules
+name: Include build with no optional modules
 
 on:
   push:
@@ -16,6 +16,6 @@ jobs:
     - uses: jurplel/install-qt-action@v3
       with:
         arch: 'gcc_64'
-        archives: 'icu qtbase qtmultimedia qtgamepad qtsystems qtlocation qtsensors'
+        archives: 'icu qtbase qtmultimedia'
     - name: Build
       run: qmake && make
