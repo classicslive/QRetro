@@ -1,9 +1,6 @@
 #ifndef QRETRO_DIRECTORIES_H
 #define QRETRO_DIRECTORIES_H
 
-/* TODO: Make this constant better */
-#define PATHLEN_TEMP 2048
-
 #include <string>
 #include <QString>
 
@@ -55,7 +52,7 @@ public:
   bool set(QRetroDirectories::Type type, const QString &path, bool force = false);
 
 private:
-  char m_Directories[QRetroDirectories::Type_Size][PATHLEN_TEMP];
+  QString m_Directories[QRetroDirectories::Type_Size];
 };
 
 #endif

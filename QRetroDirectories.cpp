@@ -6,49 +6,50 @@ QRetroDirectories::QRetroDirectories()
 {
   QString dir;
 
-  /* TODO: Ugly */
-
   dir = QDir::currentPath() + "/save";
   if (!QDir(dir).exists())
     QDir().mkdir(dir);
-  strncpy(m_Directories[QRetroDirectories::Save], dir.toStdString().c_str(), PATHLEN_TEMP);
+  m_Directories[QRetroDirectories::Save] = dir;
 
   dir = QDir::currentPath() + "/system";
   if (!QDir(dir).exists())
     QDir().mkdir(dir);
-  strncpy(m_Directories[QRetroDirectories::System], dir.toStdString().c_str(), PATHLEN_TEMP);
+  m_Directories[QRetroDirectories::System] = dir;
 
   dir = QDir::currentPath() + "/assets";
   if (!QDir(dir).exists())
     QDir().mkdir(dir);
-  strncpy(m_Directories[QRetroDirectories::CoreAssets], dir.toStdString().c_str(), PATHLEN_TEMP);
+  m_Directories[QRetroDirectories::CoreAssets] = dir;
 }
 
 const char* QRetroDirectories::get(QRetroDirectories::Type type)
 {
   if (type >= QRetroDirectories::Type_Size)
     return nullptr;
-
-  return m_Directories[type];
+  else
+  {
+    auto path = m_Directories[type].toUtf8();
+    return path.constData();
+  }
 }
 
-bool QRetroDirectories::set(QRetroDirectories::Type type, const char *path, bool force)
+bool QRetroDirectories::set(QRetroDirectories::Type type, const QString &path, bool force)
 {
   if (type >= QRetroDirectories::Type_Size)
     return false;
   else if (!QDir(path).exists() && !force)
     return false;
+  m_Directories[type] = path;
 
-  strncpy(m_Directories[type], path, PATHLEN_TEMP);
   return true;
 }
 
 bool QRetroDirectories::set(QRetroDirectories::Type type, const std::string &path, bool force)
 {
-  return set(type, path.c_str(), force);
+  return set(type, QString(path.c_str()), force);
 }
 
-bool QRetroDirectories::set(QRetroDirectories::Type type, const QString &path, bool force)
+bool QRetroDirectories::set(QRetroDirectories::Type type, const char *path, bool force)
 {
-  return set(type, path.toStdString(), force);
+  return set(type, QString(path), force);
 }
