@@ -1,7 +1,7 @@
 #ifndef QRETRO_LOCATION_H
 #define QRETRO_LOCATION_H
 
-#ifdef QRETRO_HAVE_LOCATION
+#if QRETRO_HAVE_LOCATION
 #include <QGeoPositionInfoSource>
 #else
 #include <QObject>
@@ -21,13 +21,13 @@ public:
   bool startUpdates(void);
   bool stopUpdates(void);
 
-#ifdef QRETRO_HAVE_LOCATION
+#if QRETRO_HAVE_LOCATION
 public slots:
   void positionUpdated(const QGeoPositionInfo &update);
 #endif
 
 private:
-#ifdef QRETRO_HAVE_LOCATION
+#if QRETRO_HAVE_LOCATION
   QGeoPositionInfoSource *m_InfoSource;
 #endif
   double m_Latitude = 0;

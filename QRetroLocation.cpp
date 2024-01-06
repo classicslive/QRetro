@@ -5,7 +5,7 @@ QRetroLocation::QRetroLocation(QObject* parent)
 {
   setParent(parent);
 
-#ifdef QRETRO_HAVE_LOCATION
+#if QRETRO_HAVE_LOCATION
   m_InfoSource = QGeoPositionInfoSource::createDefaultSource(this);
 
   if (m_InfoSource)
@@ -18,7 +18,7 @@ QRetroLocation::QRetroLocation(QObject* parent)
 
 QRetroLocation::~QRetroLocation()
 {
-#ifdef QRETRO_HAVE_LOCATION
+#if QRETRO_HAVE_LOCATION
   delete m_InfoSource;
 #endif
 }
@@ -42,7 +42,7 @@ bool QRetroLocation::getPosition(double *lat, double *lon,
   return true;
 }
 
-#ifdef QRETRO_HAVE_LOCATION
+#if QRETRO_HAVE_LOCATION
 void QRetroLocation::positionUpdated(const QGeoPositionInfo &update)
 {
   m_Latitude = update.coordinate().latitude();
@@ -66,7 +66,7 @@ void QRetroLocation::setPosition(double lat, double lon, double horiz_accuracy,
 
 void QRetroLocation::setUpdateInterval(int ms)
 {
-#ifdef QRETRO_HAVE_LOCATION
+#if QRETRO_HAVE_LOCATION
   if (m_InfoSource)
     m_InfoSource->setUpdateInterval(ms);
 #else
@@ -76,7 +76,7 @@ void QRetroLocation::setUpdateInterval(int ms)
 
 bool QRetroLocation::startUpdates(void)
 {
-#ifdef QRETRO_HAVE_LOCATION
+#if QRETRO_HAVE_LOCATION
   if (m_InfoSource)
     m_InfoSource->startUpdates();
   return true;
@@ -87,7 +87,7 @@ bool QRetroLocation::startUpdates(void)
 
 bool QRetroLocation::stopUpdates(void)
 {
-#ifdef QRETRO_HAVE_LOCATION
+#if QRETRO_HAVE_LOCATION
   if (m_InfoSource)
     m_InfoSource->stopUpdates();
   return true;
