@@ -3,6 +3,8 @@
 
 #if QRETRO_HAVE_GAMEPAD
 #include <QGamepad>
+#else
+#include <QObject>
 #endif
 
 #include <vector>
