@@ -8,9 +8,9 @@
 class QRetroUsername
 {
 public:
-  QRetroUsername();
+  QRetroUsername(void);
 
-  const char* get() { return m_Username; }
+  const char* get(void);
   void set(const char *username);
   void set(const std::string &username);
   void set(const QString &username);
@@ -26,7 +26,7 @@ public:
   void setFromSystem(void);
 
 private:
-  char m_Username[QRETRO_USERNAME_LENGTH];
+  QString m_Username;
 };
 
 #endif

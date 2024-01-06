@@ -3,14 +3,21 @@
 #include <QCoreApplication>
 #include <QDir>
 
-QRetroUsername::QRetroUsername()
+QRetroUsername::QRetroUsername(void)
 {
   setFromApplication();
 }
 
+const char* QRetroUsername::get(void)
+{
+  auto name = m_Username.toUtf8();
+  return name.constData();
+}
+
 void QRetroUsername::set(const char *username)
 {
-  strncpy(m_Username, username, QRETRO_USERNAME_LENGTH);
+  m_Username = QString(username);
+  m_Username.resize(QRETRO_USERNAME_LENGTH);
 }
 
 void QRetroUsername::set(const std::string &username)
