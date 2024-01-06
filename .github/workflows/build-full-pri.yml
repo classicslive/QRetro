@@ -16,6 +16,6 @@ jobs:
     - uses: jurplel/install-qt-action@v3
       with:
         arch: 'gcc_64'
-        archives: 'icu qtbase qtmultimedia qtgamepad qtpositioning qtsensors'
+        archives: 'icu qtbase qtmultimedia qtgamepad qtsystems qtlocation qtsensors'
     - name: Build
       run: qmake && make
