@@ -6,6 +6,7 @@
 #include <QOpenGLFramebufferObject>
 #include <QOpenGLFunctions>
 #include <QOpenGLPaintDevice>
+#include "QRetroOpenGLFramebufferObject.h"
 #endif
 #include <QWindow>
 
@@ -463,7 +464,7 @@ private:
   QOpenGLContext *m_OpenGlContext = nullptr;
   QOpenGLContext *m_OpenGlContextCore = nullptr;
   QOpenGLPaintDevice *m_OpenGlDevice = nullptr;
-  QOpenGLFramebufferObject *m_OpenGlFbo = nullptr;
+  QRetroOpenGLFramebufferObject *m_OpenGlFbo = nullptr;
 #endif
   bool m_ImageDrawing = false;
   bool m_ImageRendering = false;

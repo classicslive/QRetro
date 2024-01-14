@@ -108,6 +108,7 @@ SOURCES += \
   $$PWD/QRetroLocation.cpp \
   $$PWD/QRetroMicrophone.cpp \
   $$PWD/QRetroMidi.cpp \
+  $$PWD/QRetroOpenGLFramebufferObject.cpp \
   $$PWD/QRetroOptions.cpp \
   $$PWD/QRetroProcAddress.cpp \
   $$PWD/QRetroSensors.cpp \
@@ -130,6 +131,7 @@ HEADERS += \
   $$PWD/QRetroLocation.h \
   $$PWD/QRetroMicrophone.h \
   $$PWD/QRetroMidi.h \
+  $$PWD/QRetroOpenGLFramebufferObject.h \
   $$PWD/QRetroOptions.h \
   $$PWD/QRetroProcAddress.h \
   $$PWD/QRetroSensors.h \

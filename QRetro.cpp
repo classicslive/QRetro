@@ -42,14 +42,24 @@ long long unsigned QRetro::getCurrentFramebuffer()
     else
       format.setAttachment(QOpenGLFramebufferObject::NoAttachment);
 
-    m_OpenGlFbo = new QOpenGLFramebufferObject(m_BaseRect.size(), format);
+    m_OpenGlFbo = new QRetroOpenGLFramebufferObject(m_BaseRect.size().width(), m_BaseRect.size().height(), format);
   }
 
   if (m_OpenGlFbo && !m_ImageDrawing && m_OpenGlFbo->isValid() && !m_OpenGlFbo->isBound())
   {
+    //m_OpenGlFbo->apply();
     m_ImageRendering = true;
+
+    glBindFramebuffer(GL_FRAMEBUFFER, m_OpenGlFbo->handle());
+    GLint width, height;
+    glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, &width);
+    glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_HEIGHT, &height);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
     m_Image = m_OpenGlFbo->toImage(m_Core.hw_render.bottom_left_origin);
+    m_Image = m_Image.copy(QRect(0, 0, width, height));
     m_ImageRendering = false;
+    m_OpenGlFbo->release();
   }
 
   return m_OpenGlFbo ? m_OpenGlFbo->handle() : 0;
