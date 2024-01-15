@@ -5,9 +5,9 @@ QT += core gui multimedia
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
 CONFIG(debug, debug|release) {
-  DEFINES += QRETRO_DRAW_DEBUG=1
+  DEFINES += QRETRO_DEBUG=1
 } else {
-  DEFINES += QRETRO_DRAW_DEBUG=0
+  DEFINES += QRETRO_DEBUG=0
 }
 
 !QRETRO_CONFIG_NO_CAMERA {

@@ -147,7 +147,7 @@ bool QRetro::event(QEvent *ev)
         painter.fillRect(0, 0, size().width(), size().height(), Qt::black);
         painter.drawImage(m_Rect, m_Image);
 
-#if QRETRO_DRAW_DEBUG
+#if QRETRO_DEBUG
         painter.setPen(Qt::red);
         painter.drawText(16, size().height() - 16, "Software");
 #endif
@@ -184,7 +184,7 @@ bool QRetro::event(QEvent *ev)
         painter.fillRect(0, 0, size().width(), size().height(), Qt::black);
         painter.drawImage(m_Rect, m_Image);
 
-#if QRETRO_DRAW_DEBUG
+#if QRETRO_DEBUG
         if (m_OpenGlFbo)
         {
           painter.setPen(Qt::yellow);
@@ -582,9 +582,17 @@ void QRetro::timing()
     if (m_FastForwarding && m_FastForwardRatio <= 1.0f)
       continue;
 
+    /* Wake up right before next frames is needed */
     this_thread::sleep_until(next - milliseconds(2));
+
+    /* Waitloop until exact timing */
     while (steady_clock::now() < next);
+
+#if QRETRO_DEBUG
     next += nanoseconds(time);
+#else
+    next = steady_clock::now() + nanoseconds(time);
+#endif
   }
 }
 
