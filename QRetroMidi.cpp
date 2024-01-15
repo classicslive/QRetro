@@ -14,7 +14,7 @@ QRetroMidi::QRetroMidi()
 
   if (vals.size() > 0)
   {
-    m_In = new QMidiIn;
+    m_In = new QMidiIn(this);
     m_InEnabled = m_In->connect(vals.firstKey());
     if (m_InEnabled)
     {
@@ -27,7 +27,7 @@ QRetroMidi::QRetroMidi()
 
   if (vals.size() > 0)
   {
-    m_Out = new QMidiOut;
+    m_Out = new QMidiOut();
     m_OutEnabled = m_Out->connect(vals.firstKey());
     if (m_OutEnabled)
       qDebug() << "MIDI output connected to " << vals.first();
@@ -67,7 +67,7 @@ bool QRetroMidi::write(uint8_t byte, uint32_t delta_time)
   Q_UNUSED(delta_time)
 #endif
 
-  return true;
+  return false;
 }
 
 bool QRetroMidi::flush(void)

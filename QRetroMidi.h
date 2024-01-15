@@ -1,13 +1,15 @@
 #ifndef QRETRO_MIDI_H
 #define QRETRO_MIDI_H
 
-#include <QWidget>
+#include <QObject>
 
 QT_FORWARD_DECLARE_CLASS(QMidiIn);
 QT_FORWARD_DECLARE_CLASS(QMidiOut);
 
-class QRetroMidi
+class QRetroMidi : public QObject
 {
+  Q_OBJECT
+
 public:
   QRetroMidi();
 
@@ -22,11 +24,11 @@ public:
   bool flush(void);
 
 private:
-  QMidiIn *m_In;
+  QMidiIn *m_In = nullptr;
   bool m_InEnabled = false;
   QByteArray m_InStream;
 
-  QMidiOut *m_Out;
+  QMidiOut *m_Out = nullptr;
   bool m_OutEnabled = false;
   QByteArray m_OutStream;
 };
