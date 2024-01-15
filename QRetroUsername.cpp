@@ -10,14 +10,15 @@ QRetroUsername::QRetroUsername(void)
 
 const char* QRetroUsername::get(void)
 {
-  auto name = m_Username.toUtf8();
-  return name.constData();
+  return m_Username.constData();
 }
 
 void QRetroUsername::set(const char *username)
 {
-  m_Username = QString(username);
-  m_Username.resize(QRETRO_USERNAME_LENGTH);
+  auto qusername = QString(username);
+
+  qusername.resize(QRETRO_USERNAME_LENGTH);
+  m_Username = qusername.toUtf8();
 }
 
 void QRetroUsername::set(const std::string &username)

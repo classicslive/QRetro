@@ -9,17 +9,17 @@ QRetroDirectories::QRetroDirectories()
   dir = QDir::currentPath() + "/save";
   if (!QDir(dir).exists())
     QDir().mkdir(dir);
-  m_Directories[QRetroDirectories::Save] = dir;
+  m_Directories[QRetroDirectories::Save] = dir.toUtf8();
 
   dir = QDir::currentPath() + "/system";
   if (!QDir(dir).exists())
     QDir().mkdir(dir);
-  m_Directories[QRetroDirectories::System] = dir;
+  m_Directories[QRetroDirectories::System] = dir.toUtf8();
 
   dir = QDir::currentPath() + "/assets";
   if (!QDir(dir).exists())
     QDir().mkdir(dir);
-  m_Directories[QRetroDirectories::CoreAssets] = dir;
+  m_Directories[QRetroDirectories::CoreAssets] = dir.toUtf8();
 }
 
 const char* QRetroDirectories::get(QRetroDirectories::Type type)
@@ -27,10 +27,7 @@ const char* QRetroDirectories::get(QRetroDirectories::Type type)
   if (type >= QRetroDirectories::Type_Size)
     return nullptr;
   else
-  {
-    auto path = m_Directories[type].toUtf8();
-    return path.constData();
-  }
+    return m_Directories[type].constData();
 }
 
 bool QRetroDirectories::set(QRetroDirectories::Type type, const QString &path, bool force)
@@ -39,7 +36,7 @@ bool QRetroDirectories::set(QRetroDirectories::Type type, const QString &path, b
     return false;
   else if (!QDir(path).exists() && !force)
     return false;
-  m_Directories[type] = path;
+  m_Directories[type] = path.toUtf8();
 
   return true;
 }

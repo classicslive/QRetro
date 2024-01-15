@@ -26,7 +26,7 @@ public:
   void setFromSystem(void);
 
 private:
-  QString m_Username;
+  QByteArray m_Username;
 };
 
 #endif

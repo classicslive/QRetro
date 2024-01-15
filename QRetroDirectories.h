@@ -52,7 +52,7 @@ public:
   bool set(QRetroDirectories::Type type, const QString &path, bool force = false);
 
 private:
-  QString m_Directories[QRetroDirectories::Type_Size];
+  QByteArray m_Directories[QRetroDirectories::Type_Size];
 };
 
 #endif
