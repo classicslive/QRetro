@@ -589,9 +589,9 @@ void QRetro::timing()
     while (steady_clock::now() < next);
 
 #if QRETRO_DEBUG
-    next += nanoseconds(time);
-#else
     next = steady_clock::now() + nanoseconds(time);
+#else
+    next += nanoseconds(time);
 #endif
   }
 }
