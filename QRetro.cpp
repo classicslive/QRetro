@@ -26,6 +26,7 @@ static int mousewheel[2];
 
 long long unsigned QRetro::getCurrentFramebuffer()
 {
+#if QRETRO_HAVE_OPENGL
   /* Create framebuffer if it is invalid or null */
   if ((!m_OpenGlFbo || m_OpenGlFbo->size() != m_BaseRect.size()) &&
       !m_BaseRect.size().isEmpty())
@@ -53,6 +54,9 @@ long long unsigned QRetro::getCurrentFramebuffer()
   }
 
   return m_OpenGlFbo ? m_OpenGlFbo->handle() : 0;
+#else
+  return 0;
+#endif
 }
 
 void QRetro::updateScaling()
@@ -157,6 +161,7 @@ bool QRetro::event(QEvent *ev)
         m_BackingStore->flush(dirty ? QRect(0, 0, size().width(), size().height()) : m_Rect);
         m_ImageDrawing = false;
       }
+#if QRETRO_HAVE_OPENGL
       else if (surfaceType() == QSurface::OpenGLSurface)
       {
         /* We cancel repainting the screen if...
@@ -200,6 +205,7 @@ bool QRetro::event(QEvent *ev)
         m_OpenGlContext->swapBuffers(this);
         m_ImageDrawing = false;
       }
+#endif
     }
 
     return true;
@@ -890,6 +896,7 @@ bool QRetro::loadCore(const char *path)
 
 void* QRetro::getProcAddress(QThread *caller, const char *symbol)
 {
+#if QRETRO_HAVE_OPENGL
   if (!m_OpenGlContextCore)
   {
     m_OpenGlContextCore = new QOpenGLContext();
@@ -908,6 +915,10 @@ void* QRetro::getProcAddress(QThread *caller, const char *symbol)
 
     return ptr;
   }
+#else
+  Q_UNUSED(caller)
+  Q_UNUSED(symbol)
+#endif
 
   return nullptr;
 }
@@ -927,6 +938,8 @@ bool QRetro::initVideo(retro_hw_context_type format)
     m_BackingStore = new QBackingStore(this);
 
     break;
+
+#if QRETRO_HAVE_OPENGL
   case RETRO_HW_CONTEXT_OPENGL:
   case RETRO_HW_CONTEXT_OPENGL_CORE:
   case RETRO_HW_CONTEXT_OPENGLES2:
@@ -943,6 +956,8 @@ bool QRetro::initVideo(retro_hw_context_type format)
     }
 
     break;
+#endif
+
   default:
     printf("INIT VIDEO ERROR!");
     return false;

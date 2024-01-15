@@ -71,6 +71,9 @@ CONFIG(debug, debug|release) {
   QT += opengl
   DEFINES += QRETRO_HAVE_OPENGL=1
   message("OpenGL module added.")
+} else {
+  DEFINES += QRETRO_HAVE_OPENGL=0
+  message("OpenGL module disabled.")
 }
 
 !QRETRO_CONFIG_NO_SENSORS {
