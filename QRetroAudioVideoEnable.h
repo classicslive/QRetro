@@ -32,7 +32,7 @@ public:
   void setFlags(int flags) { m_Flags.bits = flags; }
 
 private:
-  union
+  union m_Flags
   {
     struct
     {
