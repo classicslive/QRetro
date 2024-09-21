@@ -21,4 +21,4 @@ jobs:
         arch: 'win64_msvc2019_64'
         archives: 'icu qtbase qtmultimedia qtgamepad qtsystems qtlocation qtsensors'
     - name: Build
-      run: qmake && make
+      run: qmake && nmake
