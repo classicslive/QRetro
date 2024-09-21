@@ -13,12 +13,25 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest]
+        qt_arch:
+          - gcc_64   # For Ubuntu (Linux)
+          - win64_msvc2019_64 # For Windows
 
     steps:
     - uses: actions/checkout@v3
-    - uses: jurplel/install-qt-action@v3
+    
+    # Install Qt based on the OS and architecture from the matrix
+    - name: Install Qt
+      uses: jurplel/install-qt-action@v3
       with:
-        arch: 'gcc_64'
+        arch: ${{ matrix.qt_arch }}
         archives: 'icu qtbase qtmultimedia qtgamepad qtsystems qtlocation qtsensors'
+
+    # Build the project using qmake and make for both platforms
     - name: Build
-      run: qmake && make
+      run: |
+        qmake
+        if [ ${{ matrix.os }} == 'ubuntu-latest' ]; then
+          make
+        else
+          nmake
