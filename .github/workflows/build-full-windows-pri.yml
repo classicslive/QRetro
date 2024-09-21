@@ -1,0 +1,24 @@
+name: Windows include build with all optional modules
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+jobs:
+  build:
+
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v3
+    - uses: jurplel/install-qt-action@v3
+      with:
+        version: '5.15.2'
+        host: 'windows'
+        target: 'desktop'
+        arch: 'win64_msvc2019_64'
+        archives: 'icu qtbase qtmultimedia qtgamepad qtsystems qtlocation qtsensors'
+    - name: Build
+      run: qmake && make
