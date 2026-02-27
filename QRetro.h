@@ -1,7 +1,11 @@
 #ifndef QRETRO_H
 #define QRETRO_H
 
+#include <functional>
+
 #include <QBackingStore>
+#include <QMutex>
+#include <QWaitCondition>
 #if QRETRO_HAVE_OPENGL
 #include <QOpenGLFramebufferObject>
 #include <QOpenGLFunctions>
@@ -77,6 +81,7 @@ public:
   bool loadCore(const char *path);
   bool loadContent(const char *path, const char *meta = nullptr);
   bool startCore(void);
+  void stopCore(void);
 
   QPoint mouseDelta() { return m_MouseDelta; }
   QPoint mousePosition() { return m_MousePosition; }
@@ -317,6 +322,10 @@ public:
   bool jitCapable(void) { return m_JitCapable; }
   void setJitCapable(bool capable) { m_JitCapable = capable; }
 
+  bool stateLoad(void);
+  bool stateSave(void);
+  void resetCore(void);
+
 signals:
   void onCoreLog(int level, const QString msg);
   void onCoreMessage(const char *msg);
@@ -439,6 +448,9 @@ private:
   bool m_SupportsNoGame = false;
 
   double m_TargetRefreshRate = 60.0;
+  QMutex m_PendingMutex;
+  std::function<void()> m_PendingAction;
+  QWaitCondition m_PendingDone;
   QThread *m_ThreadSaving;
   QThread *m_ThreadTiming;
 
@@ -446,6 +458,10 @@ private:
   QImage m_Image;
   QRect m_BaseRect;
   QRect m_Rect;
+
+  /** @todo Configurable state size */
+  unsigned char *m_QuickSave = nullptr;
+  size_t m_QuickSaveSize = 0;
 
   QImage::Format m_PixelFormat;
 
@@ -471,6 +487,7 @@ private:
   bool (*m_InputPollHandler)(void) = nullptr;
   int16_t (*m_InputStateHandler)(unsigned, unsigned, unsigned, unsigned) = nullptr;
 
+  void execOnTimingThread(std::function<void()> action);
   bool inputReady() { return hasInputPollHandler() ? m_InputReady : true; }
   void setupPainter(QPainter *painter);
   void updateScaling();

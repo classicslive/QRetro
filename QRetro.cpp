@@ -5,9 +5,9 @@
 #include <QFileInfo>
 #include <QKeyEvent>
 #include <QPainter>
+#include <QMutexLocker>
 #include <QThread>
 
-#include <iostream>
 #ifndef _WIN32
 #include <dlfcn.h>
 #include <pthread.h>
@@ -24,7 +24,7 @@ using namespace std::chrono;
 
 static int mousewheel[2];
 
-long long unsigned QRetro::getCurrentFramebuffer()
+long long unsigned QRetro::getCurrentFramebuffer(void)
 {
 #if QRETRO_HAVE_OPENGL
   /* Create framebuffer if it is invalid or null */
@@ -125,6 +125,10 @@ bool QRetro::event(QEvent *ev)
 {
   switch (ev->type())
   {
+  case QEvent::Close:
+    stopCore();
+    ev->accept();
+    return true;
   case QEvent::UpdateRequest:
     {
       QPainter painter;
@@ -370,14 +374,62 @@ bool load_function(void *func_ptr, QRETRO_LIBRARY_T library, const char *name)
   }
 }
 
+void QRetro::execOnTimingThread(std::function<void()> action)
+{
+  QMutexLocker lock(&m_PendingMutex);
+  m_PendingAction = std::move(action);
+  m_PendingDone.wait(&m_PendingMutex);
+}
+
 bool QRetro::coreSerialize(void *data, size_t size)
 {
-  return (data && size) ? m_Core.retro_serialize(data, size) : false;
+  if (!data || !size)
+    return false;
+
+  bool result = false;
+  execOnTimingThread([&]() { result = m_Core.retro_serialize(data, size); });
+  return result;
 }
 
 bool QRetro::coreUnserialize(void *data, size_t size)
 {
-  return (data && size) ? m_Core.retro_unserialize(data, size) : false;
+  if (!data || !size)
+    return false;
+
+  bool result = false;
+  execOnTimingThread([&]() { result = m_Core.retro_unserialize(data, size); });
+  return result;
+}
+
+bool QRetro::stateSave(void)
+{
+  bool result = false;
+  execOnTimingThread([&]() {
+    size_t sz = m_Core.retro_serialize_size();
+    if (!sz)
+      return;
+    if (m_QuickSave)
+      free(m_QuickSave);
+    m_QuickSave = (unsigned char*)calloc(1, sz);
+    m_QuickSaveSize = sz;
+    result = m_Core.retro_serialize(m_QuickSave, m_QuickSaveSize);
+  });
+  return result;
+}
+
+bool QRetro::stateLoad(void)
+{
+  if (!m_QuickSave || !m_QuickSaveSize)
+    return false;
+
+  bool result = false;
+  execOnTimingThread([&]() { result = m_Core.retro_unserialize(m_QuickSave, m_QuickSaveSize); });
+  return result;
+}
+
+void QRetro::resetCore(void)
+{
+  execOnTimingThread([this]() { m_Core.retro_reset(); });
 }
 
 #define _load_function(a) success &= load_function(&core->a, library, #a)
@@ -436,16 +488,34 @@ QRetro::QRetro(QWindow *parent, retro_hw_context_type format)
   memset(m_SupportedEnvCallbacks, true, sizeof(m_SupportedEnvCallbacks));
 }
 
+void QRetro::stopCore(void)
+{
+  if (!m_Active)
+    return;
+
+  m_Active = false;
+
+  if (m_ThreadTiming)
+  {
+    m_ThreadTiming->quit();
+    m_ThreadTiming->wait();
+    delete m_ThreadTiming;
+    m_ThreadTiming = nullptr;
+  }
+
+  if (m_ThreadSaving)
+  {
+    m_ThreadSaving->quit();
+    m_ThreadSaving->wait();
+    delete m_ThreadSaving;
+    m_ThreadSaving = nullptr;
+  }
+}
+
 QRetro::~QRetro(void)
 {
   /* Stop processing the core */
-  m_Active = false;
-
-  /* Cancel active threads */
-  if (m_ThreadSaving)
-    m_ThreadSaving->quit();
-  if (m_ThreadTiming)
-    m_ThreadTiming->quit();
+  stopCore();
 
   /* Let the core run its deconstructors */
   if (m_Core.inited)
@@ -557,6 +627,16 @@ void QRetro::timing()
 
   while (m_Active)
   {
+    {
+      QMutexLocker lock(&m_PendingMutex);
+      if (m_PendingAction)
+      {
+        m_PendingAction();
+        m_PendingAction = nullptr;
+        m_PendingDone.wakeAll();
+      }
+    }
+
     if (inputReady() && // stall if waiting for input (netplay)
         isVisible() && // stall if window is not available in context
         !m_Paused && // stall if content is paused
@@ -566,7 +646,7 @@ void QRetro::timing()
       if (m_Core.frame_time_callback.callback)
         m_Core.frame_time_callback.callback(m_Core.frame_time_callback.reference);
 
-      m_Camera.update();
+      //m_Camera.update();
 
       m_Core.retro_run();
       emit onFrame();
@@ -704,6 +784,12 @@ void QRetro::keyPressEvent(QKeyEvent *event)
     case Qt::Key_W:
       setFastForwarding(!m_FastForwarding);
       break;
+    case Qt::Key_Z:
+      stateSave();
+      break;
+    case Qt::Key_X:
+      stateLoad();
+      break;
     case Qt::Key_9:
       setRotation(m_Rotation + 90);
       break;
@@ -726,11 +812,6 @@ void QRetro::setFastForwarding(bool enabled)
 
 void QRetro::saving()
 {
-  /* Wait until the first frame */
-  while (!m_Frames);
-
-  auto data = m_Core.retro_get_memory_data(RETRO_MEMORY_SAVE_RAM);
-  auto size = m_Core.retro_get_memory_size(RETRO_MEMORY_SAVE_RAM);
   QByteArray hash;
   QCryptographicHash hasher(QCryptographicHash::Md5);
   QFile save_file(QString("%1/%2.sav").arg(
@@ -738,41 +819,60 @@ void QRetro::saving()
     QFileInfo(contentPath()).baseName())
   );
 
-  /* Initial load for save file */
-  if (save_file.open(QIODevice::ReadOnly) && data && size)
-  {
-    save_file.read(reinterpret_cast<char*>(data), static_cast<qint64>(size));
-    hasher.addData(reinterpret_cast<char*>(data), static_cast<int>(size));
-    hash = hasher.result();
-  }
-  save_file.close();
+  QByteArray initialBuffer;
 
+  while (!m_Active);
+
+  /* Read save file into buffer once */
+  if (save_file.exists() && save_file.open(QIODevice::ReadOnly))
+  {
+    initialBuffer = save_file.readAll();
+    save_file.close();
+  }
+
+  /* For first 15 frames, continuously copy buffer into SRAM */
+  while (m_Frames <= 15)
+  {
+    void *data = m_Core.retro_get_memory_data(RETRO_MEMORY_SAVE_RAM);
+    size_t size = m_Core.retro_get_memory_size(RETRO_MEMORY_SAVE_RAM);
+
+    if (data && size && !initialBuffer.isEmpty())
+    {
+      size_t copySize = std::min<size_t>(size, static_cast<size_t>(initialBuffer.size()));
+      memcpy(data, initialBuffer.constData(), copySize);
+
+      hasher.reset();
+      hasher.addData(reinterpret_cast<const char*>(data), static_cast<int>(copySize));
+      hash = hasher.result();
+    }
+  }
+
+  /* Normal autosave loop */
   while (m_Active)
   {
     QThread::sleep(m_AutosaveInterval);
 
-    /* Request save data from core */
-    data = m_Core.retro_get_memory_data(RETRO_MEMORY_SAVE_RAM);
-    size = m_Core.retro_get_memory_size(RETRO_MEMORY_SAVE_RAM);
+    auto data = m_Core.retro_get_memory_data(RETRO_MEMORY_SAVE_RAM);
+    auto size = m_Core.retro_get_memory_size(RETRO_MEMORY_SAVE_RAM);
 
-    /* No save data */
     if (!data || !size)
       continue;
 
-    /* Has the save data changed? If not, don't access the file. */
     hasher.reset();
     hasher.addData(reinterpret_cast<const char*>(data), static_cast<int>(size));
     auto result = hasher.result();
+
     if (result == hash)
       continue;
+
     hash = result;
 
-    /* Flush save data to file */
-    save_file.open(QIODevice::ReadWrite);
-    save_file.write(static_cast<const char*>(data), static_cast<qint64>(size));
-    save_file.close();
-
-    emit onSave();
+    if (save_file.open(QIODevice::WriteOnly | QIODevice::Truncate))
+    {
+      save_file.write(static_cast<const char*>(data), static_cast<qint64>(size));
+      save_file.close();
+      emit onSave();
+    }
   }
 }
 
