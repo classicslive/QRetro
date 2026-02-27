@@ -30,7 +30,10 @@ retro_microphone_t* QRetroMicrophone::open(const retro_microphone_params_t *para
   mic->input = new QAudioInput(format);
 
   if (!mic->input || mic->input->error())
+  {
+    delete mic;
     return nullptr;
+  }
   else
     return reinterpret_cast<retro_microphone_t*>(mic);
 }
