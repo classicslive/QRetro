@@ -5,8 +5,10 @@
 
 #include <QBackingStore>
 #include <QMutex>
+#include <QSemaphore>
 #include <QWaitCondition>
 #if QRETRO_HAVE_OPENGL
+#include <QOpenGLExtraFunctions>
 #include <QOpenGLFramebufferObject>
 #include <QOpenGLFunctions>
 #include <QOpenGLPaintDevice>
@@ -451,6 +453,7 @@ private:
   QMutex m_PendingMutex;
   std::function<void()> m_PendingAction;
   QWaitCondition m_PendingDone;
+  QSemaphore m_FramePresented;
   QThread *m_ThreadSaving;
   QThread *m_ThreadTiming;
 
@@ -480,6 +483,8 @@ private:
   QOpenGLContext *m_OpenGlContextCore = nullptr;
   QOpenGLPaintDevice *m_OpenGlDevice = nullptr;
   QOpenGLFramebufferObject *m_OpenGlFbo = nullptr;
+  QOpenGLFramebufferObject *m_OpenGlFboIntermediate = nullptr;
+  bool m_FboRequestedThisFrame = false;
 #endif
   bool m_ImageDrawing = false;
   bool m_ImageRendering = false;

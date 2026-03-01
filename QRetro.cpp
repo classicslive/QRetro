@@ -1,6 +1,7 @@
 #include <QApplication>
 #include <QCryptographicHash>
 #include <QDebug>
+#include <QElapsedTimer>
 #include <QFile>
 #include <QFileInfo>
 #include <QKeyEvent>
@@ -27,6 +28,8 @@ static int mousewheel[2];
 long long unsigned QRetro::getCurrentFramebuffer(void)
 {
 #if QRETRO_HAVE_OPENGL
+  m_FboRequestedThisFrame = true;
+
   /* Create framebuffer if it is invalid or null */
   if ((!m_OpenGlFbo || m_OpenGlFbo->size() != m_BaseRect.size()) &&
       !m_BaseRect.size().isEmpty())
@@ -84,6 +87,7 @@ void QRetro::resizeEvent(QResizeEvent *event)
 {
   Q_UNUSED(event)
   updateScaling();
+  requestUpdate();
 }
 
 void QRetro::exposeEvent(QExposeEvent *event)
@@ -168,46 +172,33 @@ bool QRetro::event(QEvent *ev)
 #if QRETRO_HAVE_OPENGL
       else if (surfaceType() == QSurface::OpenGLSurface)
       {
-        /* We cancel repainting the screen if...
-         * ...an FBO copy is still being performed... */
-        if (m_ImageRendering)
-          return false;
-        /* ...the screen is already painting... */
-        if (m_OpenGlDevice && m_OpenGlDevice->paintingActive())
-          return false;
-        /* ... or the OpenGL context is unavailable. */
-        if (!m_OpenGlContext->makeCurrent(this))
-          return false;
-
-        /* Remake the viewport if the window dimensions have changed */
-        if (!m_OpenGlDevice ||  m_OpenGlDevice->size() != size())
-          m_OpenGlDevice = new QOpenGLPaintDevice(size());
-
-        if (m_Core.hw_render.cache_context)
-          getCurrentFramebuffer();
-
-        m_ImageDrawing = true;
-        painter.begin(m_OpenGlDevice);
-        setupPainter(&painter);
-
-        painter.fillRect(0, 0, size().width(), size().height(), Qt::black);
-        painter.drawImage(m_Rect, m_Image);
-
-#if QRETRO_DEBUG
-        if (m_OpenGlFbo)
+        if (m_OpenGlContextCore)
         {
-          painter.setPen(Qt::yellow);
-          painter.drawText(16, size().height() - 16, "OpenGL HW");
+          /**
+           * GL core: timing thread owns m_OpenGlContextCore and handles
+           * rendering and buffer swapping. Nothing to do here.
+           */
         }
-        else
+        else if (m_OpenGlContext)
         {
-          painter.setPen(Qt::blue);
-          painter.drawText(16, size().height() - 16, "OpenGL");
-        }
-#endif
+          /* Software core on an OpenGL surface: draw m_Image via QPainter. */
+          if (!m_OpenGlContext->makeCurrent(this))
+            return false;
 
-        m_OpenGlContext->swapBuffers(this);
-        m_ImageDrawing = false;
+          if (!m_OpenGlDevice || m_OpenGlDevice->size() != size())
+          {
+            delete m_OpenGlDevice;
+            m_OpenGlDevice = new QOpenGLPaintDevice(size());
+          }
+
+          painter.begin(m_OpenGlDevice);
+          setupPainter(&painter);
+          painter.fillRect(0, 0, size().width(), size().height(), Qt::black);
+          painter.drawImage(m_Rect, m_Image);
+          painter.end();
+          m_OpenGlContext->swapBuffers(this);
+          m_FramePresented.release();
+        }
       }
 #endif
     }
@@ -495,9 +486,11 @@ void QRetro::stopCore(void)
 
   m_Active = false;
 
+  /* Unblock the timing thread if it is waiting on the frame semaphore */
+  m_FramePresented.release();
+
   if (m_ThreadTiming)
   {
-    m_ThreadTiming->quit();
     m_ThreadTiming->wait();
     delete m_ThreadTiming;
     m_ThreadTiming = nullptr;
@@ -505,7 +498,6 @@ void QRetro::stopCore(void)
 
   if (m_ThreadSaving)
   {
-    m_ThreadSaving->quit();
     m_ThreadSaving->wait();
     delete m_ThreadSaving;
     m_ThreadSaving = nullptr;
@@ -545,6 +537,18 @@ QRetro::~QRetro(void)
 void QRetro::timing()
 {
   auto next = steady_clock::now();
+  QElapsedTimer frameTimer;
+  frameTimer.start();
+
+#if QRETRO_HAVE_OPENGL
+  /* Platform function to toggle vsync on the fly.
+   * glXSwapIntervalMESA (Linux/GLX) and wglSwapIntervalEXT (Windows/WGL)
+   * share the same single-int signature and can be called while the context
+   * is current without recreating it.  Looked up once after first makeCurrent. */
+  using SwapIntervalFn = int (*)(int);
+  SwapIntervalFn pfnSwapInterval = nullptr;
+  bool swapIntervalFetched = false;
+#endif
 
   /* Map our emulation thread to this instance of a QRetro object */
   _qrnew(this_thread::get_id(), this);
@@ -627,6 +631,8 @@ void QRetro::timing()
 
   while (m_Active)
   {
+    frameTimer.restart();
+
     {
       QMutexLocker lock(&m_PendingMutex);
       if (m_PendingAction)
@@ -642,6 +648,24 @@ void QRetro::timing()
         !m_Paused && // stall if content is paused
         !m_Audio->excessFramesInBuffer()) // stall to play the audio queue
     {
+#if QRETRO_HAVE_OPENGL
+      /* Ensure the core context is current on this thread before retro_run.
+       * This prevents the main thread's m_OpenGlContext from stealing the surface. */
+      if (surfaceType() == QSurface::OpenGLSurface && m_OpenGlContextCore)
+      {
+        m_OpenGlContextCore->makeCurrent(this);
+        m_FboRequestedThisFrame = false;
+
+        if (!swapIntervalFetched)
+        {
+          swapIntervalFetched = true;
+          auto p = m_OpenGlContextCore->getProcAddress("glXSwapIntervalMESA");
+          if (!p) p = m_OpenGlContextCore->getProcAddress("wglSwapIntervalEXT");
+          pfnSwapInterval = reinterpret_cast<SwapIntervalFn>(p);
+        }
+      }
+#endif
+
       /** @todo Properly measure frametime */
       if (m_Core.frame_time_callback.callback)
         m_Core.frame_time_callback.callback(m_Core.frame_time_callback.reference);
@@ -650,6 +674,85 @@ void QRetro::timing()
 
       m_Core.retro_run();
       emit onFrame();
+
+#if QRETRO_HAVE_OPENGL
+      if (surfaceType() == QSurface::OpenGLSurface && m_OpenGlContextCore && m_Rect.isValid())
+      {
+        int w    = size().width();
+        int h    = size().height();
+        int sw   = m_BaseRect.width();
+        int sh   = m_BaseRect.height();
+        int dx0  = m_Rect.x();
+        int dy0  = h - m_Rect.y() - m_Rect.height();
+        int dx1  = m_Rect.x() + m_Rect.width();
+        int dy1  = h - m_Rect.y();
+
+        auto *ef = m_OpenGlContextCore->extraFunctions();
+        GLenum filter = m_BilinearFilter ? GL_LINEAR : GL_NEAREST;
+        if (ef && sw > 0 && sh > 0)
+        {
+          if (m_FboRequestedThisFrame && m_OpenGlFbo && m_OpenGlFbo->isValid())
+          {
+            /* Core rendered into our FBO via get_current_framebuffer.
+             * Blit it directly to the window at the scaled rect. */
+            ef->glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+            glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+            glClear(GL_COLOR_BUFFER_BIT);
+            ef->glBindFramebuffer(GL_READ_FRAMEBUFFER, m_OpenGlFbo->handle());
+            if (m_Core.hw_render.bottom_left_origin)
+              ef->glBlitFramebuffer(0, 0, sw, sh, dx0, dy0, dx1, dy1,
+                                    GL_COLOR_BUFFER_BIT, filter);
+            else
+              ef->glBlitFramebuffer(0, sh, sw, 0, dx0, dy0, dx1, dy1,
+                                    GL_COLOR_BUFFER_BIT, filter);
+          }
+          else
+          {
+            /* Core rendered directly to FBO 0 at native size (bottom-left).
+             * Two-pass: copy native region to intermediate FBO, then blit scaled. */
+            if (!m_OpenGlFboIntermediate ||
+                m_OpenGlFboIntermediate->size() != m_BaseRect.size())
+            {
+              delete m_OpenGlFboIntermediate;
+              m_OpenGlFboIntermediate =
+                new QOpenGLFramebufferObject(m_BaseRect.size());
+            }
+            if (m_OpenGlFboIntermediate->isValid())
+            {
+              /* Pass 1: 1:1 copy from FBO 0 → intermediate FBO (always nearest) */
+              ef->glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+              ef->glBindFramebuffer(GL_DRAW_FRAMEBUFFER,
+                                    m_OpenGlFboIntermediate->handle());
+              ef->glBlitFramebuffer(0, 0, sw, sh, 0, 0, sw, sh,
+                                    GL_COLOR_BUFFER_BIT, GL_NEAREST);
+
+              /* Pass 2: blit intermediate FBO → FBO 0 at scaled rect */
+              ef->glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+              glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+              glClear(GL_COLOR_BUFFER_BIT);
+              ef->glBindFramebuffer(GL_READ_FRAMEBUFFER,
+                                    m_OpenGlFboIntermediate->handle());
+              ef->glBlitFramebuffer(0, 0, sw, sh, dx0, dy0, dx1, dy1,
+                                    GL_COLOR_BUFFER_BIT, filter);
+            }
+          }
+        }
+
+        if (!m_Active)
+        {
+          m_OpenGlContextCore->doneCurrent();
+        }
+        else
+        {
+          /* Toggle vsync based on fast-forward state so swapBuffers never
+           * blocks on vsync during fast-forward, while still presenting
+           * every frame (frames would freeze if we skipped the swap). */
+          if (pfnSwapInterval)
+            pfnSwapInterval(m_FastForwarding ? 0 : 1);
+          m_OpenGlContextCore->swapBuffers(this);
+        }
+      }
+#endif
 
       m_Frames++;
     }
@@ -661,24 +764,37 @@ void QRetro::timing()
       m_Core.audio_callback.callback();
     m_Audio->playFrame();
 
-    auto time = static_cast<unsigned>(1000000000 / m_TargetRefreshRate);
-    if (m_FastForwarding && m_FastForwardRatio > 1.0f)
-      time = static_cast<unsigned>(static_cast<float>(time) / m_FastForwardRatio);
+#if QRETRO_HAVE_OPENGL
+    /* At normal speed, swapBuffers already provided vsync pacing — no sleep needed.
+     * When fast-forwarding, swap is skipped above, so fall through to the sleep
+     * logic below which respects m_FastForwardRatio. */
+    if (surfaceType() == QSurface::OpenGLSurface && m_OpenGlContextCore && !m_FastForwarding)
+      continue;
+#endif
 
     if (m_FastForwarding && m_FastForwardRatio <= 1.0f)
-      continue;
+      continue; /* Unlimited fast-forward: run as fast as possible */
 
-    /* Wake up right before next frames is needed */
-    this_thread::sleep_until(next - milliseconds(2));
+    {
+      int ms = static_cast<int>(1000.0 / m_TargetRefreshRate);
+      if (m_FastForwarding && m_FastForwardRatio > 1.0f)
+        ms = static_cast<int>(ms / m_FastForwardRatio);
 
-    /* Waitloop until exact timing */
-    while (steady_clock::now() < next);
-
-#if QRETRO_DEBUG
-    next = steady_clock::now() + nanoseconds(time);
-#else
-    next += nanoseconds(time);
-#endif
+      if (surfaceType() == QSurface::RasterSurface)
+      {
+        /* Raster flush() returns immediately without blocking on vsync.
+         * Use the elapsed frame timer to sleep only the remaining frame time. */
+        int remaining = ms - static_cast<int>(frameTimer.elapsed());
+        if (remaining > 0)
+          QThread::msleep(remaining);
+      }
+      else
+      {
+        /* OpenGL software path: swapBuffers blocks on vsync, then releases the
+         * semaphore. Wait for it so emulation is coupled to the display rate. */
+        m_FramePresented.tryAcquire(1, ms + 4);
+      }
+    }
   }
 }
 
@@ -831,7 +947,7 @@ void QRetro::saving()
   }
 
   /* For first 15 frames, continuously copy buffer into SRAM */
-  while (m_Frames <= 15)
+  while (m_Active && m_Frames <= 15)
   {
     void *data = m_Core.retro_get_memory_data(RETRO_MEMORY_SAVE_RAM);
     size_t size = m_Core.retro_get_memory_size(RETRO_MEMORY_SAVE_RAM);
@@ -850,7 +966,9 @@ void QRetro::saving()
   /* Normal autosave loop */
   while (m_Active)
   {
-    QThread::sleep(m_AutosaveInterval);
+    /* Sleep in small increments so stopCore() can interrupt promptly */
+    for (unsigned i = 0; i < m_AutosaveInterval * 10 && m_Active; i++)
+      QThread::msleep(100);
 
     auto data = m_Core.retro_get_memory_data(RETRO_MEMORY_SAVE_RAM);
     auto size = m_Core.retro_get_memory_size(RETRO_MEMORY_SAVE_RAM);
@@ -1025,6 +1143,11 @@ void* QRetro::getProcAddress(QThread *caller, const char *symbol)
 
 bool QRetro::initVideo(retro_hw_context_type format)
 {
+  /* Discard any semaphore tokens accumulated under the previous backend.
+   * Without this, switching from a raster backend (where tokens are not
+   * consumed) to an OpenGL one would cause a burst of unthrottled frames. */
+  while (m_FramePresented.tryAcquire()) {}
+
   QSurfaceFormat settings;
   settings.setSwapInterval(1);
   setFormat(settings);
