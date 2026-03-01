@@ -103,9 +103,13 @@ QRetroOption::QRetroOption(retro_variable *var)
 QRetroOption::QRetroOption(retro_core_option_definition* us,
   retro_core_option_definition* local)
 {
-  m_Title[Default] = QString(us->desc).toStdString();
+  m_Title[Default]       = us->desc ? us->desc : "";
+  m_Description[Default] = us->info ? us->info : "";
   if (local)
-    m_Title[Local] = QString(local->desc).toStdString();
+  {
+    m_Title[Local]       = local->desc ? local->desc : "";
+    m_Description[Local] = local->info ? local->info : "";
+  }
 
   auto choice = us->values;
 
@@ -139,11 +143,13 @@ QRetroOption::QRetroOption(retro_core_option_v2_definition* us,
 {
   m_Title[Language::Default]           = us->desc              ? us->desc              : "";
   m_TitleCategorized[Language::Default] = us->desc_categorized  ? us->desc_categorized  : "";
+  m_Description[Language::Default]      = us->info              ? us->info              : "";
   m_CategoryKey                         = us->category_key      ? us->category_key      : "";
   if (local)
   {
     m_Title[Language::Local]           = local->desc             ? local->desc             : "";
     m_TitleCategorized[Language::Local] = local->desc_categorized ? local->desc_categorized : "";
+    m_Description[Language::Local]      = local->info             ? local->info             : "";
   }
 
   auto *choice = us->values;
@@ -187,13 +193,32 @@ bool QRetroOption::determineType()
     m_Type = QRetroOption::None;
     return false;
   }
-  /* If it only allows two choices (enabled and disabled), it is boolean. */
-  else if (values.contains("enabled") &&
-           values.contains("disabled") &&
-           values.count() == 2)
+  /* If it has exactly two values matching a known boolean pair (any
+   * capitalisation), treat it as boolean and remember the exact strings. */
+  else if (values.count() == 2)
   {
-    m_Type = QRetroOption::Bool;
-    return true;
+    static const char* const pairs[][2] = {
+      {"enabled", "disabled"},
+      {"on",      "off"},
+      {"true",    "false"},
+    };
+    for (auto &pair : pairs)
+    {
+      QString t(pair[0]), f(pair[1]);
+      QString foundTrue, foundFalse;
+      for (auto &v : values)
+      {
+        if (!v.compare(t, Qt::CaseInsensitive)) foundTrue  = v;
+        if (!v.compare(f, Qt::CaseInsensitive)) foundFalse = v;
+      }
+      if (!foundTrue.isEmpty() && !foundFalse.isEmpty())
+      {
+        m_BoolTrueValue  = foundTrue.toStdString();
+        m_BoolFalseValue = foundFalse.toStdString();
+        m_Type = QRetroOption::Bool;
+        return true;
+      }
+    }
   }
   /* Loop through the options to see if they are all a type of number. */
   else
@@ -240,6 +265,14 @@ const char* QRetroOption::title(Language lang)
     return m_Title[Language::Local].c_str();
   else
     return m_Title[Language::Default].c_str();
+}
+
+const char* QRetroOption::description(Language lang)
+{
+  if (lang == Language::Local && !m_Description[lang].empty())
+    return m_Description[Language::Local].c_str();
+  else
+    return m_Description[Language::Default].c_str();
 }
 
 bool QRetroOption::setToDefaultValue()
@@ -518,19 +551,26 @@ void QRetroOptions::update()
   auto *vbox    = new QVBoxLayout(content);
 
   using OptionList = std::vector<std::pair<std::string, QRetroOption*>>;
+  std::vector<QGroupBox*> allSections;
 
-  /* Adds a single option row (label + control) to a grid layout. */
+  /* Adds a single option row (label + control, plus optional description).
+   * Returns the number of grid rows consumed (1 or 2). */
   auto addRow = [this](QWidget *parent, QGridLayout *grid, int row,
-                        const std::string &key, QRetroOption *var)
+                        const std::string &key, QRetroOption *var) -> int
   {
     switch (var->type())
     {
     case QRetroOption::Bool:
     {
+      std::string trueVal  = var->boolTrueValue();
+      std::string falseVal = var->boolFalseValue();
       auto *elem = new QCheckBox(parent);
-      elem->setChecked(strcmp(var->getValue(), "disabled"));
-      elem->setObjectName(QString::fromStdString(key));
-      connect(elem, SIGNAL(stateChanged(int)), this, SLOT(onOptionBoolChanged(int)));
+      elem->setChecked(strcmp(var->getValue(), falseVal.c_str()) != 0);
+      connect(elem, &QCheckBox::stateChanged,
+              [this, key, trueVal, falseVal](int state) {
+        setOptionValue(key.c_str(),
+                       state == Qt::Unchecked ? falseVal.c_str() : trueVal.c_str());
+      });
       auto *label = new QLabel(var->title(), parent);
       label->setEnabled(var->getVisibility());
       label->setBuddy(elem);
@@ -554,6 +594,21 @@ void QRetroOptions::update()
       break;
     }
     }
+
+    const char *desc = var->description();
+    if (desc && *desc)
+    {
+      auto *descLabel = new QLabel(desc, parent);
+      QFont f = descLabel->font();
+      f.setPointSize(qMax(f.pointSize() - 2, 7));
+      descLabel->setFont(f);
+      descLabel->setEnabled(var->getVisibility());
+      descLabel->setWordWrap(true);
+      descLabel->setForegroundRole(QPalette::Dark);
+      grid->addWidget(descLabel, row + 1, 0, 1, 1);
+      return 2;
+    }
+    return 1;
   };
 
   /* Returns true if m_Categories contains a category with the given key. */
@@ -574,9 +629,8 @@ void QRetroOptions::update()
     for (auto &p : opts)
       if (p.second && p.second->getVisibility()) { anyVisible = true; break; }
 
-    auto *btn = new QPushButton("\342\226\274 " + title, content);
+    auto *btn = new QPushButton("\342\226\266 " + title, content);
     btn->setCheckable(true);
-    btn->setChecked(true);
     btn->setFlat(true);
     btn->setStyleSheet(
       "QPushButton { text-align: left; font-weight: bold; padding: 4px; border: none; }"
@@ -590,12 +644,16 @@ void QRetroOptions::update()
       btn->setPalette(pal);
     }
 
-    auto *section = new QWidget(content);
+    auto *section = new QGroupBox(content);
+    allSections.push_back(section);
+    section->setVisible(false);
     auto *grid    = new QGridLayout(section);
+    grid->setColumnStretch(0, 1);
+    grid->setColumnStretch(1, 0);
     int row = 0;
     for (auto &p : opts)
       if (p.second)
-        addRow(section, grid, row++, p.first, p.second);
+        row += addRow(section, grid, row, p.first, p.second);
 
     connect(btn, &QPushButton::toggled, [btn, section, title](bool open) {
       section->setVisible(open);
@@ -635,27 +693,39 @@ void QRetroOptions::update()
     /* No categories — flat list. */
     auto *section = new QWidget(content);
     auto *grid    = new QGridLayout(section);
+    grid->setColumnStretch(0, 1);
+    grid->setColumnStretch(1, 0);
     int row = 0;
     for (auto &p : m_Variables)
       if (p.second)
-        addRow(section, grid, row++, p.first, p.second);
+        row += addRow(section, grid, row, p.first, p.second);
     vbox->addWidget(section);
   }
 
-  vbox->addWidget(
-    new QLabel(QString("Using core options v%1.").arg(QString::number(m_Version)), content));
   vbox->addStretch();
 
   auto *scrollArea = new QScrollArea();
   scrollArea->setWidget(content);
   scrollArea->setWidgetResizable(true);
+  scrollArea->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
 
   auto *outer = new QVBoxLayout();
   outer->setContentsMargins(0, 0, 0, 0);
   outer->addWidget(scrollArea);
 
-  setWindowTitle(QString("%1 Options").arg(m_CoreName));
+  setWindowTitle(QString("%1 Options (v%2)").arg(m_CoreName).arg(m_Version));
   setLayout(outer);
+
+  /* Temporarily expand all sections so the layout can compute the natural
+   * content width (sections start collapsed, so their width would otherwise
+   * be excluded from the size hint). */
+  for (auto *s : allSections) s->setVisible(true);
+  content->layout()->activate();
+  int fitWidth = content->sizeHint().width()
+               + style()->pixelMetric(QStyle::PM_ScrollBarExtent);
+  for (auto *s : allSections) s->setVisible(false);
+
+  resize(fitWidth, 480);
 }
 
 bool QRetroOptions::variablesUpdated(bool quiet)

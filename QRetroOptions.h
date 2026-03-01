@@ -85,6 +85,7 @@ public:
     retro_core_option_v2_definition* local = nullptr);
 
   const char* title(Language lang = Local);
+  const char* description(Language lang = Local);
 
   const char* getValue() { return m_CurrentValue.c_str(); }
   void setValue(std::string val) { m_CurrentValue = val; }
@@ -92,7 +93,9 @@ public:
   bool getVisibility() { return m_Visible; }
   void setVisibility(bool enabled) { m_Visible = enabled; }
 
-  const char* categoryKey() { return m_CategoryKey.c_str(); }
+  const char* categoryKey()   { return m_CategoryKey.c_str(); }
+  const char* boolTrueValue() { return m_BoolTrueValue.c_str(); }
+  const char* boolFalseValue(){ return m_BoolFalseValue.c_str(); }
 
   bool setToDefaultValue();
 
@@ -111,6 +114,9 @@ private:
 
   std::string m_CurrentValue;
   std::string m_DefaultValue;
+  std::string m_BoolTrueValue;
+  std::string m_BoolFalseValue;
+  std::string m_Description[Language_Size];
   QStringList m_PossibleValues[Language_Size];
 };
 
