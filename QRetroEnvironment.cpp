@@ -733,6 +733,29 @@ bool core_environment(unsigned cmd, void *data)
         reinterpret_cast<retro_fastforwarding_override*>(data));
     break;
 
+  /* 67 */
+  case RETRO_ENVIRONMENT_SET_CORE_OPTIONS_V2:
+    if (data)
+      _this->options()->setOptions(
+        reinterpret_cast<retro_core_options_v2*>(data));
+    break;
+
+  /* 68 */
+  case RETRO_ENVIRONMENT_SET_CORE_OPTIONS_V2_INTL:
+    if (data)
+      _this->options()->setOptions(
+        reinterpret_cast<retro_core_options_v2_intl*>(data));
+    break;
+
+  /* 69 */
+  case RETRO_ENVIRONMENT_SET_CORE_OPTIONS_UPDATE_DISPLAY_CALLBACK:
+  {
+    auto cb = reinterpret_cast<retro_core_options_update_display_callback*>(data);
+    if (cb)
+      _this->options()->setUpdateDisplayCallback(cb->callback);
+    break;
+  }
+
   /* 70 */
   case RETRO_ENVIRONMENT_SET_VARIABLE:
   {
