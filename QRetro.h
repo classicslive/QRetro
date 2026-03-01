@@ -83,7 +83,6 @@ public:
   bool loadCore(const char *path);
   bool loadContent(const char *path, const char *meta = nullptr);
   bool startCore(void);
-  void stopCore(void);
 
   QPoint mouseDelta() { return m_MouseDelta; }
   QPoint mousePosition() { return m_MousePosition; }
@@ -405,6 +404,9 @@ private:
   /// The platform-specific handle to the libretro dynamic library
   QRETRO_LIBRARY_T m_Library = nullptr;
 
+  /// Temp path of the core copy that was dlopen'd (deleted on unload)
+  QString m_CoreTempPath;
+
   /// The minimum log level for messages to be emitted as signals
   retro_log_level m_LogLevel = RETRO_LOG_ERROR;
 
@@ -495,6 +497,7 @@ private:
   void execOnTimingThread(std::function<void()> action);
   bool inputReady() { return hasInputPollHandler() ? m_InputReady : true; }
   void setupPainter(QPainter *painter);
+  void unloadCore(void);
   void updateScaling();
 
   /* The functions that get spun off into their own threads, defined above */

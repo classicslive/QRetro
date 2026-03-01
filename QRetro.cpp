@@ -1,6 +1,7 @@
 #include <QApplication>
 #include <QCryptographicHash>
 #include <QDebug>
+#include <QDir>
 #include <QElapsedTimer>
 #include <QFile>
 #include <QFileInfo>
@@ -8,6 +9,7 @@
 #include <QPainter>
 #include <QMutexLocker>
 #include <QThread>
+#include <QUuid>
 
 #ifndef _WIN32
 #include <dlfcn.h>
@@ -130,7 +132,8 @@ bool QRetro::event(QEvent *ev)
   switch (ev->type())
   {
   case QEvent::Close:
-    stopCore();
+    unloadCore();
+    deleteLater();
     return QWindow::event(ev);
   case QEvent::UpdateRequest:
     {
@@ -241,9 +244,6 @@ static void core_input_poll(void)
     _this->runInputPollHandler();
     return;
   }
-
-  if (_this && _this->core()->retro_set_controller_port_device)
-    _this->core()->retro_set_controller_port_device(0, RETRO_DEVICE_JOYPAD);
 
   if (_this)
     _this->updateMouse();
@@ -478,48 +478,58 @@ QRetro::QRetro(QWindow *parent, retro_hw_context_type format)
   memset(m_SupportedEnvCallbacks, true, sizeof(m_SupportedEnvCallbacks));
 }
 
-void QRetro::stopCore(void)
+void QRetro::unloadCore(void)
 {
-  if (!m_Active)
-    return;
-
-  m_Active = false;
-
-  /* Unblock the timing thread if it is waiting on the frame semaphore */
-  m_FramePresented.release();
-
-  if (m_ThreadTiming)
+  if (m_Active)
   {
-    m_ThreadTiming->wait();
-    delete m_ThreadTiming;
-    m_ThreadTiming = nullptr;
+    m_Active = false;
+
+    /* Unblock the timing thread if it is waiting on the frame semaphore */
+    m_FramePresented.release();
+
+    if (m_ThreadTiming)
+    {
+      m_ThreadTiming->wait();
+      delete m_ThreadTiming;
+      m_ThreadTiming = nullptr;
+    }
+
+    if (m_ThreadSaving)
+    {
+      m_ThreadSaving->wait();
+      delete m_ThreadSaving;
+      m_ThreadSaving = nullptr;
+    }
   }
 
-  if (m_ThreadSaving)
+  /* With the timing thread stopped and the surface still valid, make the
+   * GL context current on the main thread so the core can clean up its
+   * GPU resources before we unload it. */
+#if QRETRO_HAVE_OPENGL
+  if (surfaceType() == QSurface::OpenGLSurface && m_OpenGlContextCore)
   {
-    m_ThreadSaving->wait();
-    delete m_ThreadSaving;
-    m_ThreadSaving = nullptr;
+    m_OpenGlContextCore->makeCurrent(this);
+    if (m_Core.hw_render.context_destroy)
+      m_Core.hw_render.context_destroy();
+    if (m_Core.inited)
+    {
+      m_Core.retro_unload_game();
+      m_Core.retro_deinit();
+      m_Core.inited = false;
+    }
+    m_OpenGlContextCore->doneCurrent();
+    delete m_OpenGlContextCore;
+    m_OpenGlContextCore = nullptr;
   }
-}
-
-QRetro::~QRetro(void)
-{
-  /* Stop processing the core */
-  stopCore();
-
-  /* Let the core run its deconstructors */
+  else
+#endif
   if (m_Core.inited)
   {
     m_Core.retro_unload_game();
     m_Core.retro_deinit();
+    m_Core.inited = false;
   }
 
-  /* Delete member variables on heap */
-  delete m_Audio;
-  delete m_Location;
-
-  /* Free the dynamic library */
   if (m_Library)
   {
 #ifdef _WIN32
@@ -527,7 +537,23 @@ QRetro::~QRetro(void)
 #else
     dlclose(m_Library);
 #endif
+    m_Library = nullptr;
   }
+
+  if (!m_CoreTempPath.isEmpty())
+  {
+    QFile::remove(m_CoreTempPath);
+    m_CoreTempPath.clear();
+  }
+}
+
+QRetro::~QRetro(void)
+{
+  unloadCore();
+
+  /* Delete member variables on heap */
+  delete m_Audio;
+  delete m_Location;
 
   /* Remove the object from our static thread map */
   _qrdelete(this);
@@ -535,7 +561,6 @@ QRetro::~QRetro(void)
 
 void QRetro::timing()
 {
-  auto next = steady_clock::now();
   QElapsedTimer frameTimer;
   frameTimer.start();
 
@@ -677,7 +702,6 @@ void QRetro::timing()
 #if QRETRO_HAVE_OPENGL
       if (surfaceType() == QSurface::OpenGLSurface && m_OpenGlContextCore && m_Rect.isValid())
       {
-        int w    = size().width();
         int h    = size().height();
         int sw   = m_BaseRect.width();
         int sh   = m_BaseRect.height();
@@ -740,6 +764,10 @@ void QRetro::timing()
         if (!m_Active)
         {
           m_OpenGlContextCore->doneCurrent();
+          /* Move the context back to the main thread while we are still on
+           * the timing thread (its current owner), so the main thread can
+           * safely make it current and delete it without timer warnings. */
+          m_OpenGlContextCore->moveToThread(QCoreApplication::instance()->thread());
         }
         else
         {
@@ -795,6 +823,11 @@ void QRetro::timing()
       }
     }
   }
+
+  /* QAudioOutput is a QObject created on this thread, so it must be deleted
+   * here rather than from the main thread to avoid timer warnings. */
+  delete m_Audio;
+  m_Audio = nullptr;
 }
 
 /* TODO: Support flags, test */
@@ -1082,15 +1115,34 @@ bool QRetro::loadCore(const char *path)
     return false;
   }
 
+  /* Copy the core to a unique temp path before opening it. The dynamic linker
+   * deduplicates handles by path, so loading from distinct temp copies allows
+   * multiple QRetro instances to use the same core simultaneously. */
+  QString ext = fileinfo.suffix();
+  m_CoreTempPath = QString("%1/qretro_%2%3")
+    .arg(QDir::tempPath())
+    .arg(QUuid::createUuid().toString(QUuid::Id128))
+    .arg(ext.isEmpty() ? "" : "." + ext);
+
+  if (!QFile::copy(path, m_CoreTempPath))
+  {
+    emit onCoreLog(RETRO_LOG_ERROR, QRETRO_ERROR(QString(
+      "Failed to copy core to temp path:\n%1").arg(m_CoreTempPath)));
+    m_CoreTempPath.clear();
+    return false;
+  }
+
 #ifdef _WIN32
   /* TODO: Will this work on paths with unicode characters? */
-  m_Library = LoadLibraryA(path);
+  m_Library = LoadLibraryA(m_CoreTempPath.toLocal8Bit().constData());
 #else
-  m_Library = dlopen(path, RTLD_LAZY);
+  m_Library = dlopen(m_CoreTempPath.toLocal8Bit().constData(), RTLD_LAZY);
 #endif
 
   if (!m_Library)
   {
+    QFile::remove(m_CoreTempPath);
+    m_CoreTempPath.clear();
 #ifdef _WIN32
     emit onCoreLog(RETRO_LOG_ERROR, QRETRO_ERROR(QString(
       "Unable to load dynamic library from:\n%1\n\nError code: %2").arg(
