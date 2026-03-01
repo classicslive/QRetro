@@ -6,8 +6,11 @@
 #include <QGridLayout>
 #include <QGroupBox>
 #include <QLabel>
+#include <QPushButton>
 #include <QScrollArea>
 #include <QVBoxLayout>
+
+#include <vector>
 
 #include "QRetroOptions.h"
 
@@ -31,14 +34,28 @@ static const char* type_name(uint8_t type)
 QRetroOptionCategory::QRetroOptionCategory(retro_core_option_v2_category* us,
   retro_core_option_v2_category* local)
 {
-  m_Title[Language::Default] = us->desc;
-  m_Description[Language::Default] = us->info;
+  m_Title[Language::Default]       = us->desc ? us->desc : "";
+  m_Description[Language::Default] = us->info ? us->info : "";
 
   if (local)
   {
-    m_Title[Language::Local] = local->desc;
-    m_Description[Language::Local] = local->info;
+    m_Title[Language::Local]       = local->desc ? local->desc : "";
+    m_Description[Language::Local] = local->info ? local->info : "";
   }
+}
+
+const char* QRetroOptionCategory::title(Language lang)
+{
+  if (lang == Language::Local && !m_Title[lang].empty())
+    return m_Title[Language::Local].c_str();
+  return m_Title[Language::Default].c_str();
+}
+
+const char* QRetroOptionCategory::description(Language lang)
+{
+  if (lang == Language::Local && !m_Description[lang].empty())
+    return m_Description[Language::Local].c_str();
+  return m_Description[Language::Default].c_str();
 }
 
 QRetroOption::QRetroOption(retro_variable *var)
@@ -120,16 +137,17 @@ QRetroOption::QRetroOption(retro_core_option_definition* us,
 QRetroOption::QRetroOption(retro_core_option_v2_definition* us,
   retro_core_option_v2_definition* local)
 {
-  m_Title[Language::Default] = QString(us->desc).toStdString();
-  m_TitleCategorized[Language::Default] = QString(us->desc_categorized).toStdString();
+  m_Title[Language::Default]           = us->desc              ? us->desc              : "";
+  m_TitleCategorized[Language::Default] = us->desc_categorized  ? us->desc_categorized  : "";
+  m_CategoryKey                         = us->category_key      ? us->category_key      : "";
   if (local)
   {
-    m_Title[Language::Local] = QString(local->desc).toStdString();
-    m_TitleCategorized[Language::Local] = QString(local->desc_categorized).toStdString();
+    m_Title[Language::Local]           = local->desc             ? local->desc             : "";
+    m_TitleCategorized[Language::Local] = local->desc_categorized ? local->desc_categorized : "";
   }
 
   auto *choice = us->values;
-  while (choice->label && choice->value)
+  while (choice->value)
   {
     m_PossibleValues[Default].append(choice->value);
     choice++;
@@ -137,14 +155,14 @@ QRetroOption::QRetroOption(retro_core_option_v2_definition* us,
   if (local)
   {
     choice = local->values;
-    while (choice->label && choice->value)
+    while (choice->value)
     {
       m_PossibleValues[Local].append(choice->value);
       choice++;
     }
   }
 
-  m_DefaultValue = std::string(us->default_value);
+  m_DefaultValue = us->default_value ? std::string(us->default_value) : "";
 
   determineType();
 
@@ -275,6 +293,10 @@ void QRetroOptions::setOptionValue(const char* key, const char* value)
   {
     var->setValue(value);
     m_VariablesUpdated = true;
+
+    /* Let the core refresh option visibility now that a value changed */
+    if (m_UpdateDisplayCallback)
+      m_UpdateDisplayCallback();
   }
 }
 
@@ -381,18 +403,51 @@ void QRetroOptions::setOptions(retro_core_options_intl* vars)
   m_Version = v1;
 }
 
-void QRetroOptions::setOptions(retro_core_options_v2* vars)
+void QRetroOptions::setOptions(retro_core_options_v2* vars,
+                               retro_core_options_v2* local)
 {
   QSettings settings(m_Filename, QSettings::IniFormat);
-  auto var = vars->definitions;
+
+  /* Rebuild category map */
+  for (auto &pair : m_Categories)
+    delete pair.second;
+  m_Categories.clear();
+
+  if (vars->categories)
+  {
+    auto cat = vars->categories;
+    retro_core_option_v2_category *lcat = local ? local->categories : nullptr;
+    while (cat->key)
+    {
+      /* Find matching local category by key */
+      retro_core_option_v2_category *match = nullptr;
+      if (lcat)
+      {
+        for (auto *lc = lcat; lc->key; lc++)
+          if (!strcmp(lc->key, cat->key)) { match = lc; break; }
+      }
+      m_Categories.push_back({cat->key, new QRetroOptionCategory(cat, match)});
+      cat++;
+    }
+  }
+
+  /* Build option map */
+  auto *var  = vars->definitions;
+  auto *lvar = local ? local->definitions : nullptr;
 
   settings.beginGroup(m_CoreName);
   while (var && var->key)
   {
-    std::string value;
-    auto entry = new QRetroOption(var);
+    /* Find matching local definition by key */
+    retro_core_option_v2_definition *lmatch = nullptr;
+    if (lvar)
+    {
+      for (auto *lv = lvar; lv->key; lv++)
+        if (!strcmp(lv->key, var->key)) { lmatch = lv; break; }
+    }
 
-    value = settings.value(var->key, "").toString().toStdString();
+    auto entry = new QRetroOption(var, lmatch);
+    std::string value = settings.value(var->key, "").toString().toStdString();
     if (value.empty())
     {
       entry->setToDefaultValue();
@@ -406,6 +461,17 @@ void QRetroOptions::setOptions(retro_core_options_v2* vars)
   }
   settings.sync();
   m_Version = v2;
+}
+
+void QRetroOptions::setOptions(retro_core_options_v2_intl* vars)
+{
+  if (!vars || !vars->us)
+    return;
+
+  /* Use localized definitions when available, fall back to US otherwise */
+  retro_core_options_v2 *local = (vars->local && vars->local != vars->us)
+                                 ? vars->local : nullptr;
+  setOptions(vars->us, local);
 }
 
 void QRetroOptions::setVisibility(const char *key, bool enabled)
@@ -430,6 +496,11 @@ void QRetroOptions::onOptionChoiceChanged(const QString& choice)
 
 void QRetroOptions::update()
 {
+  /* Let the core push any pending SET_CORE_OPTIONS_DISPLAY calls before
+   * we build the widget list, so visibility is correct from the start. */
+  if (m_UpdateDisplayCallback)
+    m_UpdateDisplayCallback();
+
   /* Delete everything if the layout has already been initialized before. */
   if (this->layout())
   {
@@ -442,59 +513,138 @@ void QRetroOptions::update()
     delete this->layout();
   }
 
-  /* Content widget lives inside the scroll area and owns the grid rows */
+  /* Content widget lives inside the scroll area */
   auto *content = new QWidget();
-  auto *layout  = new QGridLayout(content);
-  int i = 0;
+  auto *vbox    = new QVBoxLayout(content);
 
-  for (auto iter = m_Variables.begin(); iter != m_Variables.end(); iter++, i++)
+  using OptionList = std::vector<std::pair<std::string, QRetroOption*>>;
+
+  /* Adds a single option row (label + control) to a grid layout. */
+  auto addRow = [this](QWidget *parent, QGridLayout *grid, int row,
+                        const std::string &key, QRetroOption *var)
   {
-    auto var = iter->second;
-
-    if (!var)
-      continue;
-    else switch (var->type())
+    switch (var->type())
     {
-
     case QRetroOption::Bool:
     {
-      auto elem = new QCheckBox(content);
+      auto *elem = new QCheckBox(parent);
       elem->setChecked(strcmp(var->getValue(), "disabled"));
-      elem->setObjectName(QString::fromStdString(iter->first));
-      connect(elem, SIGNAL(stateChanged(int)),
-              this, SLOT(onOptionBoolChanged(int)));
-
-      auto label = new QLabel(var->title(), content);
+      elem->setObjectName(QString::fromStdString(key));
+      connect(elem, SIGNAL(stateChanged(int)), this, SLOT(onOptionBoolChanged(int)));
+      auto *label = new QLabel(var->title(), parent);
       label->setEnabled(var->getVisibility());
       label->setBuddy(elem);
-
-      layout->addWidget(label, i, 0);
-      layout->addWidget(elem, i, 1);
-
+      grid->addWidget(label, row, 0);
+      grid->addWidget(elem,  row, 1);
       break;
     }
-
     default:
     {
-      auto elem = new QComboBox(content);
+      auto *elem = new QComboBox(parent);
       elem->addItems(var->possibleValues());
       elem->setCurrentText(var->getValue());
-      elem->setObjectName(QString::fromStdString(iter->first));
+      elem->setObjectName(QString::fromStdString(key));
       connect(elem, SIGNAL(currentTextChanged(const QString&)),
               this, SLOT(onOptionChoiceChanged(const QString&)));
-
-      auto label = new QLabel(var->title(), content);
+      auto *label = new QLabel(var->title(), parent);
       label->setEnabled(var->getVisibility());
       label->setBuddy(elem);
+      grid->addWidget(label, row, 0);
+      grid->addWidget(elem,  row, 1);
+      break;
+    }
+    }
+  };
 
-      layout->addWidget(label, i, 0);
-      layout->addWidget(elem, i, 1);
+  /* Returns true if m_Categories contains a category with the given key. */
+  auto hasCategory = [&](const std::string &key) {
+    for (auto &p : m_Categories)
+      if (p.first == key) return true;
+    return false;
+  };
+
+  /* Builds a collapsible section from a list of options. */
+  auto makeSection = [&](const QString &title, const OptionList &opts)
+  {
+    if (opts.empty())
+      return;
+
+    /* Gray the header when every option in the section is invisible. */
+    bool anyVisible = false;
+    for (auto &p : opts)
+      if (p.second && p.second->getVisibility()) { anyVisible = true; break; }
+
+    auto *btn = new QPushButton("\342\226\274 " + title, content);
+    btn->setCheckable(true);
+    btn->setChecked(true);
+    btn->setFlat(true);
+    btn->setStyleSheet(
+      "QPushButton { text-align: left; font-weight: bold; padding: 4px; border: none; }"
+      "QPushButton:hover { background: palette(midlight); }");
+
+    if (!anyVisible)
+    {
+      QPalette pal = btn->palette();
+      pal.setColor(QPalette::ButtonText,
+        QApplication::palette().color(QPalette::Disabled, QPalette::ButtonText));
+      btn->setPalette(pal);
     }
+
+    auto *section = new QWidget(content);
+    auto *grid    = new QGridLayout(section);
+    int row = 0;
+    for (auto &p : opts)
+      if (p.second)
+        addRow(section, grid, row++, p.first, p.second);
+
+    connect(btn, &QPushButton::toggled, [btn, section, title](bool open) {
+      section->setVisible(open);
+      btn->setText((open ? "\342\226\274 " : "\342\226\266 ") + title);
+    });
+
+    vbox->addWidget(btn);
+    vbox->addWidget(section);
+  };
+
+  if (!m_Categories.empty())
+  {
+    /* Partition variables into per-category lists and an uncategorised list. */
+    std::map<std::string, OptionList> byCategory;
+    OptionList uncategorized;
+
+    for (auto &p : m_Variables)
+    {
+      if (!p.second)
+        continue;
+      const std::string &catKey = p.second->categoryKey();
+      if (!catKey.empty() && hasCategory(catKey))
+        byCategory[catKey].push_back(p);
+      else
+        uncategorized.push_back(p);
     }
+
+    /* Emit categories in the order they appear in m_Categories. */
+    for (auto &catPair : m_Categories)
+      makeSection(QString(catPair.second->title(Language::Local)),
+                  byCategory[catPair.first]);
+
+    makeSection(tr("Other"), uncategorized);
   }
-  layout->addWidget(
-    new QLabel(QString("Using core options v%1.").arg(QString::number(m_Version)), content),
-    i, 1);
+  else
+  {
+    /* No categories — flat list. */
+    auto *section = new QWidget(content);
+    auto *grid    = new QGridLayout(section);
+    int row = 0;
+    for (auto &p : m_Variables)
+      if (p.second)
+        addRow(section, grid, row++, p.first, p.second);
+    vbox->addWidget(section);
+  }
+
+  vbox->addWidget(
+    new QLabel(QString("Using core options v%1.").arg(QString::number(m_Version)), content));
+  vbox->addStretch();
 
   auto *scrollArea = new QScrollArea();
   scrollArea->setWidget(content);

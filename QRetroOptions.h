@@ -5,6 +5,8 @@
 #include <QStringList>
 #include <QWidget>
 #include <map>
+#include <utility>
+#include <vector>
 
 #include "libretro.h"
 
@@ -90,6 +92,8 @@ public:
   bool getVisibility() { return m_Visible; }
   void setVisibility(bool enabled) { m_Visible = enabled; }
 
+  const char* categoryKey() { return m_CategoryKey.c_str(); }
+
   bool setToDefaultValue();
 
   QStringList possibleValues() { return m_PossibleValues[Default]; }
@@ -99,6 +103,7 @@ private:
   bool determineType();
 
   const QRetroOptionCategory* m_Category;
+  std::string m_CategoryKey;
   std::string m_Title[Language_Size];
   std::string m_TitleCategorized[Language_Size];
   Type m_Type = None;
@@ -151,6 +156,14 @@ public:
   void setMaxVersion(Version version) { m_MaxVersion = version; }
 
   /**
+   * Stores a core-provided callback that refreshes option visibility.
+   * The frontend calls this whenever option values change so the core can
+   * issue RETRO_ENVIRONMENT_SET_CORE_OPTIONS_DISPLAY for affected options.
+   */
+  void setUpdateDisplayCallback(retro_core_options_update_display_callback_t cb)
+    { m_UpdateDisplayCallback = cb; }
+
+  /**
    * Sets the current value of an option with a given key.
    */
   void setOptionValue(const char* key, const char* value);
@@ -177,7 +190,8 @@ public:
    * Initializes core options using the API format 2.
    * Used for RETRO_ENVIRONMENT_SET_CORE_OPTIONS_V2.
    */
-  void setOptions(retro_core_options_v2* vars);
+  void setOptions(retro_core_options_v2* vars,
+                  retro_core_options_v2* local = nullptr);
 
   /**
    * Initializes core options using the API format 2, with localization.
@@ -211,10 +225,11 @@ public slots:
   void onOptionChoiceChanged(const QString&);
 
 private:
-  std::map<std::string, QRetroOptionCategory*> m_Categories;
+  std::vector<std::pair<std::string, QRetroOptionCategory*>> m_Categories;
   QString m_CoreName;
   QString m_Filename;
-  Version m_MaxVersion = Version::v1;
+  Version m_MaxVersion = Version::v2;
+  retro_core_options_update_display_callback_t m_UpdateDisplayCallback = nullptr;
   std::map<std::string, QRetroOption*> m_Variables;
   Version m_Version;
   bool m_VariablesUpdated;
