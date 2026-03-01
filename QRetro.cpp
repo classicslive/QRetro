@@ -978,6 +978,9 @@ void QRetro::saving()
     save_file.close();
   }
 
+  /* Wait for the first retro_run */
+  while (m_Active && !m_Frames);
+
   /* For first 15 frames, continuously copy buffer into SRAM */
   while (m_Active && m_Frames <= 15)
   {
