@@ -6,6 +6,8 @@
 #include <QGridLayout>
 #include <QGroupBox>
 #include <QLabel>
+#include <QScrollArea>
+#include <QVBoxLayout>
 
 #include "QRetroOptions.h"
 
@@ -428,10 +430,7 @@ void QRetroOptions::onOptionChoiceChanged(const QString& choice)
 
 void QRetroOptions::update()
 {
-  QGridLayout *layout = new QGridLayout();
-  int i = 0;
-
-  /* Delete everything if the layout has already been initialized before */
+  /* Delete everything if the layout has already been initialized before. */
   if (this->layout())
   {
     QLayoutItem* item;
@@ -442,6 +441,11 @@ void QRetroOptions::update()
     }
     delete this->layout();
   }
+
+  /* Content widget lives inside the scroll area and owns the grid rows */
+  auto *content = new QWidget();
+  auto *layout  = new QGridLayout(content);
+  int i = 0;
 
   for (auto iter = m_Variables.begin(); iter != m_Variables.end(); iter++, i++)
   {
@@ -454,13 +458,13 @@ void QRetroOptions::update()
 
     case QRetroOption::Bool:
     {
-      auto elem = new QCheckBox(this);
+      auto elem = new QCheckBox(content);
       elem->setChecked(strcmp(var->getValue(), "disabled"));
       elem->setObjectName(QString::fromStdString(iter->first));
       connect(elem, SIGNAL(stateChanged(int)),
               this, SLOT(onOptionBoolChanged(int)));
 
-      auto label = new QLabel(var->title(), this);
+      auto label = new QLabel(var->title(), content);
       label->setEnabled(var->getVisibility());
       label->setBuddy(elem);
 
@@ -472,14 +476,14 @@ void QRetroOptions::update()
 
     default:
     {
-      auto elem = new QComboBox(this);
+      auto elem = new QComboBox(content);
       elem->addItems(var->possibleValues());
       elem->setCurrentText(var->getValue());
       elem->setObjectName(QString::fromStdString(iter->first));
       connect(elem, SIGNAL(currentTextChanged(const QString&)),
               this, SLOT(onOptionChoiceChanged(const QString&)));
 
-      auto label = new QLabel(var->title(), this);
+      auto label = new QLabel(var->title(), content);
       label->setEnabled(var->getVisibility());
       label->setBuddy(elem);
 
@@ -488,11 +492,20 @@ void QRetroOptions::update()
     }
     }
   }
-  auto label = new QLabel(QString("Using core options v%1.").arg(QString::number(m_Version)), this);
-  layout->addWidget(label, i, 1);
+  layout->addWidget(
+    new QLabel(QString("Using core options v%1.").arg(QString::number(m_Version)), content),
+    i, 1);
+
+  auto *scrollArea = new QScrollArea();
+  scrollArea->setWidget(content);
+  scrollArea->setWidgetResizable(true);
+
+  auto *outer = new QVBoxLayout();
+  outer->setContentsMargins(0, 0, 0, 0);
+  outer->addWidget(scrollArea);
 
   setWindowTitle(QString("%1 Options").arg(m_CoreName));
-  setLayout(layout);
+  setLayout(outer);
 }
 
 bool QRetroOptions::variablesUpdated(bool quiet)
