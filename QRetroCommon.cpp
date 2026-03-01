@@ -35,9 +35,7 @@ bool _qrnew(std::thread::id id, QRetro* retro)
 {
   if (!retro)
     return false;
-  else
-    _qr_thread_map.insert(std::pair<std::thread::id, QRetro*>(id, retro));
-
+  _qr_thread_map[id] = retro;
   return true;
 }
 
@@ -56,17 +54,29 @@ QRetro* _qrthis()
 {
   auto it = _qr_thread_map.find(std::this_thread::get_id());
 
-  if (it == _qr_thread_map.end())
-  {
-    auto last_entry = _qr_thread_map.rbegin()->second;
-
-    _qr_thread_map.insert(std::pair<std::thread::id, QRetro*>(
-                          std::this_thread::get_id(), last_entry));
-
-    return last_entry;
-  }
-  else
+  /* If the thread is registered and still has a live QRetro, return it. */
+  if (it != _qr_thread_map.end() && it->second != nullptr)
     return it->second;
+  else
+  {
+    /**
+     * Thread is either unknown or its QRetro was deleted.
+     * Find the most recently registered instance and give it this thread.
+     */
+    QRetro *live = nullptr;
+
+    for (auto &pair : _qr_thread_map)
+      if (pair.second)
+        live = pair.second;
+
+    if (live)
+      _qr_thread_map[std::this_thread::get_id()] = live;
+    else
+      _qrerror(__FILE__, __LINE__,
+               "_qrthis called with no live QRetro instances!");
+
+    return live;
+  }
 }
 
 int16_t qt2lr_analog(double qt)
