@@ -131,8 +131,7 @@ bool QRetro::event(QEvent *ev)
   {
   case QEvent::Close:
     stopCore();
-    ev->accept();
-    return true;
+    return QWindow::event(ev);
   case QEvent::UpdateRequest:
     {
       QPainter painter;
