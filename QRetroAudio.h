@@ -38,11 +38,16 @@ public:
   */
   void setBufferFrames(unsigned frames) { m_BufferFrames = frames; }
 
+  void setEnabled(bool v);
+  bool isEnabled(void) const { return m_Enabled; }
+
   void setTimingMultiplier(double mult);
+  void setVolume(float v);
 
   bool start(void);
 
 private:
+  bool m_Enabled = true;
   QAudioOutput *m_AudioOutput = nullptr;
   QByteArray    m_AudioBuffer;
   QIODevice    *m_AudioDevice = nullptr;

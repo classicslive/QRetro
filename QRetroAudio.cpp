@@ -85,6 +85,18 @@ void QRetroAudio::pushSamples(const sample_t *data, size_t frames)
     static_cast<int>(frames * QRETRO_AUDIO_CHANNELS * sizeof(sample_t)));
 }
 
+void QRetroAudio::setEnabled(bool v)
+{
+  m_Enabled = v;
+  setVolume(v ? 1.0f : 0.0f);
+}
+
+void QRetroAudio::setVolume(float v)
+{
+  if (m_AudioOutput)
+    m_AudioOutput->setVolume(v);
+}
+
 void QRetroAudio::setTimingMultiplier(double mult)
 {
   m_SampleRateCurrent = m_SampleRateBase * mult;
