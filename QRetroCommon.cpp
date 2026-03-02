@@ -624,7 +624,7 @@ uint16_t qt2lr_keymod(Qt::KeyboardModifiers qt)
   return lr;
 }
 
-static_assert(RETRO_LANGUAGE_LAST == RETRO_LANGUAGE_BELARUSIAN + 1,
+static_assert(RETRO_LANGUAGE_LAST == RETRO_LANGUAGE_IRISH + 1,
               "Update libretro language values!");
 retro_language qt2lr_language(const QLocale &qt)
 {
@@ -691,6 +691,12 @@ retro_language qt2lr_language(const QLocale &qt)
     return RETRO_LANGUAGE_HUNGARIAN;
   case QLocale::Belarusian:
     return RETRO_LANGUAGE_BELARUSIAN;
+  case QLocale::Galician:
+    return RETRO_LANGUAGE_GALICIAN;
+  case QLocale::Norwegian:
+    return RETRO_LANGUAGE_NORWEGIAN;
+  case QLocale::Irish:
+    return RETRO_LANGUAGE_IRISH;
   default:
     return RETRO_LANGUAGE_ENGLISH;
   }
