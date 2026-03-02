@@ -1,6 +1,7 @@
 #ifndef QRETRO_H
 #define QRETRO_H
 
+#include <atomic>
 #include <functional>
 
 #include <QBackingStore>
@@ -372,7 +373,7 @@ private:
   bool m_Overscan = true;
 
   /// Whether or not the core is running
-  bool m_Active = false;
+  std::atomic<bool> m_Active{false};
 
   /// Number of seconds to wait before flushing save RAM to disk
   unsigned m_AutosaveInterval = 5;
@@ -393,7 +394,11 @@ private:
   float m_FastForwardRatio = 0.0;
 
   /// Number of calls to retro_run completed
-  unsigned long m_Frames = 0;
+  std::atomic<unsigned long> m_Frames{0};
+
+  /// Set by the timing thread after retro_load_game succeeds, before retro_run.
+  /// The saving thread waits on this before touching core memory.
+  std::atomic<bool> m_SramReady{false};
 
   /// Whether or not input has been received between calls to retro_run
   bool m_InputReady = false;
@@ -470,6 +475,7 @@ private:
 
   QImage::Format m_PixelFormat;
 
+  bool m_AudioEnabled   = true;
   bool m_BilinearFilter = true;
   bool m_IntegerScaling = false;
   unsigned m_Rotation = 0;

@@ -611,6 +611,10 @@ void QRetro::timing()
     return;
   }
 
+  /* retro_load_game has completed — core memory functions are now safe to call.
+   * Signal the saving thread to proceed before the first retro_run. */
+  m_SramReady = true;
+
   if (m_Core.hw_render.context_reset)
     m_Core.hw_render.context_reset();
 
@@ -628,6 +632,7 @@ void QRetro::timing()
 
   m_Audio = new QRetroAudio(m_Core.av_info.timing.sample_rate, 60.0, m_TargetRefreshRate);
   m_Audio->start();
+  m_Audio->setEnabled(m_AudioEnabled);
 
   /* Notify core to begin sending audio, if using audio callback */
   if (m_Core.audio_callback.set_state)
@@ -978,8 +983,9 @@ void QRetro::saving()
     save_file.close();
   }
 
-  /* Wait for the first retro_run */
-  while (m_Active && !m_Frames);
+  /* Wait until retro_load_game has completed (core memory functions are safe),
+   * but before the first retro_run (so frame 1 sees the restored SRAM). */
+  while (m_Active && !m_SramReady);
 
   /* For first 15 frames, continuously copy buffer into SRAM */
   while (m_Active && m_Frames <= 15)
@@ -1039,6 +1045,8 @@ bool QRetro::startCore(void)
   }
   else
   {
+    m_Frames = 0;
+    m_SramReady = false;
     m_Active = true;
     m_ThreadSaving = QThread::create([this]{saving();});
     m_ThreadSaving->start();
