@@ -20,5 +20,6 @@ jobs:
         target: 'desktop'
         arch: 'win64_msvc2019_64'
         archives: 'icu qtbase qtmultimedia qtgamepad qtsystems qtlocation qtsensors'
+    - uses: ilammy/msvc-dev-cmd@v1
     - name: Build
       run: qmake && nmake
