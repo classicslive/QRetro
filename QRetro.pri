@@ -101,6 +101,7 @@ CONFIG(debug, debug|release) {
 
 SOURCES += \
   $$PWD/QRetro.cpp \
+  $$PWD/QRetroConfig.cpp \
   $$PWD/QRetroAudio.cpp \
   $$PWD/QRetroCamera.cpp \
   $$PWD/QRetroCommon.cpp \
@@ -121,6 +122,7 @@ INCLUDEPATH += \
 
 HEADERS += \
   $$PWD/QRetro.h \
+  $$PWD/QRetroConfig.h \
   $$PWD/QRetroAudio.h \
   $$PWD/QRetroAudioVideoEnable.h \
   $$PWD/QRetroCamera.h \

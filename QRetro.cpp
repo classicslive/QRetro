@@ -462,6 +462,13 @@ bool load_library(retro_core_t *core, QRETRO_LIBRARY_T library)
   return false;
 }
 
+QRetroConfig* QRetro::config()
+{
+  if (!m_Config)
+    m_Config = new QRetroConfig(this);
+  return m_Config;
+}
+
 QRetro::QRetro(QWindow *parent, retro_hw_context_type format)
 {
   setParent(parent);
@@ -476,6 +483,9 @@ QRetro::QRetro(QWindow *parent, retro_hw_context_type format)
   /* Initialize member variables */
   memset(&m_Core, 0, sizeof(m_Core));
   memset(m_SupportedEnvCallbacks, true, sizeof(m_SupportedEnvCallbacks));
+
+  /* Apply persisted config settings immediately. */
+  config();
 }
 
 void QRetro::unloadCore(void)
@@ -949,6 +959,11 @@ void QRetro::keyPressEvent(QKeyEvent *event)
     case Qt::Key_F1:
       options()->update();
       options()->show();
+      break;
+    case Qt::Key_F2:
+      config()->show();
+      config()->raise();
+      config()->activateWindow();
       break;
     }
   }

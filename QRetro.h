@@ -29,6 +29,7 @@
 #include "QRetroMicrophone.h"
 #include "QRetroMidi.h"
 #include "QRetroProcAddress.h"
+#include "QRetroConfig.h"
 #include "QRetroOptions.h"
 #include "QRetroSensors.h"
 #include "QRetroUsername.h"
@@ -70,6 +71,7 @@ public:
   QRetroLocation* location(void) { return m_Location; }
   QRetroMicrophone* microphone(void) { return &m_Microphone; }
   QRetroMidi* midi(void) { return &m_Midi; }
+  QRetroConfig* config(void);
   QRetroOptions* options(void) { return &m_Options; }
   QRetroDirectories* directories(void) { return &m_Directories; }
   QRetroProcAddress* procAddress(void) { return &m_ProcAddress; }
@@ -352,6 +354,8 @@ protected:
   void wheelEvent(QWheelEvent *event) override;
 
 private:
+  friend class QRetroConfig;
+
   QRetroAudio *m_Audio;
   QRetroAudioVideoEnable m_AudioVideoEnable;
   QRetroCamera m_Camera;
@@ -362,6 +366,7 @@ private:
   QRetroLocation *m_Location = nullptr;
   QRetroMicrophone m_Microphone;
   QRetroMidi m_Midi;
+  QRetroConfig  *m_Config = nullptr;
   QRetroOptions m_Options;
   QRetroProcAddress m_ProcAddress;
   QRetroSensors m_Sensors;
