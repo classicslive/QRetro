@@ -1,5 +1,7 @@
 #include <QCheckBox>
 #include <QComboBox>
+#include <QLineEdit>
+#include <QPushButton>
 #include <QDir>
 #include <QDoubleSpinBox>
 #include <QFormLayout>
@@ -76,12 +78,6 @@ QRetroConfig::QRetroConfig(QRetro *owner)
   m_Owner->m_BilinearFilter = m_BilinearFilter;
   m_Owner->m_IntegerScaling = m_IntegerScaling;
 
-  m_Owner->sensors()->setFakeAccelEnabled(m_FakeAccelEnabled);
-  m_Owner->sensors()->setFakeAccel(m_FakeAccel[0], m_FakeAccel[1], m_FakeAccel[2]);
-  m_Owner->sensors()->setFakeGyroEnabled(m_FakeGyroEnabled);
-  m_Owner->sensors()->setFakeGyro(m_FakeGyro[0], m_FakeGyro[1], m_FakeGyro[2]);
-  m_Owner->sensors()->setFakeIllumEnabled(m_FakeIllumEnabled);
-  m_Owner->sensors()->setFakeIllum(m_FakeIllum);
 
   /* Poll sensor read-tracking flags and enable/disable per-axis UI widgets. */
   auto *sensorReadTimer = new QTimer(this);
@@ -102,6 +98,12 @@ QRetroConfig::QRetroConfig(QRetro *owner)
   setWindowTitle(tr("QRetro Settings"));
 }
 
+void QRetroConfig::showEvent(QShowEvent *event)
+{
+  update();
+  QWidget::showEvent(event);
+}
+
 void QRetroConfig::load()
 {
   QSettings settings(m_Filename, QSettings::IniFormat);
@@ -112,9 +114,6 @@ void QRetroConfig::load()
   m_BilinearFilter = settings.value("bilinearFilter", true).toBool();
   m_AudioEnabled   = settings.value("audioEnabled",   true).toBool();
 
-  m_FakeAccelEnabled = settings.value("fakeAccelEnabled", false).toBool();
-  m_FakeGyroEnabled  = settings.value("fakeGyroEnabled",  false).toBool();
-  m_FakeIllumEnabled = settings.value("fakeIllumEnabled", false).toBool();
 }
 
 void QRetroConfig::save()
@@ -125,10 +124,6 @@ void QRetroConfig::save()
   settings.setValue("integerScaling", m_IntegerScaling);
   settings.setValue("bilinearFilter", m_BilinearFilter);
   settings.setValue("audioEnabled",   m_AudioEnabled);
-
-  settings.setValue("fakeAccelEnabled", m_FakeAccelEnabled);
-  settings.setValue("fakeGyroEnabled",  m_FakeGyroEnabled);
-  settings.setValue("fakeIllumEnabled", m_FakeIllumEnabled);
 
   settings.sync();
 }
@@ -153,6 +148,7 @@ void QRetroConfig::update()
     scroll->setWidgetResizable(true);
     scroll->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     scroll->setFrameShape(QFrame::NoFrame);
+    scroll->setFocusPolicy(Qt::NoFocus);
     return scroll;
   };
 
@@ -441,7 +437,99 @@ void QRetroConfig::update()
     pageLayout->addStretch();
   }
 
+  /* ── Proc Address ───────────────────────────────────────────── */
+  auto *procPage = new QWidget();
+  {
+    auto *pageLayout = new QVBoxLayout(procPage);
+    pageLayout->setContentsMargins(12, 12, 12, 12);
+    pageLayout->setSpacing(12);
+
+    /* Symbol query row */
+    auto *inputWidget = new QWidget();
+    auto *inputHbox   = new QHBoxLayout(inputWidget);
+    inputHbox->setContentsMargins(0, 0, 0, 0);
+    inputHbox->setSpacing(6);
+    auto *symbolInput = new QLineEdit();
+    symbolInput->setPlaceholderText(tr("Symbol name…"));
+    auto *queryBtn = new QPushButton(tr("Query"));
+    inputHbox->addWidget(symbolInput, 1);
+    inputHbox->addWidget(queryBtn);
+    pageLayout->addWidget(inputWidget);
+
+    /* Button area for resolved functions */
+    auto *funcGroup    = new QGroupBox(tr("Found Functions"));
+    auto *buttonLayout = new QVBoxLayout(funcGroup);
+    buttonLayout->setSpacing(6);
+
+    /* Restore buttons for symbols confirmed in previous queries */
+    for (const QString &sym : m_ProcSymbols)
+    {
+      auto *btn = new QPushButton(sym);
+      connect(btn, &QPushButton::clicked, this, [this, sym]() {
+        m_Owner->procAddress()->call(sym.toLocal8Bit().constData());
+      });
+      buttonLayout->addWidget(btn);
+    }
+    buttonLayout->addStretch();
+
+    pageLayout->addWidget(funcGroup, 1);
+
+    auto *notFoundLabel = new QLabel();
+    notFoundLabel->setForegroundRole(QPalette::Highlight);
+    notFoundLabel->hide();
+    pageLayout->addWidget(notFoundLabel);
+
+    /* Look up the typed symbol; add a call button if it resolves. */
+    auto doQuery = [this, symbolInput, buttonLayout, notFoundLabel]() {
+      const QString sym = symbolInput->text().trimmed();
+      if (sym.isEmpty() || m_ProcSymbols.contains(sym))
+        return;
+      if (m_Owner->procAddress()->get(sym.toLocal8Bit().constData()))
+      {
+        notFoundLabel->hide();
+        m_ProcSymbols.append(sym);
+        auto *btn = new QPushButton(sym);
+        connect(btn, &QPushButton::clicked, this, [this, sym]() {
+          m_Owner->procAddress()->call(sym.toLocal8Bit().constData());
+        });
+        /* Insert before the trailing stretch */
+        QLayoutItem *stretch = buttonLayout->takeAt(buttonLayout->count() - 1);
+        buttonLayout->addWidget(btn);
+        buttonLayout->addItem(stretch);
+        symbolInput->clear();
+      }
+      else
+      {
+        notFoundLabel->setText(tr("Symbol \"%1\" was not recognized by the core.").arg(sym));
+        notFoundLabel->show();
+      }
+    };
+
+    connect(queryBtn,    &QPushButton::clicked,     this, [doQuery]() { doQuery(); });
+    connect(symbolInput, &QLineEdit::returnPressed,  this, [doQuery]() { doQuery(); });
+  }
+
+  /* ── Core Options ───────────────────────────────────────────── */
+  auto *corePage = new QWidget();
+  {
+    auto *pageLayout = new QVBoxLayout(corePage);
+    pageLayout->setContentsMargins(12, 12, 12, 12);
+    pageLayout->setSpacing(12);
+
+    auto *btn = new QPushButton(tr("Open Options"));
+    connect(btn, &QPushButton::clicked, this, [this]() {
+      m_Owner->options()->update();
+      m_Owner->options()->show();
+    });
+    pageLayout->addWidget(btn);
+    pageLayout->addStretch();
+  }
+
   /* ── Sidebar ────────────────────────────────────────────────── */
+  const QString coreName  = m_Owner->options()->coreName();
+  const QString coreLabel = coreName.isEmpty() ? tr("Core Options")
+                                               : tr("%1 Options").arg(coreName);
+
   auto *sidebar = new QListWidget();
   sidebar->setFrameShape(QFrame::NoFrame);
   sidebar->setStyleSheet("QListWidget::item { padding: 6px 10px; }");
@@ -449,6 +537,8 @@ void QRetroConfig::update()
   sidebar->addItem(tr("Audio"));
   sidebar->addItem(tr("Environment"));
   sidebar->addItem(tr("Sensors"));
+  sidebar->addItem(tr("Proc Address"));
+  sidebar->addItem(coreLabel);
   sidebar->setCurrentRow(0);
 
   /* ── Stacked settings area ──────────────────────────────────── */
@@ -457,6 +547,8 @@ void QRetroConfig::update()
   stack->addWidget(makeScrollPage(audioPage));
   stack->addWidget(makeScrollPage(envPage));
   stack->addWidget(makeScrollPage(sensorsPage));
+  stack->addWidget(makeScrollPage(procPage));
+  stack->addWidget(makeScrollPage(corePage));
 
   connect(sidebar, &QListWidget::currentRowChanged,
           stack,   &QStackedWidget::setCurrentIndex);

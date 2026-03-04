@@ -149,6 +149,7 @@ public:
    * of different cores.
    */
   void setCoreName(const char *name) { m_CoreName = QString(name); }
+  QString coreName() const { return m_CoreName; }
 
   /**
    * Sets the filename that core options will be written to.

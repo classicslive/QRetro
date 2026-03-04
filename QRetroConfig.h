@@ -35,6 +35,10 @@ public:
 
   void update();
 
+protected:
+  void showEvent(QShowEvent *event) override;
+
+public:
   void setAccelXHasBeenRead(bool v) { if (m_AccelAxisWidget[0]) m_AccelAxisWidget[0]->setEnabled(v); }
   void setAccelYHasBeenRead(bool v) { if (m_AccelAxisWidget[1]) m_AccelAxisWidget[1]->setEnabled(v); }
   void setAccelZHasBeenRead(bool v) { if (m_AccelAxisWidget[2]) m_AccelAxisWidget[2]->setEnabled(v); }
@@ -74,6 +78,7 @@ private:
   QLabel    *m_DescLabel  = nullptr;
   QTimer    *m_SaveTimer  = nullptr;
   QString    m_Filename;
+  QStringList m_ProcSymbols;
 
   QWidget *m_AccelAxisWidget[3] = {nullptr, nullptr, nullptr};
   QWidget *m_GyroAxisWidget[3]  = {nullptr, nullptr, nullptr};
