@@ -1,5 +1,6 @@
 #include <QCheckBox>
 #include <QComboBox>
+#include <QFileDialog>
 #include <QLineEdit>
 #include <QPushButton>
 #include <QDir>
@@ -171,6 +172,18 @@ void QRetroConfig::load()
   m_SpoofLon             = settings.value("spoofLon",  0.0).toDouble();
   m_SpoofHAcc            = settings.value("spoofHAcc", 0.0).toDouble();
   m_SpoofVAcc            = settings.value("spoofVAcc", 0.0).toDouble();
+
+  auto *dirs = m_Owner->directories();
+  if (settings.contains("dirSave"))
+    dirs->set(QRetroDirectories::Save,       settings.value("dirSave").toString(),       true);
+  if (settings.contains("dirSystem"))
+    dirs->set(QRetroDirectories::System,     settings.value("dirSystem").toString(),     true);
+  if (settings.contains("dirCoreAssets"))
+    dirs->set(QRetroDirectories::CoreAssets, settings.value("dirCoreAssets").toString(), true);
+  if (settings.contains("dirPlaylist"))
+    dirs->set(QRetroDirectories::Playlist,        settings.value("dirPlaylist").toString(),        true);
+  if (settings.contains("dirFileBrowserStart"))
+    dirs->set(QRetroDirectories::FileBrowserStart, settings.value("dirFileBrowserStart").toString(), true);
 }
 
 void QRetroConfig::save()
@@ -187,6 +200,13 @@ void QRetroConfig::save()
   settings.setValue("spoofLon",  m_SpoofLon);
   settings.setValue("spoofHAcc", m_SpoofHAcc);
   settings.setValue("spoofVAcc", m_SpoofVAcc);
+
+  auto *dirs = m_Owner->directories();
+  settings.setValue("dirSave",       dirs->get(QRetroDirectories::Save));
+  settings.setValue("dirSystem",     dirs->get(QRetroDirectories::System));
+  settings.setValue("dirCoreAssets",      dirs->get(QRetroDirectories::CoreAssets));
+  settings.setValue("dirPlaylist",        dirs->get(QRetroDirectories::Playlist));
+  settings.setValue("dirFileBrowserStart",dirs->get(QRetroDirectories::FileBrowserStart));
 
   settings.sync();
 }
@@ -285,6 +305,59 @@ void QRetroConfig::update()
       m_SaveTimer->start();
     });
     form->addRow(tr("Language"), combo);
+  }
+
+  /* ── Directories ────────────────────────────────────────────── */
+  auto *dirsPage = new QWidget();
+  {
+    auto *pageLayout = new QVBoxLayout(dirsPage);
+    pageLayout->setContentsMargins(12, 12, 12, 12);
+    pageLayout->setSpacing(12);
+
+    auto *group = new QGroupBox(tr("Directories"));
+    auto *form  = new QFormLayout(group);
+    form->setVerticalSpacing(8);
+
+    struct { const char *label; QRetroDirectories::Type type; } rows[] = {
+      { "Save",              QRetroDirectories::Save            },
+      { "System",            QRetroDirectories::System          },
+      { "Core Assets",       QRetroDirectories::CoreAssets      },
+      { "Playlist",          QRetroDirectories::Playlist        },
+      { "File Browser Start",QRetroDirectories::FileBrowserStart},
+    };
+
+    for (auto &row : rows)
+    {
+      auto *edit = new QLineEdit(m_Owner->directories()->get(row.type));
+
+      QRetroDirectories::Type type = row.type;
+      auto *browseBtn = new QPushButton(tr("Browse…"));
+      connect(browseBtn, &QPushButton::clicked, [this, edit, type]() {
+        QString path = QFileDialog::getExistingDirectory(this, tr("Select Directory"),
+                                                         edit->text());
+        if (!path.isEmpty())
+        {
+          edit->setText(path);
+          m_Owner->directories()->set(type, path);
+          m_SaveTimer->start();
+        }
+      });
+
+      connect(edit, &QLineEdit::textEdited, [this, type](const QString &path) {
+        m_Owner->directories()->set(type, path, true);
+        m_SaveTimer->start();
+      });
+
+      auto *rowWidget = new QWidget();
+      auto *hbox = new QHBoxLayout(rowWidget);
+      hbox->setContentsMargins(0, 0, 0, 0);
+      hbox->addWidget(edit, 1);
+      hbox->addWidget(browseBtn);
+      form->addRow(tr(row.label), rowWidget);
+    }
+
+    pageLayout->addWidget(group);
+    pageLayout->addStretch();
   }
 
   /* ── Sensors ────────────────────────────────────────────────── */
@@ -722,6 +795,7 @@ void QRetroConfig::update()
   sidebar->addItem(tr("Video"));
   sidebar->addItem(tr("Audio"));
   sidebar->addItem(tr("Environment"));
+  sidebar->addItem(tr("Directories"));
   sidebar->addItem(tr("Sensors"));
   sidebar->addItem(tr("Location"));
   sidebar->addItem(tr("LED"));
@@ -734,6 +808,7 @@ void QRetroConfig::update()
   stack->addWidget(makeScrollPage(videoPage));
   stack->addWidget(makeScrollPage(audioPage));
   stack->addWidget(makeScrollPage(envPage));
+  stack->addWidget(makeScrollPage(dirsPage));
   stack->addWidget(makeScrollPage(sensorsPage));
   stack->addWidget(makeScrollPage(locationPage));
   stack->addWidget(makeScrollPage(ledPage));
