@@ -33,6 +33,14 @@ public:
     /// Alias of Directory_CoreAssets.
     Content = CoreAssets,
 
+    /// Returned when the core uses environment callback
+    /// RETRO_ENVIRONMENT_GET_PLAYLIST_DIRECTORY (79).
+    Playlist,
+
+    /// Returned when the core uses environment callback
+    /// RETRO_ENVIRONMENT_GET_FILE_BROWSER_START_DIRECTORY (80).
+    FileBrowserStart,
+
     /* The following are internal, unrelated to libretro callbacks.
     State,
     CoreInfo,

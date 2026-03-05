@@ -804,6 +804,27 @@ bool core_environment(unsigned cmd, void *data)
   case RETRO_ENVIRONMENT_GET_DEVICE_POWER:
     return _this->devicePower()->get(reinterpret_cast<retro_device_power*>(data));
 
+  /* 78 */
+  // case RETRO_ENVIRONMENT_SET_NETPACKET_INTERFACE:
+
+  /* 79 */
+  case RETRO_ENVIRONMENT_GET_PLAYLIST_DIRECTORY:
+    *reinterpret_cast<const char**>(data) =
+      _this->directories()->get(QRetroDirectories::Playlist);
+    break;
+  
+  /* 80 */
+  case RETRO_ENVIRONMENT_GET_FILE_BROWSER_START_DIRECTORY:
+    *reinterpret_cast<const char**>(data) =
+      _this->directories()->get(QRetroDirectories::FileBrowserStart);
+    break;
+
+  /* 81 */
+  // case RETRO_ENVIRONMENT_GET_TARGET_SAMPLE_RATE:
+
+  /* 82 */
+  // case RETRO_ENVIRONMENT_GET_NETPLAY_CLIENT_INDEX:
+
   default:
     qWarning("Unimplemented environment callback %u%s%s.",
       cmd_noflags,

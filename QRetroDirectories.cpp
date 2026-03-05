@@ -20,6 +20,14 @@ QRetroDirectories::QRetroDirectories()
   if (!QDir(dir).exists())
     QDir().mkdir(dir);
   m_Directories[QRetroDirectories::CoreAssets] = dir.toUtf8();
+
+  dir = QDir::currentPath() + "/playlists";
+  if (!QDir(dir).exists())
+    QDir().mkdir(dir);
+  m_Directories[QRetroDirectories::Playlist] = dir.toUtf8();
+
+  dir = QDir::currentPath();
+  m_Directories[QRetroDirectories::FileBrowserStart] = dir.toUtf8();
 }
 
 const char* QRetroDirectories::get(QRetroDirectories::Type type)
