@@ -105,7 +105,7 @@ float QRetroSensors::getInput(unsigned port, unsigned id)
   {
   case RETRO_SENSOR_ACCELEROMETER_X:
     m_AccelXHasBeenRead = true;
-    if (m_FakeAccelEnabled) return m_FakeAccel[0];
+    if (m_SpoofAccelEnabled) return m_SpoofAccel[0];
 #if QRETRO_HAVE_SENSORS
     if (m_AccelerometerEnabled && m_AccelerometerSensor.reading())
       return static_cast<float>(m_AccelerometerSensor.reading()->x());
@@ -114,7 +114,7 @@ float QRetroSensors::getInput(unsigned port, unsigned id)
 
   case RETRO_SENSOR_ACCELEROMETER_Y:
     m_AccelYHasBeenRead = true;
-    if (m_FakeAccelEnabled) return m_FakeAccel[1];
+    if (m_SpoofAccelEnabled) return m_SpoofAccel[1];
 #if QRETRO_HAVE_SENSORS
     if (m_AccelerometerEnabled && m_AccelerometerSensor.reading())
       return static_cast<float>(m_AccelerometerSensor.reading()->y());
@@ -123,7 +123,7 @@ float QRetroSensors::getInput(unsigned port, unsigned id)
 
   case RETRO_SENSOR_ACCELEROMETER_Z:
     m_AccelZHasBeenRead = true;
-    if (m_FakeAccelEnabled) return m_FakeAccel[2];
+    if (m_SpoofAccelEnabled) return m_SpoofAccel[2];
 #if QRETRO_HAVE_SENSORS
     if (m_AccelerometerEnabled && m_AccelerometerSensor.reading())
       return static_cast<float>(m_AccelerometerSensor.reading()->z());
@@ -132,7 +132,7 @@ float QRetroSensors::getInput(unsigned port, unsigned id)
 
   case RETRO_SENSOR_GYROSCOPE_X:
     m_GyroXHasBeenRead = true;
-    if (m_FakeGyroEnabled) return m_FakeGyro[0];
+    if (m_SpoofGyroEnabled) return m_SpoofGyro[0];
 #if QRETRO_HAVE_SENSORS
     if (m_GyroscopeEnabled && m_GyroscopeSensor.reading())
       return static_cast<float>(m_GyroscopeSensor.reading()->x());
@@ -141,7 +141,7 @@ float QRetroSensors::getInput(unsigned port, unsigned id)
 
   case RETRO_SENSOR_GYROSCOPE_Y:
     m_GyroYHasBeenRead = true;
-    if (m_FakeGyroEnabled) return m_FakeGyro[1];
+    if (m_SpoofGyroEnabled) return m_SpoofGyro[1];
 #if QRETRO_HAVE_SENSORS
     if (m_GyroscopeEnabled && m_GyroscopeSensor.reading())
       return static_cast<float>(m_GyroscopeSensor.reading()->y());
@@ -150,7 +150,7 @@ float QRetroSensors::getInput(unsigned port, unsigned id)
 
   case RETRO_SENSOR_GYROSCOPE_Z:
     m_GyroZHasBeenRead = true;
-    if (m_FakeGyroEnabled) return m_FakeGyro[2];
+    if (m_SpoofGyroEnabled) return m_SpoofGyro[2];
 #if QRETRO_HAVE_SENSORS
     if (m_GyroscopeEnabled && m_GyroscopeSensor.reading())
       return static_cast<float>(m_GyroscopeSensor.reading()->z());
@@ -159,8 +159,8 @@ float QRetroSensors::getInput(unsigned port, unsigned id)
 
   case RETRO_SENSOR_ILLUMINANCE:
     m_IllumHasBeenRead = true;
-    if (m_FakeIllumEnabled)
-      return m_FakeIllum;
+    if (m_SpoofIllumEnabled)
+      return m_SpoofIllum;
 #if QRETRO_HAVE_SENSORS
     if (m_IlluminanceEnabled && m_IlluminanceSensor.reading())
       return static_cast<float>(m_IlluminanceSensor.reading()->lux());

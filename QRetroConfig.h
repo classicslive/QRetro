@@ -20,18 +20,18 @@ public:
   bool           integerScaling()  const { return m_IntegerScaling; }
   bool           bilinearFilter()  const { return m_BilinearFilter; }
 
-  bool  fakeAccelEnabled()  const { return m_FakeAccelEnabled; }
-  float fakeAccelX()        const { return m_FakeAccel[0]; }
-  float fakeAccelY()        const { return m_FakeAccel[1]; }
-  float fakeAccelZ()        const { return m_FakeAccel[2]; }
+  bool  spoofAccelEnabled()  const { return m_SpoofAccelEnabled; }
+  float spoofAccelX()        const { return m_SpoofAccel[0]; }
+  float spoofAccelY()        const { return m_SpoofAccel[1]; }
+  float spoofAccelZ()        const { return m_SpoofAccel[2]; }
 
-  bool  fakeGyroEnabled()   const { return m_FakeGyroEnabled; }
-  float fakeGyroX()         const { return m_FakeGyro[0]; }
-  float fakeGyroY()         const { return m_FakeGyro[1]; }
-  float fakeGyroZ()         const { return m_FakeGyro[2]; }
+  bool  spoofGyroEnabled()   const { return m_SpoofGyroEnabled; }
+  float spoofGyroX()         const { return m_SpoofGyro[0]; }
+  float spoofGyroY()         const { return m_SpoofGyro[1]; }
+  float spoofGyroZ()         const { return m_SpoofGyro[2]; }
 
-  bool  fakeIllumEnabled()  const { return m_FakeIllumEnabled; }
-  float fakeIllum()         const { return m_FakeIllum; }
+  bool  spoofIllumEnabled()  const { return m_SpoofIllumEnabled; }
+  float spoofIllum()         const { return m_SpoofIllum; }
 
   void update();
 
@@ -52,9 +52,9 @@ signals:
   void bilinearFilterChanged(bool value);
   void audioEnabledChanged(bool value);
 
-  void fakeAccelChanged(bool enabled, float x, float y, float z);
-  void fakeGyroChanged(bool enabled, float x, float y, float z);
-  void fakeIllumChanged(bool enabled, float value);
+  void spoofAccelChanged(bool enabled, float x, float y, float z);
+  void spoofGyroChanged(bool enabled, float x, float y, float z);
+  void spoofIllumChanged(bool enabled, float value);
 
 private:
   void load();
@@ -65,14 +65,14 @@ private:
   bool           m_BilinearFilter = true;
   bool           m_AudioEnabled   = true;
 
-  bool  m_FakeAccelEnabled = false;
-  float m_FakeAccel[3]     = {0, 0, 0};
+  bool  m_SpoofAccelEnabled = false;
+  float m_SpoofAccel[3]     = {0, 0, 0};
 
-  bool  m_FakeGyroEnabled  = false;
-  float m_FakeGyro[3]      = {0, 0, 0};
+  bool  m_SpoofGyroEnabled  = false;
+  float m_SpoofGyro[3]      = {0, 0, 0};
 
-  bool  m_FakeIllumEnabled = false;
-  float m_FakeIllum        = 0;
+  bool  m_SpoofIllumEnabled = false;
+  float m_SpoofIllum        = 0;
 
   QRetro    *m_Owner      = nullptr;
   QLabel    *m_DescLabel  = nullptr;
@@ -83,6 +83,13 @@ private:
   QWidget *m_AccelAxisWidget[3] = {nullptr, nullptr, nullptr};
   QWidget *m_GyroAxisWidget[3]  = {nullptr, nullptr, nullptr};
   QWidget *m_IllumValueWidget   = nullptr;
+
+  QLabel  *m_AccelEnabledLabel  = nullptr;
+  QLabel  *m_AccelRateLabel     = nullptr;
+  QLabel  *m_GyroEnabledLabel   = nullptr;
+  QLabel  *m_GyroRateLabel      = nullptr;
+  QLabel  *m_IllumEnabledLabel  = nullptr;
+  QLabel  *m_IllumRateLabel     = nullptr;
 };
 
 #endif

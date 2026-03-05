@@ -91,6 +91,18 @@ QRetroConfig::QRetroConfig(QRetro *owner)
     setGyroYHasBeenRead (s->gyroYHasBeenRead());
     setGyroZHasBeenRead (s->gyroZHasBeenRead());
     setIllumHasBeenRead (s->illumHasBeenRead());
+
+    auto yesNo = [](bool v) { return v ? QStringLiteral("Yes") : QStringLiteral("No"); };
+    auto hz    = [](unsigned r) {
+      return r ? QString::number(r) + QStringLiteral(" Hz") : QStringLiteral("—");
+    };
+
+    if (m_AccelEnabledLabel) m_AccelEnabledLabel->setText(yesNo(s->accelEnabled()));
+    if (m_AccelRateLabel)    m_AccelRateLabel->setText(hz(s->accelRate()));
+    if (m_GyroEnabledLabel)  m_GyroEnabledLabel->setText(yesNo(s->gyroEnabled()));
+    if (m_GyroRateLabel)     m_GyroRateLabel->setText(hz(s->gyroRate()));
+    if (m_IllumEnabledLabel) m_IllumEnabledLabel->setText(yesNo(s->illumEnabled()));
+    if (m_IllumRateLabel)    m_IllumRateLabel->setText(hz(s->illumRate()));
   });
   sensorReadTimer->start();
 
@@ -282,29 +294,34 @@ void QRetroConfig::update()
       auto *form  = new QFormLayout(group);
       form->setVerticalSpacing(8);
 
-      auto *fakeCheck = new QCheckBox(tr("Fake values"));
-      fakeCheck->setChecked(m_FakeAccelEnabled);
+      m_AccelEnabledLabel = new QLabel(tr("—"));
+      m_AccelRateLabel    = new QLabel(tr("—"));
+      form->addRow(tr("Enabled"), m_AccelEnabledLabel);
+      form->addRow(tr("Rate"),    m_AccelRateLabel);
 
-      auto [wX, spinX] = makeAxisWidget(m_FakeAccel[0], -20.0, 20.0, 100);
-      auto [wY, spinY] = makeAxisWidget(m_FakeAccel[1], -20.0, 20.0, 100);
-      auto [wZ, spinZ] = makeAxisWidget(m_FakeAccel[2], -20.0, 20.0, 100);
+      auto *spoofCheck = new QCheckBox(tr("Spoof values"));
+      spoofCheck->setChecked(m_SpoofAccelEnabled);
+
+      auto [wX, spinX] = makeAxisWidget(m_SpoofAccel[0], -20.0, 20.0, 100);
+      auto [wY, spinY] = makeAxisWidget(m_SpoofAccel[1], -20.0, 20.0, 100);
+      auto [wZ, spinZ] = makeAxisWidget(m_SpoofAccel[2], -20.0, 20.0, 100);
       m_AccelAxisWidget[0] = wX; wX->setEnabled(false);
       m_AccelAxisWidget[1] = wY; wY->setEnabled(false);
       m_AccelAxisWidget[2] = wZ; wZ->setEnabled(false);
 
-      auto emitAccel = [this, fakeCheck, spinX, spinY, spinZ]() {
-        m_FakeAccelEnabled = fakeCheck->isChecked();
-        m_FakeAccel[0]     = static_cast<float>(spinX->value());
-        m_FakeAccel[1]     = static_cast<float>(spinY->value());
-        m_FakeAccel[2]     = static_cast<float>(spinZ->value());
+      auto emitAccel = [this, spoofCheck, spinX, spinY, spinZ]() {
+        m_SpoofAccelEnabled = spoofCheck->isChecked();
+        m_SpoofAccel[0]     = static_cast<float>(spinX->value());
+        m_SpoofAccel[1]     = static_cast<float>(spinY->value());
+        m_SpoofAccel[2]     = static_cast<float>(spinZ->value());
         m_SaveTimer->start();
-        m_Owner->sensors()->setFakeAccelEnabled(m_FakeAccelEnabled);
-        m_Owner->sensors()->setFakeAccel(m_FakeAccel[0], m_FakeAccel[1], m_FakeAccel[2]);
-        emit fakeAccelChanged(m_FakeAccelEnabled, m_FakeAccel[0],
-                              m_FakeAccel[1], m_FakeAccel[2]);
+        m_Owner->sensors()->setSpoofAccelEnabled(m_SpoofAccelEnabled);
+        m_Owner->sensors()->setSpoofAccel(m_SpoofAccel[0], m_SpoofAccel[1], m_SpoofAccel[2]);
+        emit spoofAccelChanged(m_SpoofAccelEnabled, m_SpoofAccel[0],
+                              m_SpoofAccel[1], m_SpoofAccel[2]);
       };
 
-      connect(fakeCheck, &QCheckBox::stateChanged,
+      connect(spoofCheck, &QCheckBox::stateChanged,
               [emitAccel](int) { emitAccel(); });
       connect(spinX, QOverload<double>::of(&QDoubleSpinBox::valueChanged),
               [emitAccel](double) { emitAccel(); });
@@ -313,7 +330,7 @@ void QRetroConfig::update()
       connect(spinZ, QOverload<double>::of(&QDoubleSpinBox::valueChanged),
               [emitAccel](double) { emitAccel(); });
 
-      form->addRow(tr("Fake"), fakeCheck);
+      form->addRow(tr("Spoof"), spoofCheck);
       form->addRow(tr("X"),    wX);
       form->addRow(tr("Y"),    wY);
       form->addRow(tr("Z"),    wZ);
@@ -327,29 +344,34 @@ void QRetroConfig::update()
       auto *form  = new QFormLayout(group);
       form->setVerticalSpacing(8);
 
-      auto *fakeCheck = new QCheckBox(tr("Fake values"));
-      fakeCheck->setChecked(m_FakeGyroEnabled);
+      m_GyroEnabledLabel = new QLabel(tr("—"));
+      m_GyroRateLabel    = new QLabel(tr("—"));
+      form->addRow(tr("Enabled"), m_GyroEnabledLabel);
+      form->addRow(tr("Rate"),    m_GyroRateLabel);
 
-      auto [wX, spinX] = makeAxisWidget(m_FakeGyro[0], -1.0, 1.0, 100);
-      auto [wY, spinY] = makeAxisWidget(m_FakeGyro[1], -1.0, 1.0, 100);
-      auto [wZ, spinZ] = makeAxisWidget(m_FakeGyro[2], -1.0, 1.0, 100);
+      auto *spoofCheck = new QCheckBox(tr("Spoof values"));
+      spoofCheck->setChecked(m_SpoofGyroEnabled);
+
+      auto [wX, spinX] = makeAxisWidget(m_SpoofGyro[0], -1.0, 1.0, 100);
+      auto [wY, spinY] = makeAxisWidget(m_SpoofGyro[1], -1.0, 1.0, 100);
+      auto [wZ, spinZ] = makeAxisWidget(m_SpoofGyro[2], -1.0, 1.0, 100);
       m_GyroAxisWidget[0] = wX; wX->setEnabled(false);
       m_GyroAxisWidget[1] = wY; wY->setEnabled(false);
       m_GyroAxisWidget[2] = wZ; wZ->setEnabled(false);
 
-      auto emitGyro = [this, fakeCheck, spinX, spinY, spinZ]() {
-        m_FakeGyroEnabled = fakeCheck->isChecked();
-        m_FakeGyro[0]     = static_cast<float>(spinX->value());
-        m_FakeGyro[1]     = static_cast<float>(spinY->value());
-        m_FakeGyro[2]     = static_cast<float>(spinZ->value());
+      auto emitGyro = [this, spoofCheck, spinX, spinY, spinZ]() {
+        m_SpoofGyroEnabled = spoofCheck->isChecked();
+        m_SpoofGyro[0]     = static_cast<float>(spinX->value());
+        m_SpoofGyro[1]     = static_cast<float>(spinY->value());
+        m_SpoofGyro[2]     = static_cast<float>(spinZ->value());
         m_SaveTimer->start();
-        m_Owner->sensors()->setFakeGyroEnabled(m_FakeGyroEnabled);
-        m_Owner->sensors()->setFakeGyro(m_FakeGyro[0], m_FakeGyro[1], m_FakeGyro[2]);
-        emit fakeGyroChanged(m_FakeGyroEnabled, m_FakeGyro[0],
-                             m_FakeGyro[1], m_FakeGyro[2]);
+        m_Owner->sensors()->setSpoofGyroEnabled(m_SpoofGyroEnabled);
+        m_Owner->sensors()->setSpoofGyro(m_SpoofGyro[0], m_SpoofGyro[1], m_SpoofGyro[2]);
+        emit spoofGyroChanged(m_SpoofGyroEnabled, m_SpoofGyro[0],
+                             m_SpoofGyro[1], m_SpoofGyro[2]);
       };
 
-      connect(fakeCheck, &QCheckBox::stateChanged,
+      connect(spoofCheck, &QCheckBox::stateChanged,
               [emitGyro](int) { emitGyro(); });
       connect(spinX, QOverload<double>::of(&QDoubleSpinBox::valueChanged),
               [emitGyro](double) { emitGyro(); });
@@ -358,7 +380,7 @@ void QRetroConfig::update()
       connect(spinZ, QOverload<double>::of(&QDoubleSpinBox::valueChanged),
               [emitGyro](double) { emitGyro(); });
 
-      form->addRow(tr("Fake"), fakeCheck);
+      form->addRow(tr("Spoof"), spoofCheck);
       form->addRow(tr("X"),    wX);
       form->addRow(tr("Y"),    wY);
       form->addRow(tr("Z"),    wZ);
@@ -372,22 +394,27 @@ void QRetroConfig::update()
       auto *form  = new QFormLayout(group);
       form->setVerticalSpacing(8);
 
-      auto *fakeCheck = new QCheckBox(tr("Fake values"));
-      fakeCheck->setChecked(m_FakeIllumEnabled);
+      m_IllumEnabledLabel = new QLabel(tr("—"));
+      m_IllumRateLabel    = new QLabel(tr("—"));
+      form->addRow(tr("Enabled"), m_IllumEnabledLabel);
+      form->addRow(tr("Rate"),    m_IllumRateLabel);
+
+      auto *spoofCheck = new QCheckBox(tr("Spoof values"));
+      spoofCheck->setChecked(m_SpoofIllumEnabled);
 
       /* Spinbox: unconstrained so the user can type any value */
       auto *spin = new QDoubleSpinBox();
       spin->setRange(-999999.0, 999999.0);
       spin->setSingleStep(1.0);
       spin->setDecimals(0);
-      spin->setValue(m_FakeIllum);
+      spin->setValue(m_SpoofIllum);
       spin->setFixedWidth(90);
 
       /* Slider: capped at 100 klux; grays out when spinbox is out of range */
       auto *slider = new QSlider(Qt::Horizontal);
       slider->setRange(0, 100000);
-      slider->setValue(qBound(0, qRound(double(m_FakeIllum)), 100000));
-      slider->setEnabled(m_FakeIllum >= 0 && m_FakeIllum <= 100000);
+      slider->setValue(qBound(0, qRound(double(m_SpoofIllum)), 100000));
+      slider->setEnabled(m_SpoofIllum >= 0 && m_SpoofIllum <= 100000);
 
       /* Slider → spinbox */
       connect(slider, &QSlider::valueChanged, [spin](int v) {
@@ -406,16 +433,16 @@ void QRetroConfig::update()
         }
       });
 
-      auto emitIllum = [this, fakeCheck, spin]() {
-        m_FakeIllumEnabled = fakeCheck->isChecked();
-        m_FakeIllum        = static_cast<float>(spin->value());
+      auto emitIllum = [this, spoofCheck, spin]() {
+        m_SpoofIllumEnabled = spoofCheck->isChecked();
+        m_SpoofIllum        = static_cast<float>(spin->value());
         m_SaveTimer->start();
-        m_Owner->sensors()->setFakeIllumEnabled(m_FakeIllumEnabled);
-        m_Owner->sensors()->setFakeIllum(m_FakeIllum);
-        emit fakeIllumChanged(m_FakeIllumEnabled, m_FakeIllum);
+        m_Owner->sensors()->setSpoofIllumEnabled(m_SpoofIllumEnabled);
+        m_Owner->sensors()->setSpoofIllum(m_SpoofIllum);
+        emit spoofIllumChanged(m_SpoofIllumEnabled, m_SpoofIllum);
       };
 
-      connect(fakeCheck, &QCheckBox::stateChanged,
+      connect(spoofCheck, &QCheckBox::stateChanged,
               [emitIllum](int) { emitIllum(); });
       connect(spin, QOverload<double>::of(&QDoubleSpinBox::valueChanged),
               [emitIllum](double) { emitIllum(); });
@@ -428,7 +455,7 @@ void QRetroConfig::update()
       m_IllumValueWidget = valueWidget;
       valueWidget->setEnabled(false);
 
-      form->addRow(tr("Fake"),  fakeCheck);
+      form->addRow(tr("Spoof"),  spoofCheck);
       form->addRow(tr("Value"), valueWidget);
 
       pageLayout->addWidget(group);
