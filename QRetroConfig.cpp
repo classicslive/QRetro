@@ -126,6 +126,23 @@ QRetroConfig::QRetroConfig(QRetro *owner)
       if (m_LocationIntervalLabel) m_LocationIntervalLabel->setText(ms(loc->millisecondInterval()));
       if (m_LocationDistLabel)     m_LocationDistLabel->setText(dist(loc->distanceInterval()));
     }
+
+    if (m_LedForm)
+    {
+      for (auto &[idx, val] : m_Owner->led()->leds())
+      {
+        if (m_LedLabels.contains(idx))
+        {
+          m_LedLabels[idx]->setText(QString::number(val));
+        }
+        else
+        {
+          auto *label = new QLabel(QString::number(val));
+          m_LedLabels[idx] = label;
+          m_LedForm->addRow(tr("LED %1").arg(idx), label);
+        }
+      }
+    }
   });
   sensorReadTimer->start();
 
@@ -186,6 +203,9 @@ void QRetroConfig::update()
     }
     delete layout();
   }
+
+  m_LedForm = nullptr;
+  m_LedLabels.clear();
 
   /* Wraps a form widget in a borderless scroll area. */
   auto makeScrollPage = [](QWidget *inner) -> QScrollArea* {
@@ -581,6 +601,28 @@ void QRetroConfig::update()
     pageLayout->addStretch();
   }
 
+  /* ── LED ────────────────────────────────────────────────────── */
+  auto *ledPage = new QWidget();
+  {
+    auto *pageLayout = new QVBoxLayout(ledPage);
+    pageLayout->setContentsMargins(12, 12, 12, 12);
+    pageLayout->setSpacing(12);
+
+    auto *group = new QGroupBox(tr("LED States"));
+    m_LedForm = new QFormLayout(group);
+    m_LedForm->setVerticalSpacing(8);
+
+    for (auto &[idx, val] : m_Owner->led()->leds())
+    {
+      auto *label = new QLabel(QString::number(val));
+      m_LedLabels[idx] = label;
+      m_LedForm->addRow(tr("LED %1").arg(idx), label);
+    }
+
+    pageLayout->addWidget(group);
+    pageLayout->addStretch();
+  }
+
   /* ── Proc Address ───────────────────────────────────────────── */
   auto *procPage = new QWidget();
   {
@@ -682,6 +724,7 @@ void QRetroConfig::update()
   sidebar->addItem(tr("Environment"));
   sidebar->addItem(tr("Sensors"));
   sidebar->addItem(tr("Location"));
+  sidebar->addItem(tr("LED"));
   sidebar->addItem(tr("Proc Address"));
   sidebar->addItem(coreLabel);
   sidebar->setCurrentRow(0);
@@ -693,6 +736,7 @@ void QRetroConfig::update()
   stack->addWidget(makeScrollPage(envPage));
   stack->addWidget(makeScrollPage(sensorsPage));
   stack->addWidget(makeScrollPage(locationPage));
+  stack->addWidget(makeScrollPage(ledPage));
   stack->addWidget(makeScrollPage(procPage));
   stack->addWidget(makeScrollPage(corePage));
 

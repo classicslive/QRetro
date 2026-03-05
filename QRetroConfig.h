@@ -1,11 +1,13 @@
 #ifndef QRETRO_CONFIG_H
 #define QRETRO_CONFIG_H
 
+#include <QMap>
 #include <QTimer>
 #include <QWidget>
 
 #include "libretro.h"
 
+class QFormLayout;
 class QLabel;
 class QRetro;
 
@@ -104,6 +106,9 @@ private:
   QLabel  *m_LocationIntervalLabel = nullptr;
   QLabel  *m_LocationDistLabel     = nullptr;
   QWidget *m_LocationSpoofWidgets[4] = {nullptr, nullptr, nullptr, nullptr};
+
+  QFormLayout        *m_LedForm   = nullptr;
+  QMap<int, QLabel*>  m_LedLabels;
 };
 
 #endif
