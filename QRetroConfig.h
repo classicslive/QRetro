@@ -56,6 +56,9 @@ signals:
   void spoofGyroChanged(bool enabled, float x, float y, float z);
   void spoofIllumChanged(bool enabled, float value);
 
+  void spoofLocationChanged(bool enabled, double lat, double lon,
+                            double hAcc, double vAcc);
+
 private:
   void load();
   void save();
@@ -74,6 +77,12 @@ private:
   bool  m_SpoofIllumEnabled = false;
   float m_SpoofIllum        = 0;
 
+  bool   m_SpoofLocationEnabled = false;
+  double m_SpoofLat             = 0;
+  double m_SpoofLon             = 0;
+  double m_SpoofHAcc            = 0;
+  double m_SpoofVAcc            = 0;
+
   QRetro    *m_Owner      = nullptr;
   QLabel    *m_DescLabel  = nullptr;
   QTimer    *m_SaveTimer  = nullptr;
@@ -90,6 +99,11 @@ private:
   QLabel  *m_GyroRateLabel      = nullptr;
   QLabel  *m_IllumEnabledLabel  = nullptr;
   QLabel  *m_IllumRateLabel     = nullptr;
+
+  QLabel  *m_LocationStateLabel    = nullptr;
+  QLabel  *m_LocationIntervalLabel = nullptr;
+  QLabel  *m_LocationDistLabel     = nullptr;
+  QWidget *m_LocationSpoofWidgets[4] = {nullptr, nullptr, nullptr, nullptr};
 };
 
 #endif

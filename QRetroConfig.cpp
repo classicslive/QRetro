@@ -103,6 +103,29 @@ QRetroConfig::QRetroConfig(QRetro *owner)
     if (m_GyroRateLabel)     m_GyroRateLabel->setText(hz(s->gyroRate()));
     if (m_IllumEnabledLabel) m_IllumEnabledLabel->setText(yesNo(s->illumEnabled()));
     if (m_IllumRateLabel)    m_IllumRateLabel->setText(hz(s->illumRate()));
+
+    if (auto *loc = m_Owner->location())
+    {
+      if (m_LocationStateLabel)
+      {
+        const char *stateStr = "—";
+        switch (loc->state())
+        {
+        case QRetroLocation::Uninitialized: stateStr = "Uninitialized"; break;
+        case QRetroLocation::Started:       stateStr = "Started";       break;
+        case QRetroLocation::Stopped:       stateStr = "Stopped";       break;
+        }
+        m_LocationStateLabel->setText(tr(stateStr));
+      }
+      auto ms   = [](unsigned v) {
+        return v ? QString::number(v) + QStringLiteral(" ms") : QStringLiteral("—");
+      };
+      auto dist = [](unsigned v) {
+        return v ? QString::number(v) + QStringLiteral(" m") : QStringLiteral("—");
+      };
+      if (m_LocationIntervalLabel) m_LocationIntervalLabel->setText(ms(loc->millisecondInterval()));
+      if (m_LocationDistLabel)     m_LocationDistLabel->setText(dist(loc->distanceInterval()));
+    }
   });
   sensorReadTimer->start();
 
@@ -126,6 +149,11 @@ void QRetroConfig::load()
   m_BilinearFilter = settings.value("bilinearFilter", true).toBool();
   m_AudioEnabled   = settings.value("audioEnabled",   true).toBool();
 
+  m_SpoofLocationEnabled = settings.value("spoofLocationEnabled", false).toBool();
+  m_SpoofLat             = settings.value("spoofLat",  0.0).toDouble();
+  m_SpoofLon             = settings.value("spoofLon",  0.0).toDouble();
+  m_SpoofHAcc            = settings.value("spoofHAcc", 0.0).toDouble();
+  m_SpoofVAcc            = settings.value("spoofVAcc", 0.0).toDouble();
 }
 
 void QRetroConfig::save()
@@ -136,6 +164,12 @@ void QRetroConfig::save()
   settings.setValue("integerScaling", m_IntegerScaling);
   settings.setValue("bilinearFilter", m_BilinearFilter);
   settings.setValue("audioEnabled",   m_AudioEnabled);
+
+  settings.setValue("spoofLocationEnabled", m_SpoofLocationEnabled);
+  settings.setValue("spoofLat",  m_SpoofLat);
+  settings.setValue("spoofLon",  m_SpoofLon);
+  settings.setValue("spoofHAcc", m_SpoofHAcc);
+  settings.setValue("spoofVAcc", m_SpoofVAcc);
 
   settings.sync();
 }
@@ -464,6 +498,89 @@ void QRetroConfig::update()
     pageLayout->addStretch();
   }
 
+  /* ── Location ───────────────────────────────────────────────── */
+  auto *locationPage = new QWidget();
+  {
+    auto *pageLayout = new QVBoxLayout(locationPage);
+    pageLayout->setContentsMargins(12, 12, 12, 12);
+    pageLayout->setSpacing(12);
+
+    auto *group = new QGroupBox(tr("Position"));
+    auto *form  = new QFormLayout(group);
+    form->setVerticalSpacing(8);
+
+    m_LocationStateLabel    = new QLabel(tr("—"));
+    m_LocationIntervalLabel = new QLabel(tr("—"));
+    m_LocationDistLabel     = new QLabel(tr("—"));
+    form->addRow(tr("State"),                 m_LocationStateLabel);
+    form->addRow(tr("Time interval (ms)"),    m_LocationIntervalLabel);
+    form->addRow(tr("Distance interval (m)"), m_LocationDistLabel);
+
+    auto *spoofCheck = new QCheckBox(tr("Spoof values"));
+    spoofCheck->setChecked(m_SpoofLocationEnabled);
+
+    auto makeSpin = [](double lo, double hi, double step,
+                       int decimals, double init) -> QDoubleSpinBox* {
+      auto *s = new QDoubleSpinBox();
+      s->setRange(lo, hi);
+      s->setSingleStep(step);
+      s->setDecimals(decimals);
+      s->setValue(init);
+      return s;
+    };
+
+    auto *latSpin  = makeSpin(-90.0,   90.0,    0.000001, 6, m_SpoofLat);
+    auto *lonSpin  = makeSpin(-180.0,  180.0,   0.000001, 6, m_SpoofLon);
+    auto *hAccSpin = makeSpin(0.0,     100000.0, 1.0,     1, m_SpoofHAcc);
+    auto *vAccSpin = makeSpin(0.0,     100000.0, 1.0,     1, m_SpoofVAcc);
+
+    m_LocationSpoofWidgets[0] = latSpin;
+    m_LocationSpoofWidgets[1] = lonSpin;
+    m_LocationSpoofWidgets[2] = hAccSpin;
+    m_LocationSpoofWidgets[3] = vAccSpin;
+    for (auto *w : m_LocationSpoofWidgets)
+      w->setEnabled(m_SpoofLocationEnabled);
+
+    auto emitLocation = [this, spoofCheck, latSpin, lonSpin, hAccSpin, vAccSpin]() {
+      m_SpoofLocationEnabled = spoofCheck->isChecked();
+      m_SpoofLat  = latSpin->value();
+      m_SpoofLon  = lonSpin->value();
+      m_SpoofHAcc = hAccSpin->value();
+      m_SpoofVAcc = vAccSpin->value();
+      m_SaveTimer->start();
+      auto *loc = m_Owner->location();
+      loc->setSpoofEnabled(m_SpoofLocationEnabled);
+      loc->setSpoofLat(m_SpoofLat);
+      loc->setSpoofLon(m_SpoofLon);
+      loc->setSpoofHAcc(m_SpoofHAcc);
+      loc->setSpoofVAcc(m_SpoofVAcc);
+      for (auto *w : m_LocationSpoofWidgets)
+        w->setEnabled(m_SpoofLocationEnabled);
+      emit spoofLocationChanged(m_SpoofLocationEnabled, m_SpoofLat, m_SpoofLon,
+                                m_SpoofHAcc, m_SpoofVAcc);
+    };
+
+    connect(spoofCheck, &QCheckBox::stateChanged,
+            [emitLocation](int) { emitLocation(); });
+    connect(latSpin,  QOverload<double>::of(&QDoubleSpinBox::valueChanged),
+            [emitLocation](double) { emitLocation(); });
+    connect(lonSpin,  QOverload<double>::of(&QDoubleSpinBox::valueChanged),
+            [emitLocation](double) { emitLocation(); });
+    connect(hAccSpin, QOverload<double>::of(&QDoubleSpinBox::valueChanged),
+            [emitLocation](double) { emitLocation(); });
+    connect(vAccSpin, QOverload<double>::of(&QDoubleSpinBox::valueChanged),
+            [emitLocation](double) { emitLocation(); });
+
+    form->addRow(tr("Spoof"),        spoofCheck);
+    form->addRow(tr("Latitude"),     latSpin);
+    form->addRow(tr("Longitude"),    lonSpin);
+    form->addRow(tr("H. Accuracy"), hAccSpin);
+    form->addRow(tr("V. Accuracy"), vAccSpin);
+
+    pageLayout->addWidget(group);
+    pageLayout->addStretch();
+  }
+
   /* ── Proc Address ───────────────────────────────────────────── */
   auto *procPage = new QWidget();
   {
@@ -564,6 +681,7 @@ void QRetroConfig::update()
   sidebar->addItem(tr("Audio"));
   sidebar->addItem(tr("Environment"));
   sidebar->addItem(tr("Sensors"));
+  sidebar->addItem(tr("Location"));
   sidebar->addItem(tr("Proc Address"));
   sidebar->addItem(coreLabel);
   sidebar->setCurrentRow(0);
@@ -574,6 +692,7 @@ void QRetroConfig::update()
   stack->addWidget(makeScrollPage(audioPage));
   stack->addWidget(makeScrollPage(envPage));
   stack->addWidget(makeScrollPage(sensorsPage));
+  stack->addWidget(makeScrollPage(locationPage));
   stack->addWidget(makeScrollPage(procPage));
   stack->addWidget(makeScrollPage(corePage));
 

@@ -70,7 +70,7 @@ static void core_location_set_interval(unsigned ms, unsigned dist)
   auto _this = _qrthis();
 
   if (_this && _this->location())
-    _this->location()->setUpdateInterval(static_cast<int>(ms));
+    _this->location()->setInterval(ms, dist);
 }
 
 static bool core_location_start(void)

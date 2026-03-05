@@ -64,14 +64,14 @@ void QRetroLocation::setPosition(double lat, double lon, double horiz_accuracy,
   m_SetManually = true;
 }
 
-void QRetroLocation::setUpdateInterval(int ms)
+void QRetroLocation::setInterval(unsigned ms, unsigned dist)
 {
 #if QRETRO_HAVE_LOCATION
   if (m_InfoSource)
     m_InfoSource->setUpdateInterval(ms);
-#else
-  Q_UNUSED(ms)
 #endif
+  m_MillisecondInterval = ms;
+  m_DistanceInterval = dist;
 }
 
 bool QRetroLocation::startUpdates(void)
@@ -79,10 +79,10 @@ bool QRetroLocation::startUpdates(void)
 #if QRETRO_HAVE_LOCATION
   if (m_InfoSource)
     m_InfoSource->startUpdates();
-  return true;
-#else
-  return false;
 #endif
+  m_State = Started;
+
+  return true;
 }
 
 bool QRetroLocation::stopUpdates(void)
@@ -90,8 +90,8 @@ bool QRetroLocation::stopUpdates(void)
 #if QRETRO_HAVE_LOCATION
   if (m_InfoSource)
     m_InfoSource->stopUpdates();
-  return true;
-#else
-  return false;
 #endif
+  m_State = Stopped;
+
+  return true;
 }
