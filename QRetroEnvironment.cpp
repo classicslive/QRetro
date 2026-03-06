@@ -304,8 +304,6 @@ bool core_environment(unsigned cmd, void *data)
     core_log(RETRO_LOG_WARN, "RETRO_ENVIRONMENT_GET_OVERSCAN is deprecated!");
     if (data)
       *(reinterpret_cast<bool*>(data)) = _this->getOverscan();
-    else
-      return false;
     break;
 
   /* 03 */
@@ -335,19 +333,21 @@ bool core_environment(unsigned cmd, void *data)
 
   /* 08 */
   case RETRO_ENVIRONMENT_SET_PERFORMANCE_LEVEL:
-    _this->setPerformanceLevel(*reinterpret_cast<const unsigned*>(data));
+    if (data)
+      _this->setPerformanceLevel(*reinterpret_cast<const unsigned*>(data));
     break;
 
   /* 09 */
   case RETRO_ENVIRONMENT_GET_SYSTEM_DIRECTORY:
-    *reinterpret_cast<const char**>(data) =
-      _this->directories()->get(QRetroDirectories::System);
+    if (data)
+      *reinterpret_cast<const char**>(data) =
+        _this->directories()->get(QRetroDirectories::System);
     break;
 
   /* 10 */
   case RETRO_ENVIRONMENT_SET_PIXEL_FORMAT:
-    _this->setPixelFormat(
-      *reinterpret_cast<enum retro_pixel_format*>(data));
+    if (data)
+      _this->setPixelFormat(*reinterpret_cast<enum retro_pixel_format*>(data));
     break;
 
   /* 11 / TODO */
@@ -355,7 +355,7 @@ bool core_environment(unsigned cmd, void *data)
   {
     auto desc = reinterpret_cast<const retro_input_descriptor*>(data);
 
-    while (desc->description)
+    while (desc && desc->description)
     {
       printf("%s: %u %u %u %u\n", desc->description, desc->port, desc->device, desc->index, desc->id);
       desc++;
@@ -365,17 +365,21 @@ bool core_environment(unsigned cmd, void *data)
 
   /* 12 */
   case RETRO_ENVIRONMENT_SET_KEYBOARD_CALLBACK:
-    _this->core()->keyboard =
-      *reinterpret_cast<retro_keyboard_callback*>(data);
+    if (data)
+      _this->core()->keyboard =
+        *reinterpret_cast<retro_keyboard_callback*>(data);
     break;
 
-  /* 13
-  case RETRO_ENVIRONMENT_SET_DISK_CONTROL_INTERFACE: */
+  /* 13 */
+  // case RETRO_ENVIRONMENT_SET_DISK_CONTROL_INTERFACE:
 
   /* 14 / TODO: Vulkan, GLES testing */
   case RETRO_ENVIRONMENT_SET_HW_RENDER:
   {
     auto hw = reinterpret_cast<retro_hw_render_callback*>(data);
+
+    if (!hw)
+      return false;
 
     switch (hw->context_type)
     {
@@ -482,6 +486,9 @@ bool core_environment(unsigned cmd, void *data)
   {
     auto cb = reinterpret_cast<retro_rumble_interface*>(data);
 
+    if (!cb)
+      return false;
+
     cb->set_rumble_state = core_rumble;
     break;
   }
@@ -490,6 +497,9 @@ bool core_environment(unsigned cmd, void *data)
   case RETRO_ENVIRONMENT_GET_SENSOR_INTERFACE:
   {
     auto cb = reinterpret_cast<retro_sensor_interface*>(data);
+
+    if (!cb)
+      return false;
 
     cb->set_sensor_state = core_sensor_set_state;
     cb->get_sensor_input = core_sensor_get_input;
@@ -517,6 +527,9 @@ bool core_environment(unsigned cmd, void *data)
   {
     auto cb = reinterpret_cast<retro_log_callback*>(data);
 
+    if (!cb)
+      return false;
+
     cb->log = core_log;
     break;
   }
@@ -533,6 +546,9 @@ bool core_environment(unsigned cmd, void *data)
   {
     auto location = reinterpret_cast<retro_location_callback*>(data);
 
+    if (!location)
+      return false;
+
     location->set_interval = core_location_set_interval;
     location->start = core_location_start;
     location->stop = core_location_stop;
@@ -545,14 +561,16 @@ bool core_environment(unsigned cmd, void *data)
 
   /* 30 */
   case RETRO_ENVIRONMENT_GET_CORE_ASSETS_DIRECTORY:
-    *reinterpret_cast<const char**>(data) =
-      _this->directories()->get(QRetroDirectories::CoreAssets);
+    if (data)
+      *reinterpret_cast<const char**>(data) =
+        _this->directories()->get(QRetroDirectories::CoreAssets);
     break;
 
   /* 31 */
   case RETRO_ENVIRONMENT_GET_SAVE_DIRECTORY:
-    *reinterpret_cast<const char**>(data) =
-      _this->directories()->get(QRetroDirectories::Save);
+    if (data)
+      *reinterpret_cast<const char**>(data) =
+        _this->directories()->get(QRetroDirectories::Save);
     break;
 
   /* 32 / TODO
@@ -562,8 +580,9 @@ bool core_environment(unsigned cmd, void *data)
 
   /* 33 / TODO: Test */
   case RETRO_ENVIRONMENT_SET_PROC_ADDRESS_CALLBACK:
-    _this->core()->get_proc_address_interface =
-      *reinterpret_cast<retro_get_proc_address_interface*>(data);
+    if (data)
+      _this->core()->get_proc_address_interface =
+        *reinterpret_cast<retro_get_proc_address_interface*>(data);
     break;
 
   /* 34 / TODO
@@ -576,8 +595,9 @@ bool core_environment(unsigned cmd, void *data)
   {
     auto info = reinterpret_cast<const retro_controller_info*>(data);
 
-    for (unsigned i = 0; i < info->num_types; i++)
-      printf("%0X4: %s\n", info->types[i].id, info->types[i].desc);
+    if (info)
+      for (unsigned i = 0; i < info->num_types; i++)
+        printf("%0X4: %s\n", info->types[i].id, info->types[i].desc);
 
     break;
   }
@@ -599,12 +619,14 @@ bool core_environment(unsigned cmd, void *data)
 
   /* 38 */
   case RETRO_ENVIRONMENT_GET_USERNAME:
-    *reinterpret_cast<const char**>(data) = _this->username()->get();
+    if (data)
+      *reinterpret_cast<const char**>(data) = _this->username()->get();
     break;
 
   /* 39 */
   case RETRO_ENVIRONMENT_GET_LANGUAGE:
-    *reinterpret_cast<unsigned*>(data) = _this->getLanguage();
+    if (data)
+      *reinterpret_cast<unsigned*>(data) = _this->getLanguage();
     break;
 
   /* 40 */
@@ -617,7 +639,8 @@ bool core_environment(unsigned cmd, void *data)
 
   /* 42 */
   case RETRO_ENVIRONMENT_SET_SUPPORT_ACHIEVEMENTS:
-    _this->setSupportsAchievements(*reinterpret_cast<bool*>(data));
+    if (data)
+      _this->setSupportsAchievements(*reinterpret_cast<bool*>(data));
     break;
 
   /* 43 / TODO */
@@ -652,7 +675,8 @@ bool core_environment(unsigned cmd, void *data)
 
   /* 47 */
   case RETRO_ENVIRONMENT_GET_AUDIO_VIDEO_ENABLE:
-    *(reinterpret_cast<int*>(data)) = _this->audioVideoEnable()->getFlags();
+    if (data)
+      *(reinterpret_cast<int*>(data)) = _this->audioVideoEnable()->getFlags();
     break;
 
   /* 48 */
@@ -674,13 +698,15 @@ bool core_environment(unsigned cmd, void *data)
 
   /* 49 */
   case RETRO_ENVIRONMENT_GET_FASTFORWARDING:
-    *(reinterpret_cast<bool*>(data)) = _this->fastForwarding();
+    if (data)
+      *(reinterpret_cast<bool*>(data)) = _this->fastForwarding();
     break;
 
   /* 50 */
   case RETRO_ENVIRONMENT_GET_TARGET_REFRESH_RATE:
-    *(reinterpret_cast<float*>(data)) =
-      static_cast<float>(_this->targetRefreshRate());
+    if (data)
+      *(reinterpret_cast<float*>(data)) =
+        static_cast<float>(_this->targetRefreshRate());
     break;
 
   /* 51 */
@@ -691,7 +717,8 @@ bool core_environment(unsigned cmd, void *data)
 
   /* 52 */
   case RETRO_ENVIRONMENT_GET_CORE_OPTIONS_VERSION:
-    *(reinterpret_cast<unsigned*>(data)) = _this->options()->maxVersion();
+    if (data)
+      *(reinterpret_cast<unsigned*>(data)) = _this->options()->maxVersion();
     break;
 
   /* 53 */
@@ -711,13 +738,15 @@ bool core_environment(unsigned cmd, void *data)
   {
     auto var = reinterpret_cast<retro_core_option_display*>(data);
 
-    _this->options()->setVisibility(var->key, var->visible);
+    if (var)
+      _this->options()->setVisibility(var->key, var->visible);
     break;
   }
 
   /* 56 */
   case RETRO_ENVIRONMENT_GET_PREFERRED_HW_RENDER:
-    *reinterpret_cast<unsigned*>(data) = _this->getPreferredRenderer();
+    if (data)
+      *reinterpret_cast<unsigned*>(data) = _this->getPreferredRenderer();
     break;
 
   /* 61 */
@@ -809,14 +838,16 @@ bool core_environment(unsigned cmd, void *data)
 
   /* 79 */
   case RETRO_ENVIRONMENT_GET_PLAYLIST_DIRECTORY:
-    *reinterpret_cast<const char**>(data) =
-      _this->directories()->get(QRetroDirectories::Playlist);
+    if (data)
+      *reinterpret_cast<const char**>(data) =
+        _this->directories()->get(QRetroDirectories::Playlist);
     break;
   
   /* 80 */
   case RETRO_ENVIRONMENT_GET_FILE_BROWSER_START_DIRECTORY:
-    *reinterpret_cast<const char**>(data) =
-      _this->directories()->get(QRetroDirectories::FileBrowserStart);
+    if (data)
+      *reinterpret_cast<const char**>(data) =
+        _this->directories()->get(QRetroDirectories::FileBrowserStart);
     break;
 
   /* 81 */
