@@ -101,8 +101,25 @@ public:
   void setGeometry(const unsigned width, const unsigned height);
 
   /**
-   * Sets the pixel format of the framebuffer.
-   **/
+   * Returns the libretro pixel format last reported by the core via
+   * RETRO_ENVIRONMENT_SET_PIXEL_FORMAT.
+   * @return The retro_pixel_format, or RETRO_PIXEL_FORMAT_UNKNOWN if not set.
+   */
+  retro_pixel_format retroPixelFormat(void) { return m_RetroPixelFormat; }
+
+  /**
+   * Returns whether or not the core has set a pixel format via
+   * RETRO_ENVIRONMENT_SET_PIXEL_FORMAT.
+   * @return Whether or not the core has set a pixel format.
+   */
+  bool pixelFormatSet(void) { return m_PixelFormatSet; }
+
+  /**
+   * Sets the pixel format of the framebuffer, reported by the core via
+   * RETRO_ENVIRONMENT_SET_PIXEL_FORMAT.
+   * @warning This should only be called automatically by the core itself using
+   * the RETRO_ENVIRONMENT_SET_PIXEL_FORMAT environment callback.
+   */
   void setPixelFormat(retro_pixel_format format);
   void setPixelFormat(QImage::Format format);
 
@@ -115,8 +132,32 @@ public:
    **/
   void* getProcAddress(QThread *caller, const char *sym);
 
+  /**
+   * Returns whether or not the core reports to support starting without any
+   * content, set by RETRO_ENVIRONMENT_SET_SUPPORT_NO_GAME.
+   * @return Whether or not the core reports to support starting without content,
+   * or a default of FALSE.
+   */
   bool supportsNoGame(void) { return m_SupportsNoGame; }
-  void setSupportsNoGame(bool supports) { m_SupportsNoGame = supports; }
+
+  /**
+   * Returns whether or not the core has set whether or not it supports starting
+   * without content, via RETRO_ENVIRONMENT_SET_SUPPORT_NO_GAME.
+   * @return Whether or not the core has set the no-game support flag.
+   */
+  bool supportsNoGameSet(void) { return m_SupportsNoGameSet; }
+
+  /**
+   * Sets whether or not the core reports to support starting without content.
+   * @warning This should only be called automatically by the core itself using
+   * the RETRO_ENVIRONMENT_SET_SUPPORT_NO_GAME environment callback.
+   * @param supports Whether or not the core reports to support starting without content
+   */
+  void setSupportsNoGame(bool supports)
+  {
+    m_SupportsNoGame    = supports;
+    m_SupportsNoGameSet = true;
+  }
 
   /**
    * Gets how many seconds the saving thread waits before autosaving SRAM
@@ -142,7 +183,7 @@ public:
 
   unsigned frames(void) { return m_Frames; }
 
-  bool getOverscan() { return m_Overscan; }
+  bool getOverscan(void) { return m_Overscan; }
   void setOverscan(bool overscan) { m_Overscan = overscan; }
 
   retro_hw_context_type getPreferredRenderer(void) { return m_PreferredRenderer; }
@@ -175,10 +216,31 @@ public:
     m_SupportsAchievementsSet = true;
   }
 
+  /**
+   * Returns the serialization quirk flags reported by the core via
+   * RETRO_ENVIRONMENT_SET_SERIALIZATION_QUIRKS.
+   * @return The serialization quirk bitmask, or 0 if not set.
+   */
   uint64_t serializationQuirks(void) { return m_SerializationQuirks; }
+
+  /**
+   * Returns whether or not the core has set serialization quirks via
+   * RETRO_ENVIRONMENT_SET_SERIALIZATION_QUIRKS.
+   * @return Whether or not the core has set serialization quirks.
+   */
+  bool serializationQuirksSet(void) { return m_SerializationQuirksSet; }
+
+  /**
+   * Sets the serialization quirk flags reported by the core.
+   * @warning This should only be called automatically by the core itself using
+   * the RETRO_ENVIRONMENT_SET_SERIALIZATION_QUIRKS environment callback.
+   * @param sq Pointer to the quirk bitmask; the pointed-to value is zeroed
+   * after being read (per the libretro spec).
+   */
   void setSerializationQuirks(uint64_t *sq)
   {
-    m_SerializationQuirks = *sq;
+    m_SerializationQuirks    = *sq;
+    m_SerializationQuirksSet = true;
     *sq = 0;
   }
 
@@ -413,7 +475,7 @@ private:
   retro_core_t m_Core;
 
   bool m_JitCapable = true;
-  bool m_Overscan = true;
+  bool m_Overscan   = true;
 
   /// Whether or not the core is running
   std::atomic<bool> m_Active{false};
@@ -470,10 +532,13 @@ private:
   /// Whether the user has paused the frontend. Will halt calls to retro_run
   bool m_Paused = false;
 
-  /// The performance level reported by the core
-  /// @see RETRO_ENVIRONMENT_SET_PERFORMANCE_LEVEL
-  unsigned m_PerformanceLevel    = 0;
-  bool     m_PerformanceLevelSet = false;
+  /// The performance level reported by the core using
+  /// RETRO_ENVIRONMENT_SET_PERFORMANCE_LEVEL
+  unsigned m_PerformanceLevel = 0;
+
+  /// Whether or not the core has set a performance level using
+  /// RETRO_ENVIRONMENT_SET_PERFORMANCE_LEVEL
+  bool m_PerformanceLevelSet = false;
 
   /// The position of the pointer in content screen space
   QPoint m_PointerPosition;
@@ -484,8 +549,19 @@ private:
   /// The preferred renderer reported by the frontend
   retro_hw_context_type m_PreferredRenderer;
 
+  /// The libretro pixel format last reported by the core
+  /// @see RETRO_ENVIRONMENT_SET_PIXEL_FORMAT
+  retro_pixel_format m_RetroPixelFormat = RETRO_PIXEL_FORMAT_UNKNOWN;
+
+  /// Whether or not the core has set a pixel format
+  bool m_PixelFormatSet = false;
+
   /// The reported serialization quirk flags of the core
-  uint64_t m_SerializationQuirks = 0;
+  /// @see RETRO_ENVIRONMENT_SET_SERIALIZATION_QUIRKS
+  uint64_t m_SerializationQuirks    = 0;
+
+  /// Whether or not the core has set serialization quirks
+  bool     m_SerializationQuirksSet = false;
 
   /// A pointer to a framebuffer the frontend manages, rather than the core.
   /// @see RETRO_ENVIRONMENT_GET_CURRENT_SOFTWARE_FRAMEBUFFER
@@ -501,7 +577,11 @@ private:
   bool m_SupportsAchievementsSet = false;
 
   /// Whether or not the core reports to support starting with no content
-  bool m_SupportsNoGame = false;
+  /// @see RETRO_ENVIRONMENT_SET_SUPPORT_NO_GAME
+  bool m_SupportsNoGame    = false;
+
+  /// Whether or not the core has set the no-game support flag
+  bool m_SupportsNoGameSet = false;
 
   double m_TargetRefreshRate = 60.0;
   QMutex m_PendingMutex;

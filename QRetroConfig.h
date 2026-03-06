@@ -107,11 +107,15 @@ private:
   QLabel  *m_LocationDistLabel     = nullptr;
   QWidget *m_LocationSpoofWidgets[4] = {nullptr, nullptr, nullptr, nullptr};
 
-  QFormLayout        *m_LedForm   = nullptr;
+  QFormLayout        *m_LedForm        = nullptr;
+  QLabel             *m_LedEmptyLabel  = nullptr;
   QMap<int, QLabel*>  m_LedLabels;
 
-  QLabel *m_CoreAchievementsLabel  = nullptr;
-  QLabel *m_CorePerfLevelLabel     = nullptr;
+  QLabel *m_CoreAchievementsLabel   = nullptr;
+  QLabel *m_CorePerfLevelLabel      = nullptr;
+  QLabel *m_CorePixelFormatLabel    = nullptr;
+  QLabel *m_CoreSerializationLabel  = nullptr;
+  QLabel *m_CoreSupportsNoGameLabel = nullptr;
 };
 
 #endif

@@ -141,21 +141,48 @@ QRetroConfig::QRetroConfig(QRetro *owner)
           auto *label = new QLabel(QString::number(val));
           m_LedLabels[idx] = label;
           m_LedForm->addRow(tr("LED %1").arg(idx), label);
+          if (m_LedEmptyLabel)
+            m_LedEmptyLabel->setVisible(false);
         }
       }
     }
 
+    auto yesNoStr = [this](bool set, bool v) -> QString {
+      return set ? (v ? tr("Yes") : tr("No")) : tr("Unset");
+    };
+
     if (m_CoreAchievementsLabel)
       m_CoreAchievementsLabel->setText(
-        m_Owner->supportsAchievementsSet()
-          ? (m_Owner->supportsAchievements() ? tr("Yes") : tr("No"))
-          : tr("Unset"));
+        yesNoStr(m_Owner->supportsAchievementsSet(), m_Owner->supportsAchievements()));
 
     if (m_CorePerfLevelLabel)
       m_CorePerfLevelLabel->setText(
         m_Owner->performanceLevelSet()
           ? QString::number(m_Owner->performanceLevel())
           : tr("Unset"));
+
+    if (m_CorePixelFormatLabel) {
+      QString s = tr("Unset");
+      if (m_Owner->pixelFormatSet()) {
+        switch (m_Owner->retroPixelFormat()) {
+          case RETRO_PIXEL_FORMAT_0RGB1555: s = QStringLiteral("0RGB1555"); break;
+          case RETRO_PIXEL_FORMAT_XRGB8888: s = QStringLiteral("XRGB8888"); break;
+          case RETRO_PIXEL_FORMAT_RGB565:   s = QStringLiteral("RGB565");   break;
+          default:                          s = QStringLiteral("Unknown");   break;
+        }
+      }
+      m_CorePixelFormatLabel->setText(s);
+    }
+
+    if (m_CoreSerializationLabel)
+      m_CoreSerializationLabel->setText(
+        m_Owner->serializationQuirksSet()
+          ? QStringLiteral("0x") + QString::number(m_Owner->serializationQuirks(), 16).toUpper()
+          : tr("Unset"));
+
+    if (m_CoreSupportsNoGameLabel)
+      m_CoreSupportsNoGameLabel->setText(
+        yesNoStr(m_Owner->supportsNoGameSet(), m_Owner->supportsNoGame()));
   });
   sensorReadTimer->start();
 
@@ -225,6 +252,11 @@ void QRetroConfig::save()
 
 void QRetroConfig::update()
 {
+  /* QRetroOptions is a by-value member of QRetro and must never be deleted
+   * by Qt's layout teardown. Detach it from its parent before destroying
+   * the old layout so the stack won't try to delete it. */
+  m_Owner->options()->setParent(nullptr);
+
   if (layout())
   {
     QLayoutItem *item;
@@ -236,10 +268,14 @@ void QRetroConfig::update()
     delete layout();
   }
 
-  m_LedForm = nullptr;
+  m_LedForm       = nullptr;
+  m_LedEmptyLabel = nullptr;
   m_LedLabels.clear();
-  m_CoreAchievementsLabel = nullptr;
-  m_CorePerfLevelLabel    = nullptr;
+  m_CoreAchievementsLabel   = nullptr;
+  m_CorePerfLevelLabel      = nullptr;
+  m_CorePixelFormatLabel    = nullptr;
+  m_CoreSerializationLabel  = nullptr;
+  m_CoreSupportsNoGameLabel = nullptr;
 
   /* Wraps a form widget in a borderless scroll area. */
   auto makeScrollPage = [](QWidget *inner) -> QScrollArea* {
@@ -699,12 +735,25 @@ void QRetroConfig::update()
     m_LedForm = new QFormLayout(group);
     m_LedForm->setVerticalSpacing(8);
 
+    m_LedEmptyLabel = new QLabel(
+      tr("LED states will appear here when the core modifies an LED."));
+    m_LedEmptyLabel->setWordWrap(true);
+    {
+      QFont f = m_LedEmptyLabel->font();
+      f.setItalic(true);
+      m_LedEmptyLabel->setFont(f);
+    }
+    m_LedEmptyLabel->setForegroundRole(QPalette::Dark);
+    m_LedForm->addRow(m_LedEmptyLabel);
+
     for (auto &[idx, val] : m_Owner->led()->leds())
     {
       auto *label = new QLabel(QString::number(val));
       m_LedLabels[idx] = label;
       m_LedForm->addRow(tr("LED %1").arg(idx), label);
     }
+
+    m_LedEmptyLabel->setVisible(m_LedLabels.isEmpty());
 
     pageLayout->addWidget(group);
     pageLayout->addStretch();
@@ -719,19 +768,64 @@ void QRetroConfig::update()
 
     auto *group = new QGroupBox(tr("Core Constants"));
     auto *form  = new QFormLayout(group);
-    form->setVerticalSpacing(8);
+    form->setVerticalSpacing(4);
 
-    m_CoreAchievementsLabel = new QLabel(
-      m_Owner->supportsAchievementsSet()
-        ? (m_Owner->supportsAchievements() ? tr("Yes") : tr("No"))
-        : tr("Unset"));
+    auto yesNo = [this](bool set, bool v) -> QLabel* {
+      return new QLabel(set ? (v ? tr("Yes") : tr("No")) : tr("Unset"));
+    };
+
+    auto makeDesc = [form](const char *text) {
+      auto *label = new QLabel(text);
+      label->setWordWrap(true);
+      QFont f = label->font();
+      f.setPointSize(qMax(f.pointSize() - 1, 7));
+      label->setFont(f);
+      label->setForegroundRole(QPalette::Dark);
+      label->setContentsMargins(0, 0, 0, 6);
+      form->addRow(label);
+    };
+
     m_CorePerfLevelLabel = new QLabel(
       m_Owner->performanceLevelSet()
         ? QString::number(m_Owner->performanceLevel())
         : tr("Unset"));
+    form->addRow(tr("Performance Level"), m_CorePerfLevelLabel);
+    makeDesc("The relative performance level of the core.\n"
+             "RETRO_ENVIRONMENT_SET_PERFORMANCE_LEVEL (8)");
 
+    auto fmtPixel = [this]() -> QString {
+      if (!m_Owner->pixelFormatSet()) return tr("Unset");
+      switch (m_Owner->retroPixelFormat()) {
+        case RETRO_PIXEL_FORMAT_0RGB1555: return QStringLiteral("0RGB1555");
+        case RETRO_PIXEL_FORMAT_XRGB8888: return QStringLiteral("XRGB8888");
+        case RETRO_PIXEL_FORMAT_RGB565:   return QStringLiteral("RGB565");
+        default:                          return QStringLiteral("Invalid (0x%1)").arg(m_Owner->retroPixelFormat(), 0, 16).toUpper();
+      }
+    };
+    m_CorePixelFormatLabel = new QLabel(fmtPixel());
+    form->addRow(tr("Pixel Format"), m_CorePixelFormatLabel);
+    makeDesc("Pixel format used by the core's framebuffer.\n"
+             "RETRO_ENVIRONMENT_SET_PIXEL_FORMAT (10)");
+
+    m_CoreSupportsNoGameLabel = yesNo(m_Owner->supportsNoGameSet(),
+                                      m_Owner->supportsNoGame());
+    form->addRow(tr("Supports No Game"), m_CoreSupportsNoGameLabel);
+    makeDesc("Whether this core reports to support running without any loaded content.\n"
+             "RETRO_ENVIRONMENT_SET_SUPPORT_NO_GAME (18)");
+
+    m_CoreAchievementsLabel = yesNo(m_Owner->supportsAchievementsSet(),
+                                    m_Owner->supportsAchievements());
     form->addRow(tr("Supports Achievements"), m_CoreAchievementsLabel);
-    form->addRow(tr("Performance Level"),     m_CorePerfLevelLabel);
+    makeDesc("Whether or not this core reports to support achievements.\n"
+             "RETRO_ENVIRONMENT_SET_SUPPORT_ACHIEVEMENTS (42)");
+
+    m_CoreSerializationLabel = new QLabel(
+      m_Owner->serializationQuirksSet()
+        ? QStringLiteral("0x") + QString::number(m_Owner->serializationQuirks(), 16).toUpper()
+        : tr("Unset"));
+    form->addRow(tr("Serialization Quirks"), m_CoreSerializationLabel);
+    makeDesc("Bitmask of quirks affecting save state serialization.\n"
+             "RETRO_ENVIRONMENT_SET_SERIALIZATION_QUIRKS (44)");
 
     pageLayout->addWidget(group);
     pageLayout->addStretch();
@@ -810,20 +904,8 @@ void QRetroConfig::update()
   }
 
   /* ── Core Options ───────────────────────────────────────────── */
-  auto *corePage = new QWidget();
-  {
-    auto *pageLayout = new QVBoxLayout(corePage);
-    pageLayout->setContentsMargins(12, 12, 12, 12);
-    pageLayout->setSpacing(12);
-
-    auto *btn = new QPushButton(tr("Open Options"));
-    connect(btn, &QPushButton::clicked, this, [this]() {
-      m_Owner->options()->update();
-      m_Owner->options()->show();
-    });
-    pageLayout->addWidget(btn);
-    pageLayout->addStretch();
-  }
+  auto *optionsWidget = m_Owner->options();
+  optionsWidget->update();
 
   /* ── Sidebar ────────────────────────────────────────────────── */
   const QString coreName  = m_Owner->options()->coreName();
@@ -833,6 +915,7 @@ void QRetroConfig::update()
   auto *sidebar = new QListWidget();
   sidebar->setFrameShape(QFrame::NoFrame);
   sidebar->setStyleSheet("QListWidget::item { padding: 6px 10px; }");
+  sidebar->addItem(coreLabel);
   sidebar->addItem(tr("Video"));
   sidebar->addItem(tr("Audio"));
   sidebar->addItem(tr("Environment"));
@@ -842,11 +925,11 @@ void QRetroConfig::update()
   sidebar->addItem(tr("LED"));
   sidebar->addItem(tr("Core Constants"));
   sidebar->addItem(tr("Proc Address"));
-  sidebar->addItem(coreLabel);
   sidebar->setCurrentRow(0);
 
   /* ── Stacked settings area ──────────────────────────────────── */
   auto *stack = new QStackedWidget();
+  stack->addWidget(optionsWidget);
   stack->addWidget(makeScrollPage(videoPage));
   stack->addWidget(makeScrollPage(audioPage));
   stack->addWidget(makeScrollPage(envPage));
@@ -856,7 +939,6 @@ void QRetroConfig::update()
   stack->addWidget(makeScrollPage(ledPage));
   stack->addWidget(makeScrollPage(coreConstPage));
   stack->addWidget(makeScrollPage(procPage));
-  stack->addWidget(makeScrollPage(corePage));
 
   connect(sidebar, &QListWidget::currentRowChanged,
           stack,   &QStackedWidget::setCurrentIndex);
@@ -889,5 +971,5 @@ void QRetroConfig::update()
   outer->addWidget(m_DescLabel);
 
   setLayout(outer);
-  resize(640, 400);
+  resize(820, 400);
 }

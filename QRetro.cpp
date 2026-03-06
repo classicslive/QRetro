@@ -1270,6 +1270,8 @@ bool QRetro::initVideo(retro_hw_context_type format)
 
 void QRetro::setPixelFormat(retro_pixel_format format)
 {
+  m_RetroPixelFormat = format;
+  m_PixelFormatSet = true;
   setPixelFormat(lr2qt_pixel(format));
 }
 
