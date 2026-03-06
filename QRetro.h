@@ -148,8 +148,32 @@ public:
   retro_hw_context_type getPreferredRenderer(void) { return m_PreferredRenderer; }
   void setPreferredRenderer(retro_hw_context_type hw) { m_PreferredRenderer = hw; }
 
+  /**
+   * Returns whether or not the core reports to support achievements, set by
+   * RETRO_ENVIRONMENT_SET_SUPPORT_ACHIEVEMENTS.
+   * @return Whether or not the core reports to support achievements, or a default of FALSE.
+   */
   bool supportsAchievements(void) { return m_SupportsAchievements; }
-  void setSupportsAchievements(bool supports) { m_SupportsAchievements = supports; }
+
+  /**
+   * Returns whether or not the core has set whether or not it supports achievements,
+   * set by RETRO_ENVIRONMENT_SET_SUPPORT_ACHIEVEMENTS.
+   * @return Whether or not the core has set whether or not it supports achievements
+   */
+  bool supportsAchievementsSet(void) { return m_SupportsAchievementsSet; }
+
+  /**
+   * Sets whether or not the core reports to support achievements, which is read by
+   * RETRO_ENVIRONMENT_SET_SUPPORT_ACHIEVEMENTS.
+   * @warning This should only be called automatically by the core itself using the
+   * RETRO_ENVIRONMENT_SET_SUPPORT_ACHIEVEMENTS environment callback.
+   * @param supports Whether or not the core reports to support achievements
+   */
+  void setSupportsAchievements(bool supports)
+  {
+    m_SupportsAchievements = supports;
+    m_SupportsAchievementsSet = true;
+  }
 
   uint64_t serializationQuirks(void) { return m_SerializationQuirks; }
   void setSerializationQuirks(uint64_t *sq)
@@ -248,17 +272,31 @@ public:
 
   /**
    * Gets a number representing the relative performance requirement for the
-   * current core/content. Doesn't seem to be set by most cores.
+   * current core/content, set by RETRO_ENVIRONMENT_SET_PERFORMANCE_LEVEL.
+   * Doesn't seem to be set by most cores.
+   * @return The performance level, or a default of 0.
    */
-  unsigned getPerformanceLevel() { return m_PerformanceLevel; }
+  unsigned performanceLevel(void) { return m_PerformanceLevel; }
+
+  /**
+   * Returns whether or not the core has set a performance level using
+   * RETRO_ENVIRONMENT_SET_PERFORMANCE_LEVEL.
+   * @return FALSE if the core has not set a performance level, otherwise TRUE.
+   */
+  bool performanceLevelSet(void) { return m_PerformanceLevelSet; }
 
   /**
    * Sets a hint to the frontend about the relative performance requirement
    * for the current core/content.
-   *
-   * @warning This should only be called automatically by the core itself.
+   * @warning This should only be called automatically by the core itself
+   * using the RETRO_ENVIRONMENT_SET_PERFORMANCE_LEVEL environment callback.
+   * @param lvl The performance level
    */
-  void setPerformanceLevel(const unsigned lvl) { m_PerformanceLevel = lvl; }
+  void setPerformanceLevel(const unsigned lvl)
+  {
+    m_PerformanceLevel = lvl;
+    m_PerformanceLevelSet = true;
+  }
 
   /**
    * Returns whether or not a custom handler for polling inputs has been
@@ -434,7 +472,8 @@ private:
 
   /// The performance level reported by the core
   /// @see RETRO_ENVIRONMENT_SET_PERFORMANCE_LEVEL
-  unsigned m_PerformanceLevel = 0;
+  unsigned m_PerformanceLevel    = 0;
+  bool     m_PerformanceLevelSet = false;
 
   /// The position of the pointer in content screen space
   QPoint m_PointerPosition;
@@ -457,6 +496,9 @@ private:
 
   /// Whether or not the core reports to support achievements
   bool m_SupportsAchievements = false;
+
+  /// Whether or not the core has set whether or not it supports achievements
+  bool m_SupportsAchievementsSet = false;
 
   /// Whether or not the core reports to support starting with no content
   bool m_SupportsNoGame = false;

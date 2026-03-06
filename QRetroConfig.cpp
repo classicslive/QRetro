@@ -144,6 +144,18 @@ QRetroConfig::QRetroConfig(QRetro *owner)
         }
       }
     }
+
+    if (m_CoreAchievementsLabel)
+      m_CoreAchievementsLabel->setText(
+        m_Owner->supportsAchievementsSet()
+          ? (m_Owner->supportsAchievements() ? tr("Yes") : tr("No"))
+          : tr("Unset"));
+
+    if (m_CorePerfLevelLabel)
+      m_CorePerfLevelLabel->setText(
+        m_Owner->performanceLevelSet()
+          ? QString::number(m_Owner->performanceLevel())
+          : tr("Unset"));
   });
   sensorReadTimer->start();
 
@@ -226,6 +238,8 @@ void QRetroConfig::update()
 
   m_LedForm = nullptr;
   m_LedLabels.clear();
+  m_CoreAchievementsLabel = nullptr;
+  m_CorePerfLevelLabel    = nullptr;
 
   /* Wraps a form widget in a borderless scroll area. */
   auto makeScrollPage = [](QWidget *inner) -> QScrollArea* {
@@ -696,6 +710,33 @@ void QRetroConfig::update()
     pageLayout->addStretch();
   }
 
+  /* ── Core Constants ─────────────────────────────────────────── */
+  auto *coreConstPage = new QWidget();
+  {
+    auto *pageLayout = new QVBoxLayout(coreConstPage);
+    pageLayout->setContentsMargins(12, 12, 12, 12);
+    pageLayout->setSpacing(12);
+
+    auto *group = new QGroupBox(tr("Core Constants"));
+    auto *form  = new QFormLayout(group);
+    form->setVerticalSpacing(8);
+
+    m_CoreAchievementsLabel = new QLabel(
+      m_Owner->supportsAchievementsSet()
+        ? (m_Owner->supportsAchievements() ? tr("Yes") : tr("No"))
+        : tr("Unset"));
+    m_CorePerfLevelLabel = new QLabel(
+      m_Owner->performanceLevelSet()
+        ? QString::number(m_Owner->performanceLevel())
+        : tr("Unset"));
+
+    form->addRow(tr("Supports Achievements"), m_CoreAchievementsLabel);
+    form->addRow(tr("Performance Level"),     m_CorePerfLevelLabel);
+
+    pageLayout->addWidget(group);
+    pageLayout->addStretch();
+  }
+
   /* ── Proc Address ───────────────────────────────────────────── */
   auto *procPage = new QWidget();
   {
@@ -799,6 +840,7 @@ void QRetroConfig::update()
   sidebar->addItem(tr("Sensors"));
   sidebar->addItem(tr("Location"));
   sidebar->addItem(tr("LED"));
+  sidebar->addItem(tr("Core Constants"));
   sidebar->addItem(tr("Proc Address"));
   sidebar->addItem(coreLabel);
   sidebar->setCurrentRow(0);
@@ -812,6 +854,7 @@ void QRetroConfig::update()
   stack->addWidget(makeScrollPage(sensorsPage));
   stack->addWidget(makeScrollPage(locationPage));
   stack->addWidget(makeScrollPage(ledPage));
+  stack->addWidget(makeScrollPage(coreConstPage));
   stack->addWidget(makeScrollPage(procPage));
   stack->addWidget(makeScrollPage(corePage));
 

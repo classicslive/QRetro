@@ -109,6 +109,9 @@ private:
 
   QFormLayout        *m_LedForm   = nullptr;
   QMap<int, QLabel*>  m_LedLabels;
+
+  QLabel *m_CoreAchievementsLabel  = nullptr;
+  QLabel *m_CorePerfLevelLabel     = nullptr;
 };
 
 #endif
