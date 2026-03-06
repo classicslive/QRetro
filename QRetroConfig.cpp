@@ -1,3 +1,4 @@
+#include <QApplication>
 #include <QCheckBox>
 #include <QComboBox>
 #include <QFileDialog>
@@ -61,6 +62,44 @@ static const struct { const char *name; retro_language id; } k_languages[] = {
 };
 
 static const int k_languageCount = int(sizeof(k_languages) / sizeof(k_languages[0]));
+
+static const struct { const char *name; unsigned id; } k_memTypes[4] = {
+  { "RETRO_MEMORY_SAVE_RAM",   RETRO_MEMORY_SAVE_RAM   },
+  { "RETRO_MEMORY_RTC",        RETRO_MEMORY_RTC        },
+  { "RETRO_MEMORY_SYSTEM_RAM", RETRO_MEMORY_SYSTEM_RAM },
+  { "RETRO_MEMORY_VIDEO_RAM",  RETRO_MEMORY_VIDEO_RAM  },
+};
+
+static QString fmtMemPtr(void *p)
+{
+  if (!p) return QStringLiteral("—");
+  return QString("0x") + QStringLiteral("%1")
+    .arg(reinterpret_cast<quintptr>(p), int(sizeof(void*)) * 2, 16, QChar('0'))
+    .toUpper();
+}
+
+static QString fmtMemSize(size_t s)
+{
+  if (!s) return QStringLiteral("—");
+  if (s >= 1024 * 1024) return QStringLiteral("%1 bytes (%2 MB)").arg(s).arg(s / (1024 * 1024));
+  if (s >= 1024)        return QStringLiteral("%1 bytes (%2 KB)").arg(s).arg(s / 1024);
+  return QStringLiteral("%1 bytes").arg(s);
+}
+
+static QString fmtHex(uint64_t v)
+{
+  if (!v) return QStringLiteral("0x0");
+  return QStringLiteral("0x") + QString::number(v, 16).toUpper();
+}
+
+static void makeSmallGray(QLabel *label)
+{
+  QFont f = label->font();
+  f.setPointSize(qMax(f.pointSize() - 1, 7));
+  label->setFont(f);
+  label->setForegroundRole(QPalette::Dark);
+  label->setTextInteractionFlags(Qt::TextSelectableByMouse);
+}
 
 QRetroConfig::QRetroConfig(QRetro *owner)
 {
@@ -183,6 +222,77 @@ QRetroConfig::QRetroConfig(QRetro *owner)
     if (m_CoreSupportsNoGameLabel)
       m_CoreSupportsNoGameLabel->setText(
         yesNoStr(m_Owner->supportsNoGameSet(), m_Owner->supportsNoGame()));
+
+    if (m_Owner->m_Core.retro_get_memory_data)
+    {
+      for (int i = 0; i < 4; i++)
+      {
+        if (!m_MemDataPtrLabel[i]) continue;
+        void  *ptr = m_Owner->m_Core.retro_get_memory_data(k_memTypes[i].id);
+        size_t sz  = m_Owner->m_Core.retro_get_memory_size
+                     ? m_Owner->m_Core.retro_get_memory_size(k_memTypes[i].id) : 0;
+        m_MemDataPtrLabel[i]->setText(fmtMemPtr(ptr));
+        m_MemDataSizeLabel[i]->setText(fmtMemSize(sz));
+      }
+    }
+
+    if (m_MemMapsForm)
+    {
+      auto *maps = m_Owner->memoryMaps();
+      int count  = maps ? (int)maps->num_descriptors : 0;
+      if (count != m_MemMapsShownCount)
+      {
+        while (m_MemMapsForm->rowCount() > 0)
+          m_MemMapsForm->removeRow(0);
+        m_MemMapsShownCount = count;
+
+        if (count == 0)
+        {
+          auto *lbl = new QLabel(tr("No memory descriptors reported by this core."));
+          lbl->setWordWrap(true);
+          makeSmallGray(lbl);
+          m_MemMapsForm->addRow(lbl);
+        }
+        else
+        {
+          for (int i = 0; i < count; i++)
+          {
+            const auto &d = maps->descriptors[i];
+
+            QString header = d.addrspace && *d.addrspace
+              ? QStringLiteral("[%1] %2").arg(i).arg(d.addrspace)
+              : QStringLiteral("[%1]").arg(i);
+
+            QString body =
+              QStringLiteral("flags=%1  ptr=%2  offset=%3\n"
+                             "start=%4  select=%5  disconnect=%6\n"
+                             "len=%7")
+              .arg(fmtHex(d.flags))
+              .arg(fmtMemPtr(d.ptr))
+              .arg(fmtHex(d.offset))
+              .arg(fmtHex(d.start))
+              .arg(fmtHex(d.select))
+              .arg(fmtHex(d.disconnect))
+              .arg(fmtMemSize(d.len));
+
+            auto *block = new QLabel(header + QStringLiteral("\n") + body);
+            QFont f("Courier");
+            f.setStyleHint(QFont::TypeWriter);
+            f.setPointSize(qMax(QApplication::font().pointSize() - 1, 7));
+            block->setFont(f);
+            block->setWordWrap(true);
+            block->setTextInteractionFlags(Qt::TextSelectableByMouse);
+            block->setStyleSheet(
+              "QLabel { background: palette(alternate-base); "
+              "border: 1px solid palette(mid); "
+              "padding: 4px 6px; border-radius: 3px; }");
+            if (i > 0)
+              block->setContentsMargins(0, 4, 0, 0);
+            m_MemMapsForm->addRow(block);
+          }
+        }
+      }
+    }
   });
   sensorReadTimer->start();
 
@@ -276,6 +386,10 @@ void QRetroConfig::update()
   m_CorePixelFormatLabel    = nullptr;
   m_CoreSerializationLabel  = nullptr;
   m_CoreSupportsNoGameLabel = nullptr;
+  for (int i = 0; i < 4; i++)
+    m_MemDataPtrLabel[i] = m_MemDataSizeLabel[i] = nullptr;
+  m_MemMapsForm       = nullptr;
+  m_MemMapsShownCount = -1;
 
   /* Wraps a form widget in a borderless scroll area. */
   auto makeScrollPage = [](QWidget *inner) -> QScrollArea* {
@@ -770,7 +884,7 @@ void QRetroConfig::update()
     auto *form  = new QFormLayout(group);
     form->setVerticalSpacing(4);
 
-    auto yesNo = [this](bool set, bool v) -> QLabel* {
+    auto yesNo = [](bool set, bool v) -> QLabel* {
       return new QLabel(set ? (v ? tr("Yes") : tr("No")) : tr("Unset"));
     };
 
@@ -828,6 +942,49 @@ void QRetroConfig::update()
              "RETRO_ENVIRONMENT_SET_SERIALIZATION_QUIRKS (44)");
 
     pageLayout->addWidget(group);
+    pageLayout->addStretch();
+  }
+
+  /* ── Memory ─────────────────────────────────────────────────── */
+  auto *memPage = new QWidget();
+  {
+    auto *pageLayout = new QVBoxLayout(memPage);
+    pageLayout->setContentsMargins(12, 12, 12, 12);
+    pageLayout->setSpacing(12);
+
+    auto *group = new QGroupBox(tr("Memory Data"));
+    auto *form  = new QFormLayout(group);
+    form->setVerticalSpacing(8);
+
+    for (int i = 0; i < 4; i++)
+    {
+      auto *header = new QLabel(k_memTypes[i].name);
+      if (i > 0)
+        header->setContentsMargins(0, 8, 0, 0);
+      form->addRow(header);
+
+      void  *ptr = m_Owner->m_Core.retro_get_memory_data
+                   ? m_Owner->m_Core.retro_get_memory_data(k_memTypes[i].id) : nullptr;
+      size_t sz  = m_Owner->m_Core.retro_get_memory_size
+                   ? m_Owner->m_Core.retro_get_memory_size(k_memTypes[i].id) : 0;
+
+      m_MemDataPtrLabel[i]  = new QLabel(fmtMemPtr(ptr));
+      m_MemDataSizeLabel[i] = new QLabel(fmtMemSize(sz));
+      makeSmallGray(m_MemDataPtrLabel[i]);
+      makeSmallGray(m_MemDataSizeLabel[i]);
+
+      form->addRow(tr("Data"), m_MemDataPtrLabel[i]);
+      form->addRow(tr("Size"), m_MemDataSizeLabel[i]);
+    }
+
+    pageLayout->addWidget(group);
+
+    auto *mapsGroup = new QGroupBox(tr("Memory Descriptors"));
+    m_MemMapsForm = new QFormLayout(mapsGroup);
+    m_MemMapsForm->setVerticalSpacing(8);
+    m_MemMapsShownCount = -1; /* populated on first timer tick */
+    pageLayout->addWidget(mapsGroup);
+
     pageLayout->addStretch();
   }
 
@@ -915,17 +1072,45 @@ void QRetroConfig::update()
   auto *sidebar = new QListWidget();
   sidebar->setFrameShape(QFrame::NoFrame);
   sidebar->setStyleSheet("QListWidget::item { padding: 6px 10px; }");
-  sidebar->addItem(coreLabel);
-  sidebar->addItem(tr("Video"));
-  sidebar->addItem(tr("Audio"));
-  sidebar->addItem(tr("Environment"));
-  sidebar->addItem(tr("Directories"));
-  sidebar->addItem(tr("Sensors"));
-  sidebar->addItem(tr("Location"));
-  sidebar->addItem(tr("LED"));
-  sidebar->addItem(tr("Core Constants"));
-  sidebar->addItem(tr("Proc Address"));
-  sidebar->setCurrentRow(0);
+
+  int stackIdx = 0;
+  QListWidgetItem *firstItem = nullptr;
+
+  auto addDivider = [&](const char *text) {
+    auto *item = new QListWidgetItem(tr(text));
+    item->setFlags(Qt::ItemIsEnabled);
+    QFont f = item->font();
+    f.setPointSize(qMax(f.pointSize() - 2, 7));
+    item->setFont(f);
+    item->setForeground(sidebar->palette().color(QPalette::Mid));
+    sidebar->addItem(item);
+  };
+
+  auto addSidebarItem = [&](const QString &text) {
+    auto *item = new QListWidgetItem(text);
+    item->setData(Qt::UserRole, stackIdx++);
+    sidebar->addItem(item);
+    if (!firstItem) firstItem = item;
+  };
+
+  addDivider("GENERAL");
+  addSidebarItem(coreLabel);
+  addSidebarItem(tr("Video"));
+  addSidebarItem(tr("Audio"));
+  addSidebarItem(tr("Environment"));
+  addSidebarItem(tr("Directories"));
+
+  addDivider("ADVANCED");
+  addSidebarItem(tr("Sensors"));
+  addSidebarItem(tr("Location"));
+  addSidebarItem(tr("LED"));
+
+  addDivider("DEVELOPER");
+  addSidebarItem(tr("Core Constants"));
+  addSidebarItem(tr("Memory"));
+  addSidebarItem(tr("Proc Address"));
+
+  sidebar->setCurrentItem(firstItem);
 
   /* ── Stacked settings area ──────────────────────────────────── */
   auto *stack = new QStackedWidget();
@@ -938,10 +1123,16 @@ void QRetroConfig::update()
   stack->addWidget(makeScrollPage(locationPage));
   stack->addWidget(makeScrollPage(ledPage));
   stack->addWidget(makeScrollPage(coreConstPage));
+  stack->addWidget(makeScrollPage(memPage));
   stack->addWidget(makeScrollPage(procPage));
 
-  connect(sidebar, &QListWidget::currentRowChanged,
-          stack,   &QStackedWidget::setCurrentIndex);
+  connect(sidebar, &QListWidget::currentItemChanged,
+          [stack](QListWidgetItem *current, QListWidgetItem *) {
+    if (!current) return;
+    QVariant v = current->data(Qt::UserRole);
+    if (v.isValid())
+      stack->setCurrentIndex(v.toInt());
+  });
 
   /* ── Splitter (25 % / 75 %) ─────────────────────────────────── */
   auto *splitter = new QSplitter(Qt::Horizontal);

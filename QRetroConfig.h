@@ -111,6 +111,12 @@ private:
   QLabel             *m_LedEmptyLabel  = nullptr;
   QMap<int, QLabel*>  m_LedLabels;
 
+  QLabel *m_MemDataPtrLabel[4]  = {nullptr, nullptr, nullptr, nullptr};
+  QLabel *m_MemDataSizeLabel[4] = {nullptr, nullptr, nullptr, nullptr};
+
+  QFormLayout *m_MemMapsForm       = nullptr;
+  int          m_MemMapsShownCount = -1;
+
   QLabel *m_CoreAchievementsLabel   = nullptr;
   QLabel *m_CorePerfLevelLabel      = nullptr;
   QLabel *m_CorePixelFormatLabel    = nullptr;
