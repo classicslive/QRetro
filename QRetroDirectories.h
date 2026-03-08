@@ -12,7 +12,7 @@
 
  * Returns FALSE if "type" is invalid, or if "path" does not exist, otherwise
  * TRUE.
- **/
+ */
 class QRetroDirectories
 {
 public:

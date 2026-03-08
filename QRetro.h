@@ -99,6 +99,8 @@ public:
   const char* corePath() { return m_CorePath.c_str(); }
 
   void setGeometry(const unsigned width, const unsigned height);
+  void setAvInfo(const retro_system_av_info *info);
+  void setVideoSize(unsigned width, unsigned height) { m_VideoWidth = width; m_VideoHeight = height; }
 
   /**
    * Returns the libretro pixel format last reported by the core via
@@ -595,6 +597,8 @@ private:
   QImage m_Image;
   QRect m_BaseRect;
   QRect m_Rect;
+  unsigned m_VideoWidth  = 0;
+  unsigned m_VideoHeight = 0;
 
   /** @todo Configurable state size */
   unsigned char *m_QuickSave = nullptr;

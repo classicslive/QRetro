@@ -270,6 +270,7 @@ void core_video_refresh(const void *data, unsigned width,
   if (!_this)
     return;
 
+  _this->setVideoSize(width, height);
   emit _this->onVideoRefresh(data, width, height, static_cast<unsigned>(pitch));
 }
 
@@ -573,10 +574,15 @@ bool core_environment(unsigned cmd, void *data)
         _this->directories()->get(QRetroDirectories::Save);
     break;
 
-  /* 32 / TODO
+  /* 32 */
   case RETRO_ENVIRONMENT_SET_SYSTEM_AV_INFO:
+  {
+    auto info = reinterpret_cast<const retro_system_av_info*>(data);
+
+    if (info)
+      _this->setAvInfo(info);
     break;
-  */
+  }
 
   /* 33 / TODO: Test */
   case RETRO_ENVIRONMENT_SET_PROC_ADDRESS_CALLBACK:
