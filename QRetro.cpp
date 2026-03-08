@@ -108,6 +108,20 @@ void QRetro::setGeometry(const unsigned width, const unsigned height)
   }
 }
 
+void QRetro::setAvInfo(const retro_system_av_info *info)
+{
+  m_Core.av_info = *info;
+  setGeometry(info->geometry.base_width, info->geometry.base_height);
+
+  if (m_Audio)
+  {
+    delete m_Audio;
+    m_Audio = new QRetroAudio(info->timing.sample_rate, 60.0, m_TargetRefreshRate);
+    m_Audio->start();
+    m_Audio->setEnabled(m_AudioEnabled);
+  }
+}
+
 void QRetro::setupPainter(QPainter *painter)
 {
   /* Apply a basic filter if requested. */
@@ -729,6 +743,9 @@ void QRetro::timing()
         GLenum filter = m_BilinearFilter ? GL_LINEAR : GL_NEAREST;
         if (ef && sw > 0 && sh > 0)
         {
+          /* Some cores will scissor to their internal resolution, disable that */
+          glDisable(GL_SCISSOR_TEST);
+
           if (m_FboRequestedThisFrame && m_OpenGlFbo && m_OpenGlFbo->isValid())
           {
             /* Core rendered into our FBO via get_current_framebuffer.
