@@ -9,7 +9,7 @@
  * A class managing pointers to functions that return nothing and take no
  * arguments, known as retro_proc_address_t, allowing the frontend to directly
  * call functions the core provides.
- * This functionality is currently untested, and it is unknown which (if any)
+ * This functionality is only lightly tested, and it is unknown which (if any)
  * cores support it.
  */
 class QRetroProcAddress

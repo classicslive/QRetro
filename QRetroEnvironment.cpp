@@ -593,7 +593,7 @@ bool core_environment(unsigned cmd, void *data)
     break;
   }
 
-  /* 33 / TODO: Test */
+  /* 33 */
   case RETRO_ENVIRONMENT_SET_PROC_ADDRESS_CALLBACK:
     if (data)
       _this->procAddress()->init(
