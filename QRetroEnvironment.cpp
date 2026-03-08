@@ -675,6 +675,9 @@ bool core_environment(unsigned cmd, void *data)
       return false;
     break;
 
+  /* 45 / TODO */
+  // case RETRO_ENVIRONMENT_GET_VFS_INTERFACE:
+
   /* 46 */
   case RETRO_ENVIRONMENT_GET_LED_INTERFACE:
   {
@@ -838,6 +841,15 @@ bool core_environment(unsigned cmd, void *data)
     }
     break;
   }
+
+  /* 71 / TODO */
+  // case RETRO_ENVIRONMENT_GET_THROTTLE_STATE:
+
+  /* 72 / TODO */
+  // case RETRO_ENVIRONMENT_GET_SAVESTATE_CONTEXT:
+
+  /* 73 / TODO */
+  // case RETRO_ENVIRONMENT_GET_HW_RENDER_CONTEXT_NEGOTIATION_INTERFACE_SUPPORT:
 
   /* 74 */
   case RETRO_ENVIRONMENT_GET_JIT_CAPABLE:
