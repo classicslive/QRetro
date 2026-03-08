@@ -20,7 +20,7 @@ public:
   void add(const char *sym, retro_proc_address_t ptr);
   bool call(const char *sym);
   retro_proc_address_t get(const char *sym);
-  bool init(const struct retro_get_proc_address_interface *interface);
+  bool init(const struct retro_get_proc_address_interface *iface);
   void remove(const char *sym);
 
 private:
