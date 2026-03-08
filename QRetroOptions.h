@@ -237,6 +237,7 @@ private:
   QString m_Filename;
   Version m_MaxVersion = Version::v2;
   retro_core_options_update_display_callback_t m_UpdateDisplayCallback = nullptr;
+  std::vector<std::string>             m_VariableOrder;
   std::map<std::string, QRetroOption*> m_Variables;
   Version m_Version;
   bool m_VariablesUpdated;

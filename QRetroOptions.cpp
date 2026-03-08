@@ -296,12 +296,13 @@ QRetroOptions::~QRetroOptions()
   QSettings settings(m_Filename, QSettings::IniFormat);
 
   settings.beginGroup(m_CoreName);
-  for (auto iter = m_Variables.begin(); iter != m_Variables.end(); iter++)
+  for (const auto &key : m_VariableOrder)
   {
-    if (!iter->first.empty() && iter->second)
+    auto it = m_Variables.find(key);
+    if (it != m_Variables.end() && !it->first.empty() && it->second)
     {
-      settings.setValue(iter->first.c_str(), iter->second->getValue());
-      delete iter->second;
+      settings.setValue(it->first.c_str(), it->second->getValue());
+      delete it->second;
     }
   }
   settings.sync();
@@ -352,6 +353,8 @@ void QRetroOptions::setOptions(retro_variable *vars)
     else
       entry->setValue(value);
 
+    if (m_Variables.find(vars->key) == m_Variables.end())
+      m_VariableOrder.push_back(vars->key);
     m_Variables[vars->key] = entry;
     vars++;
   }
@@ -379,6 +382,8 @@ void QRetroOptions::setOptions(retro_core_option_definition** vars)
     else
       entry->setValue(value);
 
+    if (m_Variables.find(var->key) == m_Variables.end())
+      m_VariableOrder.push_back(var->key);
     m_Variables[var->key] = entry;
     var++;
   }
@@ -429,6 +434,8 @@ void QRetroOptions::setOptions(retro_core_options_intl* vars)
     else
       entry->setValue(value);
 
+    if (m_Variables.find(vars->us[i].key) == m_Variables.end())
+      m_VariableOrder.push_back(vars->us[i].key);
     m_Variables[vars->us[i].key] = entry;
     i++;
   }
@@ -489,6 +496,8 @@ void QRetroOptions::setOptions(retro_core_options_v2* vars,
     else
       entry->setValue(value);
 
+    if (m_Variables.find(var->key) == m_Variables.end())
+      m_VariableOrder.push_back(var->key);
     m_Variables[var->key] = entry;
     var++;
   }
@@ -670,15 +679,16 @@ void QRetroOptions::update()
     std::map<std::string, OptionList> byCategory;
     OptionList uncategorized;
 
-    for (auto &p : m_Variables)
+    for (const auto &key : m_VariableOrder)
     {
-      if (!p.second)
+      auto it = m_Variables.find(key);
+      if (it == m_Variables.end() || !it->second)
         continue;
-      const std::string &catKey = p.second->categoryKey();
+      const std::string &catKey = it->second->categoryKey();
       if (!catKey.empty() && hasCategory(catKey))
-        byCategory[catKey].push_back(p);
+        byCategory[catKey].push_back(*it);
       else
-        uncategorized.push_back(p);
+        uncategorized.push_back(*it);
     }
 
     /* Emit categories in the order they appear in m_Categories. */
@@ -696,9 +706,12 @@ void QRetroOptions::update()
     grid->setColumnStretch(0, 1);
     grid->setColumnStretch(1, 0);
     int row = 0;
-    for (auto &p : m_Variables)
-      if (p.second)
-        row += addRow(section, grid, row, p.first, p.second);
+    for (const auto &key : m_VariableOrder)
+    {
+      auto it = m_Variables.find(key);
+      if (it != m_Variables.end() && it->second)
+        row += addRow(section, grid, row, it->first, it->second);
+    }
     vbox->addWidget(section);
   }
 
