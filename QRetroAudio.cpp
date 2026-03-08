@@ -71,7 +71,8 @@ void QRetroAudio::playFrame(void)
 {
   if (m_AudioOutput &&
       m_AudioDevice &&
-      m_AudioBuffer.size() >= m_SampleRateBytesPerFrame)
+      m_AudioBuffer.size() >= m_SampleRateBytesPerFrame &&
+      m_AudioOutput->bytesFree() >= m_SampleRateBytesPerFrame)
   {
     m_AudioDevice->write(m_AudioBuffer.data(), m_SampleRateBytesPerFrame);
     m_AudioBuffer.remove(0, m_SampleRateBytesPerFrame);
