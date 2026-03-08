@@ -603,17 +603,12 @@ bool core_environment(unsigned cmd, void *data)
     break;
   */
 
-  /* 35 / TODO */
+  /* 35 */
   case RETRO_ENVIRONMENT_SET_CONTROLLER_INFO:
-  {
-    auto info = reinterpret_cast<const retro_controller_info*>(data);
-
-    if (info)
-      for (unsigned i = 0; i < info->num_types; i++)
-        printf("%0X4: %s\n", info->types[i].id, info->types[i].desc);
-
+    if (data)
+      _this->input()->setControllerInfo(
+        reinterpret_cast<const retro_controller_info*>(data));
     break;
-  }
 
   /* 36 */
   case RETRO_ENVIRONMENT_SET_MEMORY_MAPS:

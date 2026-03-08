@@ -111,6 +111,10 @@ public:
 
   void setKey(retro_key key, bool down) { m_Keys[key] = down; }
 
+  const retro_controller_info* controllerInfo(void) { return &m_ControllerInfo; }
+
+  void setControllerInfo(const retro_controller_info *info) { m_ControllerInfo = *info; }
+
   /**
    * The number of joypads that will be polled and can have their state read.
    */
@@ -138,6 +142,7 @@ public:
 
 private:
   int16_t m_AnalogButtonDeadzone = QRETRO_INPUT_DEFAULT_BUTTON_DEADZONE;
+  retro_controller_info m_ControllerInfo;
   QRetroInputJoypad m_Joypads[QRETRO_INPUT_DEFAULT_MAX_JOYPADS];
   std::vector<qretro_input_kb_map_t> m_KeyboardMaps;
   bool m_Keys[RETROK_LAST] = { false };
