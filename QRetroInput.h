@@ -9,7 +9,29 @@
 
 #include <vector>
 
+#include <string>
 #include <libretro.h>
+
+struct QRetroControllerType
+{
+  std::string desc;
+  unsigned    id;
+};
+
+struct QRetroInputDescriptor
+{
+  unsigned    port;
+  unsigned    device;
+  unsigned    index;
+  unsigned    id;
+  std::string description;
+};
+
+struct QRetroControllerPort
+{
+  std::vector<QRetroControllerType> types;
+  unsigned                          selectedId = RETRO_DEVICE_JOYPAD;
+};
 
 #define QRETRO_INPUT_DEFAULT_MAX_JOYPADS 16
 #define QRETRO_INPUT_DEFAULT_BUTTON_DEADZONE 0
@@ -111,9 +133,31 @@ public:
 
   void setKey(retro_key key, bool down) { m_Keys[key] = down; }
 
-  const retro_controller_info* controllerInfo(void) { return &m_ControllerInfo; }
+  const std::vector<QRetroControllerPort>& controllerPorts(void) const { return m_ControllerPorts; }
 
-  void setControllerInfo(const retro_controller_info *info) { m_ControllerInfo = *info; }
+  void setControllerInfo(const retro_controller_info *info)
+  {
+    m_ControllerPorts.clear();
+    if (!info) return;
+    for (const retro_controller_info *ci = info; ci->types; ci++)
+    {
+      QRetroControllerPort port;
+      for (unsigned i = 0; i < ci->num_types; i++)
+        port.types.push_back({ ci->types[i].desc ? ci->types[i].desc : "", ci->types[i].id });
+      m_ControllerPorts.push_back(std::move(port));
+    }
+  }
+
+  unsigned selectedControllerType(unsigned port) const
+  {
+    return port < m_ControllerPorts.size() ? m_ControllerPorts[port].selectedId : RETRO_DEVICE_JOYPAD;
+  }
+
+  void setSelectedControllerType(unsigned port, unsigned id)
+  {
+    if (port < m_ControllerPorts.size())
+      m_ControllerPorts[port].selectedId = id;
+  }
 
   /**
    * The number of joypads that will be polled and can have their state read.
@@ -140,9 +184,42 @@ public:
   bool useMaps(void) { return m_UseMaps; }
   void setUseMaps(bool use) { m_UseMaps = use; }
 
+  /**
+   * Returns the input descriptors provided by the core via SET_INPUT_DESCRIPTORS.
+   * Each descriptor describes the function of a specific button/axis for a given port.
+   */
+  const std::vector<QRetroInputDescriptor>& inputDescriptors(void) const { return m_InputDescriptors; }
+
+  void setInputDescriptors(const retro_input_descriptor *desc)
+  {
+    m_InputDescriptors.clear();
+    if (!desc) return;
+    for (; desc->description; desc++)
+      m_InputDescriptors.push_back({ desc->port, desc->device, desc->index, desc->id,
+                                     desc->description });
+  }
+
+  /**
+   * Returns the bitmask of supported input device types reported to the core.
+   * Each bit N corresponds to device type N (i.e. (1 << RETRO_DEVICE_x)).
+   */
+  uint64_t deviceCapabilities(void) const { return m_DeviceCapabilities; }
+
+  /**
+   * Sets the bitmask of supported input device types to report to the core.
+   */
+  void setDeviceCapabilities(uint64_t caps) { m_DeviceCapabilities = caps; }
+
 private:
   int16_t m_AnalogButtonDeadzone = QRETRO_INPUT_DEFAULT_BUTTON_DEADZONE;
-  retro_controller_info m_ControllerInfo;
+  std::vector<QRetroControllerPort> m_ControllerPorts;
+  uint64_t m_DeviceCapabilities =
+    (1 << RETRO_DEVICE_JOYPAD)   |
+    (1 << RETRO_DEVICE_MOUSE)    |
+    (1 << RETRO_DEVICE_KEYBOARD) |
+    (1 << RETRO_DEVICE_ANALOG)   |
+    (1 << RETRO_DEVICE_POINTER);
+  std::vector<QRetroInputDescriptor> m_InputDescriptors;
   QRetroInputJoypad m_Joypads[QRETRO_INPUT_DEFAULT_MAX_JOYPADS];
   std::vector<qretro_input_kb_map_t> m_KeyboardMaps;
   bool m_Keys[RETROK_LAST] = { false };

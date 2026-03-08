@@ -506,6 +506,46 @@ void QRetroConfig::update()
     form->addRow(tr("Volume"), volRow);
   }
 
+  /* ── Input ──────────────────────────────────────────────────── */
+  auto *inputPage = new QWidget();
+  {
+    auto *form = new QFormLayout(inputPage);
+    form->setContentsMargins(12, 12, 12, 12);
+    form->setVerticalSpacing(10);
+
+    const auto &ports = m_Owner->input()->controllerPorts();
+    for (unsigned p = 0; p < static_cast<unsigned>(ports.size()); p++)
+    {
+      const auto &port = ports[p];
+      if (port.types.empty()) continue;
+
+      auto *combo = new QComboBox();
+      for (const auto &type : port.types)
+        combo->addItem(QString::fromStdString(type.desc), type.id);
+
+      unsigned selected = port.selectedId;
+      int idx = combo->findData(selected);
+      combo->setCurrentIndex(idx >= 0 ? idx : 0);
+
+      connect(combo, QOverload<int>::of(&QComboBox::currentIndexChanged),
+              [this, combo, p](int) {
+        unsigned id = static_cast<unsigned>(combo->currentData().toUInt());
+        m_Owner->input()->setSelectedControllerType(p, id);
+        if (m_Owner->m_Core.retro_set_controller_port_device)
+          m_Owner->m_Core.retro_set_controller_port_device(p, id);
+      });
+
+      form->addRow(tr("Port %1").arg(p + 1), combo);
+    }
+
+    if (ports.empty())
+    {
+      auto *label = new QLabel(tr("No controller info provided by core."));
+      label->setForegroundRole(QPalette::Dark);
+      form->addRow(label);
+    }
+  }
+
   /* ── Environment ────────────────────────────────────────────── */
   auto *envPage = new QWidget();
   {
@@ -1252,18 +1292,19 @@ void QRetroConfig::update()
     collectFormRows(page->layout(), rows, nullptr);
     pageRows.append(rows);
   };
-  indexPage(videoPage);     // 1
-  indexPage(audioPage);     // 2
-  indexPage(envPage);       // 3
-  indexPage(dirsPage);      // 4
-  indexPage(sensorsPage);   // 5
-  indexPage(locationPage);  // 6
-  indexPage(ledPage);       // 7
-  indexPage(coreConstPage); // 8
-  indexPage(memPage);       // 9
-  indexPage(procPage);      // 10
-  pageRows.append(QList<SearchRow>());      // 11: logEdit
-  pageRows.append(QList<SearchRow>());      // 12: msgPage
+  indexPage(videoPage);     //  1
+  indexPage(audioPage);     //  2
+  indexPage(inputPage);     //  3
+  indexPage(envPage);       //  4
+  indexPage(dirsPage);      //  5
+  indexPage(sensorsPage);   //  6
+  indexPage(locationPage);  //  7
+  indexPage(ledPage);       //  8
+  indexPage(coreConstPage); //  9
+  indexPage(memPage);       // 10
+  indexPage(procPage);      // 11
+  pageRows.append(QList<SearchRow>());      // 12: logEdit
+  pageRows.append(QList<SearchRow>());      // 13: msgPage
 
   /* ── Sidebar ────────────────────────────────────────────────── */
   const QString coreName  = m_Owner->options()->coreName();
@@ -1298,6 +1339,7 @@ void QRetroConfig::update()
   addSidebarItem(coreLabel);
   addSidebarItem(tr("Video"));
   addSidebarItem(tr("Audio"));
+  addSidebarItem(tr("Input"));
   addSidebarItem(tr("Environment"));
   addSidebarItem(tr("Directories"));
 
@@ -1320,6 +1362,7 @@ void QRetroConfig::update()
   stack->addWidget(optionsWidget);
   stack->addWidget(makeScrollPage(videoPage));
   stack->addWidget(makeScrollPage(audioPage));
+  stack->addWidget(makeScrollPage(inputPage));
   stack->addWidget(makeScrollPage(envPage));
   stack->addWidget(makeScrollPage(dirsPage));
   stack->addWidget(makeScrollPage(sensorsPage));

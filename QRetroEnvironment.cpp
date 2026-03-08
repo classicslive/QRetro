@@ -355,18 +355,11 @@ bool core_environment(unsigned cmd, void *data)
       _this->setPixelFormat(*reinterpret_cast<enum retro_pixel_format*>(data));
     break;
 
-  /* 11 / TODO */
+  /* 11 */
   case RETRO_ENVIRONMENT_SET_INPUT_DESCRIPTORS:
-  {
-    auto desc = reinterpret_cast<const retro_input_descriptor*>(data);
-
-    while (desc && desc->description)
-    {
-      printf("%s: %u %u %u %u\n", desc->description, desc->port, desc->device, desc->index, desc->id);
-      desc++;
-    }
+    _this->input()->setInputDescriptors(
+      reinterpret_cast<const retro_input_descriptor*>(data));
     break;
-  }
 
   /* 12 */
   case RETRO_ENVIRONMENT_SET_KEYBOARD_CALLBACK:
@@ -498,8 +491,11 @@ bool core_environment(unsigned cmd, void *data)
     break;
   }
 
-  /* 24 / TODO */
-  // case RETRO_ENVIRONMENT_GET_INPUT_DEVICE_CAPABILITIES:
+  /* 24 */
+  case RETRO_ENVIRONMENT_GET_INPUT_DEVICE_CAPABILITIES:
+    if (data)
+      *reinterpret_cast<uint64_t*>(data) = _this->input()->deviceCapabilities();
+    break;
 
   /* 25 */
   case RETRO_ENVIRONMENT_GET_SENSOR_INTERFACE:
