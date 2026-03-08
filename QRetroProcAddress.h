@@ -20,10 +20,12 @@ public:
   void add(const char *sym, retro_proc_address_t ptr);
   bool call(const char *sym);
   retro_proc_address_t get(const char *sym);
+  bool init(const retro_get_proc_address_interface *interface);
   void remove(const char *sym);
 
 private:
   std::map<std::string, retro_proc_address_t> m_Functions;
+  retro_get_proc_address_interface m_Interface = { nullptr };
 };
 
 #endif

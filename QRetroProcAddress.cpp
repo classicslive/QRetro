@@ -26,7 +26,31 @@ retro_proc_address_t QRetroProcAddress::get(const char *sym)
 {
   auto entry = m_Functions.find(sym);
 
-  return entry == m_Functions.end() ? nullptr : entry->second;
+  if (entry != m_Functions.end())
+    return entry->second;
+  else if (sym && m_Interface.get_proc_address)
+  {
+    auto func = m_Interface.get_proc_address(sym);
+
+    if (func)
+    {
+      add(sym, func);
+      return func;
+    }
+  }
+
+  return nullptr;
+}
+
+bool QRetroProcAddress::init(const retro_get_proc_address_interface *interface)
+{
+  if (interface)
+  {
+    m_Interface = *interface;
+    return true;
+  }
+  else
+    return false;
 }
 
 void QRetroProcAddress::remove(const char *sym)
