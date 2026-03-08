@@ -597,7 +597,7 @@ bool core_environment(unsigned cmd, void *data)
   case RETRO_ENVIRONMENT_SET_PROC_ADDRESS_CALLBACK:
     if (data)
       _this->procAddress()->init(
-        reinterpret_cast<retro_get_proc_address_interface*>(data));
+        reinterpret_cast<const struct retro_get_proc_address_interface*>(data));
     break;
 
   /* 34 / TODO

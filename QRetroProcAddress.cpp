@@ -42,7 +42,7 @@ retro_proc_address_t QRetroProcAddress::get(const char *sym)
   return nullptr;
 }
 
-bool QRetroProcAddress::init(const retro_get_proc_address_interface *interface)
+bool QRetroProcAddress::init(const struct retro_get_proc_address_interface *interface)
 {
   if (interface)
   {
