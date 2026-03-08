@@ -693,7 +693,7 @@ retro_language qt2lr_language(const QLocale &qt)
     return RETRO_LANGUAGE_BELARUSIAN;
   case QLocale::Galician:
     return RETRO_LANGUAGE_GALICIAN;
-  case QLocale::Norwegian:
+  case QLocale::NorwegianBokmal:
     return RETRO_LANGUAGE_NORWEGIAN;
   case QLocale::Irish:
     return RETRO_LANGUAGE_IRISH;
