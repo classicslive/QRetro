@@ -97,7 +97,7 @@ public:
   bool pointerValid() { return m_PointerValid; }
   bool isActive() { return m_Active; }
   void updateMouse(void);
-  bool initVideo(retro_hw_context_type format, int versionMajor = 0, int versionMinor = 0);
+  bool initVideo(retro_hw_context_type format);
 
   const char* contentPath() { return m_ContentPath.c_str(); }
   const char* corePath() { return m_CorePath.c_str(); }

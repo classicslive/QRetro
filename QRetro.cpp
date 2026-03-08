@@ -1246,7 +1246,7 @@ void* QRetro::getProcAddress(QThread *caller, const char *symbol)
   return nullptr;
 }
 
-bool QRetro::initVideo(retro_hw_context_type format, int versionMajor, int versionMinor)
+bool QRetro::initVideo(retro_hw_context_type format)
 {
   /* Discard any semaphore tokens accumulated under the previous backend.
    * Without this, switching from a raster backend (where tokens are not
@@ -1255,11 +1255,11 @@ bool QRetro::initVideo(retro_hw_context_type format, int versionMajor, int versi
 
   QSurfaceFormat settings;
   settings.setSwapInterval(1);
+  setFormat(settings);
 
   switch (format)
   {
   case RETRO_HW_CONTEXT_NONE:
-    setFormat(settings);
     setSurfaceType(QSurface::RasterSurface);
     create();
 
@@ -1269,74 +1269,10 @@ bool QRetro::initVideo(retro_hw_context_type format, int versionMajor, int versi
 
 #if QRETRO_HAVE_OPENGL
   case RETRO_HW_CONTEXT_OPENGL:
-    settings.setRenderableType(QSurfaceFormat::OpenGL);
-    settings.setProfile(QSurfaceFormat::CompatibilityProfile);
-    if (versionMajor > 0)
-      settings.setVersion(versionMajor, versionMinor);
-    setFormat(settings);
-    setSurfaceType(QSurface::OpenGLSurface);
-    create();
-
-    if (!m_OpenGlContext)
-    {
-      m_OpenGlContext = new QOpenGLContext(this);
-      m_OpenGlContext->setFormat(requestedFormat());
-      m_OpenGlContext->create();
-    }
-    break;
-
   case RETRO_HW_CONTEXT_OPENGL_CORE:
-    settings.setRenderableType(QSurfaceFormat::OpenGL);
-    settings.setProfile(QSurfaceFormat::CoreProfile);
-    if (versionMajor > 0)
-      settings.setVersion(versionMajor, versionMinor);
-    setFormat(settings);
-    setSurfaceType(QSurface::OpenGLSurface);
-    create();
-
-    if (!m_OpenGlContext)
-    {
-      m_OpenGlContext = new QOpenGLContext(this);
-      m_OpenGlContext->setFormat(requestedFormat());
-      m_OpenGlContext->create();
-    }
-    break;
-
   case RETRO_HW_CONTEXT_OPENGLES2:
-    settings.setRenderableType(QSurfaceFormat::OpenGLES);
-    settings.setVersion(2, 0);
-    setFormat(settings);
-    setSurfaceType(QSurface::OpenGLSurface);
-    create();
-
-    if (!m_OpenGlContext)
-    {
-      m_OpenGlContext = new QOpenGLContext(this);
-      m_OpenGlContext->setFormat(requestedFormat());
-      m_OpenGlContext->create();
-    }
-    break;
-
   case RETRO_HW_CONTEXT_OPENGLES3:
-    settings.setRenderableType(QSurfaceFormat::OpenGLES);
-    settings.setVersion(3, 0);
-    setFormat(settings);
-    setSurfaceType(QSurface::OpenGLSurface);
-    create();
-
-    if (!m_OpenGlContext)
-    {
-      m_OpenGlContext = new QOpenGLContext(this);
-      m_OpenGlContext->setFormat(requestedFormat());
-      m_OpenGlContext->create();
-    }
-    break;
-
   case RETRO_HW_CONTEXT_OPENGLES_VERSION:
-    settings.setRenderableType(QSurfaceFormat::OpenGLES);
-    if (versionMajor > 0)
-      settings.setVersion(versionMajor, versionMinor);
-    setFormat(settings);
     setSurfaceType(QSurface::OpenGLSurface);
     create();
 
@@ -1346,6 +1282,7 @@ bool QRetro::initVideo(retro_hw_context_type format, int versionMajor, int versi
       m_OpenGlContext->setFormat(requestedFormat());
       m_OpenGlContext->create();
     }
+
     break;
 #endif
 

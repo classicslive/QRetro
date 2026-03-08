@@ -396,9 +396,7 @@ bool core_environment(unsigned cmd, void *data)
     case RETRO_HW_CONTEXT_OPENGLES2:
     case RETRO_HW_CONTEXT_OPENGLES3:
     case RETRO_HW_CONTEXT_OPENGLES_VERSION:
-      _this->initVideo(hw->context_type,
-                       static_cast<int>(hw->version_major),
-                       static_cast<int>(hw->version_minor));
+      _this->initVideo(hw->context_type);
 
       hw->get_proc_address =
         reinterpret_cast<retro_hw_get_proc_address_t>(
