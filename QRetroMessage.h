@@ -50,7 +50,7 @@ signals:
   void onMessage(QRetroMessageEntry entry);
 
 private:
-  InterfaceVersion          m_InterfaceVersion = SetMessageOnly;
+  InterfaceVersion          m_InterfaceVersion = SetMessageExt;
   int                       m_MaxEntries;
   QList<QRetroMessageEntry> m_Entries;
 };

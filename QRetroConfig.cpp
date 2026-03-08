@@ -1146,11 +1146,30 @@ void QRetroConfig::update()
   }
 
   /* ── Messages ───────────────────────────────────────────────── */
+  auto *msgPage   = new QWidget();
+  auto *msgLayout = new QVBoxLayout(msgPage);
+  msgLayout->setContentsMargins(0, 0, 0, 0);
+  msgLayout->setSpacing(0);
+
+  auto *msgVersionCombo = new QComboBox();
+  msgVersionCombo->addItem(tr("0 – SET_MESSAGE only"),     QVariant(0u));
+  msgVersionCombo->addItem(tr("1 – SET_MESSAGE_EXT"),      QVariant(1u));
+  msgVersionCombo->setCurrentIndex(
+    static_cast<int>(m_Owner->message()->interfaceVersion()));
+  connect(msgVersionCombo, QOverload<int>::of(&QComboBox::currentIndexChanged),
+          [this](int index) {
+    m_Owner->message()->setInterfaceVersion(static_cast<unsigned>(index));
+  });
+
   auto *msgEdit = new QTextEdit();
   msgEdit->setReadOnly(true);
   msgEdit->setFont(QFont("monospace"));
   msgEdit->setFrameShape(QFrame::NoFrame);
   msgEdit->setWordWrapMode(QTextOption::WrapAtWordBoundaryOrAnywhere);
+
+  msgLayout->addWidget(msgVersionCombo);
+  msgLayout->addWidget(msgEdit);
+
   {
     auto levelColor = [](retro_log_level level) -> QString {
       switch (level) {
@@ -1246,7 +1265,7 @@ void QRetroConfig::update()
   stack->addWidget(makeScrollPage(memPage));
   stack->addWidget(makeScrollPage(procPage));
   stack->addWidget(logEdit);
-  stack->addWidget(msgEdit);
+  stack->addWidget(msgPage);
 
   connect(sidebar, &QListWidget::currentItemChanged,
           [stack](QListWidgetItem *current, QListWidgetItem *) {
