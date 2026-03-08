@@ -1,3 +1,5 @@
+#include <functional>
+
 #include <QApplication>
 #include <QCheckBox>
 #include <QComboBox>
@@ -227,7 +229,7 @@ QRetroConfig::QRetroConfig(QRetro *owner)
       m_CoreSupportsNoGameLabel->setText(
         yesNoStr(m_Owner->supportsNoGameSet(), m_Owner->supportsNoGame()));
 
-    if (m_Owner->m_Core.retro_get_memory_data)
+    if (m_MemoryReady && m_Owner->m_Core.retro_get_memory_data)
     {
       for (int i = 0; i < 4; i++)
       {
@@ -299,6 +301,11 @@ QRetroConfig::QRetroConfig(QRetro *owner)
     }
   });
   sensorReadTimer->start();
+
+  connect(m_Owner, &QRetro::onCoreStart, this, [this]() {
+    m_MemoryReady = false;
+    QTimer::singleShot(5000, this, [this]() { m_MemoryReady = true; });
+  });
 
   update();
   setWindowTitle(tr("QRetro Settings"));
@@ -395,6 +402,7 @@ void QRetroConfig::update()
   for (int i = 0; i < 4; i++)
     m_MemDataPtrLabel[i] = m_MemDataSizeLabel[i] = nullptr;
   m_MemMapsForm       = nullptr;
+  m_MemoryReady       = false;
   m_MemMapsShownCount = -1;
 
   /* Wraps a form widget in a borderless scroll area. */
@@ -468,11 +476,15 @@ void QRetroConfig::update()
     volSpin->setValue(qRound(m_AudioVolume * 100.0f));
     volSpin->setFixedWidth(70);
 
-    /* Slider → spinbox */
-    connect(volSlider, &QSlider::valueChanged, [volSpin](int v) {
+    /* Slider → spinbox + apply */
+    connect(volSlider, &QSlider::valueChanged, [this, volSpin](int v) {
       volSpin->blockSignals(true);
       volSpin->setValue(v);
       volSpin->blockSignals(false);
+      m_AudioVolume = v / 100.0f;
+      m_SaveTimer->start();
+      if (m_Owner->m_Audio)
+        m_Owner->m_Audio->setVolume(m_AudioVolume);
     });
 
     /* Spinbox → slider + apply */
@@ -1006,13 +1018,8 @@ void QRetroConfig::update()
         header->setContentsMargins(0, 8, 0, 0);
       form->addRow(header);
 
-      void  *ptr = m_Owner->m_Core.retro_get_memory_data
-                   ? m_Owner->m_Core.retro_get_memory_data(k_memTypes[i].id) : nullptr;
-      size_t sz  = m_Owner->m_Core.retro_get_memory_size
-                   ? m_Owner->m_Core.retro_get_memory_size(k_memTypes[i].id) : 0;
-
-      m_MemDataPtrLabel[i]  = new QLabel(fmtMemPtr(ptr));
-      m_MemDataSizeLabel[i] = new QLabel(fmtMemSize(sz));
+      m_MemDataPtrLabel[i]  = new QLabel(tr("—"));
+      m_MemDataSizeLabel[i] = new QLabel(tr("—"));
       makeSmallGray(m_MemDataPtrLabel[i]);
       makeSmallGray(m_MemDataSizeLabel[i]);
 
@@ -1201,6 +1208,63 @@ void QRetroConfig::update()
   auto *optionsWidget = m_Owner->options();
   optionsWidget->update();
 
+  /* ── Search index ────────────────────────────────────────────── */
+  struct SearchRow {
+    QString   text;     // label text
+    QString   group;    // group box title (empty if none)
+    QGroupBox *groupBox = nullptr;
+    QWidget   *lw = nullptr;
+    QWidget   *fw = nullptr;
+  };
+
+  std::function<void(QLayout*, QList<SearchRow>&, QGroupBox*)> collectFormRows;
+  collectFormRows = [&collectFormRows](QLayout *layout, QList<SearchRow> &rows, QGroupBox *gb) {
+    if (!layout) return;
+    if (auto *form = qobject_cast<QFormLayout*>(layout)) {
+      for (int i = 0; i < form->rowCount(); ++i) {
+        auto *li = form->itemAt(i, QFormLayout::LabelRole);
+        auto *fi = form->itemAt(i, QFormLayout::FieldRole);
+        QWidget *lw = li ? li->widget() : nullptr;
+        QWidget *fw = fi ? fi->widget() : nullptr;
+        QString text;
+        if (auto *lbl = qobject_cast<QLabel*>(lw))
+          text = lbl->text();
+        rows.append(SearchRow{text, gb ? gb->title() : QString(), gb, lw, fw});
+      }
+    } else {
+      for (int i = 0; i < layout->count(); ++i) {
+        auto *item = layout->itemAt(i);
+        if (item->layout()) {
+          collectFormRows(item->layout(), rows, gb);
+        } else if (auto *w = item->widget()) {
+          auto *child = qobject_cast<QGroupBox*>(w);
+          collectFormRows(w->layout(), rows, child ? child : gb);
+        }
+      }
+    }
+  };
+
+  // Pages in stack order; non-form pages get an empty row list
+  QVector<QList<SearchRow>> pageRows;
+  pageRows.append(QList<SearchRow>());  // 0: optionsWidget — dynamic, skip
+  auto indexPage = [&](QWidget *page) {
+    QList<SearchRow> rows;
+    collectFormRows(page->layout(), rows, nullptr);
+    pageRows.append(rows);
+  };
+  indexPage(videoPage);     // 1
+  indexPage(audioPage);     // 2
+  indexPage(envPage);       // 3
+  indexPage(dirsPage);      // 4
+  indexPage(sensorsPage);   // 5
+  indexPage(locationPage);  // 6
+  indexPage(ledPage);       // 7
+  indexPage(coreConstPage); // 8
+  indexPage(memPage);       // 9
+  indexPage(procPage);      // 10
+  pageRows.append(QList<SearchRow>());      // 11: logEdit
+  pageRows.append(QList<SearchRow>());      // 12: msgPage
+
   /* ── Sidebar ────────────────────────────────────────────────── */
   const QString coreName  = m_Owner->options()->coreName();
   const QString coreLabel = coreName.isEmpty() ? tr("Core Options")
@@ -1275,6 +1339,95 @@ void QRetroConfig::update()
       stack->setCurrentIndex(v.toInt());
   });
 
+  /* ── Search bar ─────────────────────────────────────────────── */
+  auto *searchBar = new QLineEdit();
+  searchBar->setPlaceholderText(tr("Search settings..."));
+  searchBar->setClearButtonEnabled(true);
+  searchBar->setContentsMargins(6, 4, 6, 4);
+
+  connect(searchBar, &QLineEdit::textChanged, sidebar,
+          [sidebar, stack, pageRows](const QString &text) {
+    const QString q = text.trimmed().toLower();
+    const bool empty = q.isEmpty();
+
+    // Show/hide form rows and determine page visibility
+    QVector<bool> pageVisible(pageRows.size(), false);
+    for (int idx = 0; idx < pageRows.size(); ++idx) {
+      const auto &rows = pageRows[idx];
+      if (rows.isEmpty()) {
+        // Non-form page: visible when search is empty
+        pageVisible[idx] = empty;
+      } else {
+        // First pass: determine which group boxes have a title match
+        QSet<QGroupBox*> groupMatches;
+        if (!empty) {
+          for (const auto &row : rows) {
+            if (row.groupBox && row.group.toLower().contains(q))
+              groupMatches.insert(row.groupBox);
+          }
+        }
+
+        // Second pass: show/hide rows; a row is visible if it, its group
+        // title, or (when empty) anything matches
+        QMap<QGroupBox*, bool> groupHasVisible;
+        bool anyVisible = false;
+        for (const auto &row : rows) {
+          bool match = empty
+                       || row.text.toLower().contains(q)
+                       || (row.groupBox && groupMatches.contains(row.groupBox));
+          if (row.lw) row.lw->setVisible(match);
+          if (row.fw) row.fw->setVisible(match);
+          if (match) anyVisible = true;
+          if (row.groupBox)
+            groupHasVisible[row.groupBox] = groupHasVisible.value(row.groupBox, false) || match;
+        }
+
+        // Show/hide group box widgets themselves
+        for (auto it = groupHasVisible.begin(); it != groupHasVisible.end(); ++it)
+          it.key()->setVisible(it.value());
+
+        pageVisible[idx] = anyVisible;
+      }
+    }
+
+    // Update sidebar page item visibility; non-form pages also match on label
+    for (int i = 0; i < sidebar->count(); ++i) {
+      auto *item = sidebar->item(i);
+      QVariant v = item->data(Qt::UserRole);
+      if (!v.isValid()) continue;
+      int idx = v.toInt();
+      bool visible = (idx < pageVisible.size()) && pageVisible[idx];
+      if (!visible && idx < pageRows.size() && pageRows[idx].isEmpty())
+        visible = empty || item->text().toLower().contains(q);
+      item->setHidden(!visible);
+    }
+
+    // Hide dividers whose entire section is hidden
+    for (int i = 0; i < sidebar->count(); ++i) {
+      auto *item = sidebar->item(i);
+      if (item->data(Qt::UserRole).isValid()) continue;
+      bool anyVisible = false;
+      for (int j = i + 1; j < sidebar->count(); ++j) {
+        auto *next = sidebar->item(j);
+        if (!next->data(Qt::UserRole).isValid()) break;
+        if (!next->isHidden()) { anyVisible = true; break; }
+      }
+      item->setHidden(!anyVisible);
+    }
+
+    // If the current selection was hidden, move to first visible item
+    auto *current = sidebar->currentItem();
+    if (current && current->isHidden()) {
+      for (int i = 0; i < sidebar->count(); ++i) {
+        auto *item = sidebar->item(i);
+        if (!item->isHidden() && item->data(Qt::UserRole).isValid()) {
+          sidebar->setCurrentItem(item);
+          break;
+        }
+      }
+    }
+  });
+
   /* ── Splitter (25 % / 75 %) ─────────────────────────────────── */
   auto *splitter = new QSplitter(Qt::Horizontal);
   splitter->addWidget(sidebar);
@@ -1298,6 +1451,7 @@ void QRetroConfig::update()
   auto *outer = new QVBoxLayout();
   outer->setContentsMargins(0, 0, 0, 0);
   outer->setSpacing(0);
+  outer->addWidget(searchBar);
   outer->addWidget(splitter, 1);
   outer->addWidget(sep);
   outer->addWidget(m_DescLabel);

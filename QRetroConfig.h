@@ -117,6 +117,7 @@ private:
 
   QFormLayout *m_MemMapsForm       = nullptr;
   int          m_MemMapsShownCount = -1;
+  bool         m_MemoryReady       = false;
 
   QLabel *m_CoreAchievementsLabel   = nullptr;
   QLabel *m_CorePerfLevelLabel      = nullptr;
