@@ -27,6 +27,8 @@
 #include "QRetroLed.h"
 #include "QRetroLocation.h"
 #include "QRetroMicrophone.h"
+#include "QRetroLog.h"
+#include "QRetroMessage.h"
 #include "QRetroMidi.h"
 #include "QRetroProcAddress.h"
 #include "QRetroConfig.h"
@@ -68,6 +70,8 @@ public:
   QRetroDevicePower* devicePower(void) { return &m_DevicePower; }
   QRetroInput* input(void) { return &m_Input; }
   QRetroLed* led(void) { return &m_Led; }
+  QRetroLog* log(void) { return &m_Log; }
+  QRetroMessage* message(void) { return m_Message; }
   QRetroLocation* location(void) { return m_Location; }
   QRetroMicrophone* microphone(void) { return &m_Microphone; }
   QRetroMidi* midi(void) { return &m_Midi; }
@@ -434,7 +438,6 @@ public:
 
 signals:
   void onCoreLog(int level, const QString msg);
-  void onCoreMessage(const char *msg);
   void onCoreStart(void);
   void onFrame(void);
   void onSave(void);
@@ -465,6 +468,8 @@ private:
   QRetroDirectories m_Directories;
   QRetroInput m_Input;
   QRetroLed m_Led;
+  QRetroLog m_Log;
+  QRetroMessage *m_Message = nullptr;
   QRetroLocation *m_Location = nullptr;
   QRetroMicrophone m_Microphone;
   QRetroMidi m_Midi;

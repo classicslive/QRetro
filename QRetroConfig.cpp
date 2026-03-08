@@ -6,12 +6,14 @@
 #include <QPushButton>
 #include <QDir>
 #include <QDoubleSpinBox>
+#include <QSpinBox>
 #include <QFormLayout>
 #include <QFrame>
 #include <QGroupBox>
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QListWidget>
+#include <QTextEdit>
 #include <QScrollArea>
 #include <QSettings>
 #include <QSlider>
@@ -115,6 +117,8 @@ QRetroConfig::QRetroConfig(QRetro *owner)
 
   /* Apply persisted values to the owning QRetro's modules. */
   m_Owner->m_AudioEnabled   = m_AudioEnabled;
+  if (m_Owner->m_Audio)
+    m_Owner->m_Audio->setVolume(m_AudioVolume);
   m_Owner->m_BilinearFilter = m_BilinearFilter;
   m_Owner->m_IntegerScaling = m_IntegerScaling;
 
@@ -315,6 +319,7 @@ void QRetroConfig::load()
   m_IntegerScaling = settings.value("integerScaling", false).toBool();
   m_BilinearFilter = settings.value("bilinearFilter", true).toBool();
   m_AudioEnabled   = settings.value("audioEnabled",   true).toBool();
+  m_AudioVolume    = settings.value("audioVolume",    1.0f).toFloat();
 
   m_SpoofLocationEnabled = settings.value("spoofLocationEnabled", false).toBool();
   m_SpoofLat             = settings.value("spoofLat",  0.0).toDouble();
@@ -343,6 +348,7 @@ void QRetroConfig::save()
   settings.setValue("integerScaling", m_IntegerScaling);
   settings.setValue("bilinearFilter", m_BilinearFilter);
   settings.setValue("audioEnabled",   m_AudioEnabled);
+  settings.setValue("audioVolume",    m_AudioVolume);
 
   settings.setValue("spoofLocationEnabled", m_SpoofLocationEnabled);
   settings.setValue("spoofLat",  m_SpoofLat);
@@ -449,6 +455,43 @@ void QRetroConfig::update()
       emit audioEnabledChanged(m_AudioEnabled);
     });
     form->addRow(tr("Enabled"), enabled);
+
+    auto *volSlider = new QSlider(Qt::Horizontal);
+    volSlider->setRange(0, 100);
+    volSlider->setValue(qRound(m_AudioVolume * 100.0f));
+    volSlider->setTickPosition(QSlider::TicksBelow);
+    volSlider->setTickInterval(10);
+
+    auto *volSpin = new QSpinBox();
+    volSpin->setRange(0, 100);
+    volSpin->setSuffix("%");
+    volSpin->setValue(qRound(m_AudioVolume * 100.0f));
+    volSpin->setFixedWidth(70);
+
+    /* Slider → spinbox */
+    connect(volSlider, &QSlider::valueChanged, [volSpin](int v) {
+      volSpin->blockSignals(true);
+      volSpin->setValue(v);
+      volSpin->blockSignals(false);
+    });
+
+    /* Spinbox → slider + apply */
+    connect(volSpin, QOverload<int>::of(&QSpinBox::valueChanged), [this, volSlider](int v) {
+      volSlider->blockSignals(true);
+      volSlider->setValue(v);
+      volSlider->blockSignals(false);
+      m_AudioVolume = v / 100.0f;
+      m_SaveTimer->start();
+      if (m_Owner->m_Audio)
+        m_Owner->m_Audio->setVolume(m_AudioVolume);
+    });
+
+    auto *volRow = new QWidget();
+    auto *volBox = new QHBoxLayout(volRow);
+    volBox->setContentsMargins(0, 0, 0, 0);
+    volBox->addWidget(volSlider, 1);
+    volBox->addWidget(volSpin);
+    form->addRow(tr("Volume"), volRow);
   }
 
   /* ── Environment ────────────────────────────────────────────── */
@@ -1060,6 +1103,81 @@ void QRetroConfig::update()
     connect(symbolInput, &QLineEdit::returnPressed,  this, [doQuery]() { doQuery(); });
   }
 
+  /* ── Logging ────────────────────────────────────────────────── */
+  auto *logEdit = new QTextEdit();
+  logEdit->setReadOnly(true);
+  logEdit->setFont(QFont("monospace"));
+  logEdit->setFrameShape(QFrame::NoFrame);
+  logEdit->setWordWrapMode(QTextOption::WrapAtWordBoundaryOrAnywhere);
+  {
+    auto levelPrefix = [](int level) -> QString {
+      switch (level) {
+      case RETRO_LOG_DEBUG: return "[D] ";
+      case RETRO_LOG_INFO:  return "[I] ";
+      case RETRO_LOG_WARN:  return "[W] ";
+      case RETRO_LOG_ERROR: return "[E] ";
+      default:              return "    ";
+      }
+    };
+    auto levelColor = [](int level) -> QString {
+      switch (level) {
+      case RETRO_LOG_DEBUG: return "#808080";
+      case RETRO_LOG_WARN:  return "#c87800";
+      case RETRO_LOG_ERROR: return "#b40000";
+      default:              return "";
+      }
+    };
+    auto addEntry = [logEdit, levelPrefix, levelColor](int level, const QString &msg) {
+      QString color = levelColor(level);
+      QString text = levelPrefix(level) + msg.toHtmlEscaped();
+      if (!color.isEmpty())
+        logEdit->append(QString("<span style=\"color:%1\">%2</span>").arg(color, text));
+      else
+        logEdit->append(text);
+    };
+
+    for (const auto &entry : m_Owner->log()->entries())
+      addEntry(static_cast<int>(entry.level), entry.message);
+
+    connect(m_Owner, &QRetro::onCoreLog, logEdit,
+            [addEntry](int level, const QString msg) {
+      addEntry(level, msg);
+    });
+  }
+
+  /* ── Messages ───────────────────────────────────────────────── */
+  auto *msgEdit = new QTextEdit();
+  msgEdit->setReadOnly(true);
+  msgEdit->setFont(QFont("monospace"));
+  msgEdit->setFrameShape(QFrame::NoFrame);
+  msgEdit->setWordWrapMode(QTextOption::WrapAtWordBoundaryOrAnywhere);
+  {
+    auto levelColor = [](retro_log_level level) -> QString {
+      switch (level) {
+      case RETRO_LOG_DEBUG: return "#808080";
+      case RETRO_LOG_WARN:  return "#c87800";
+      case RETRO_LOG_ERROR: return "#b40000";
+      default:              return "";
+      }
+    };
+    auto addEntry = [msgEdit, levelColor](const QRetroMessageEntry &entry) {
+      QString color = levelColor(entry.level);
+      QString text  = entry.message.toHtmlEscaped();
+      if (!color.isEmpty())
+        msgEdit->append(QString("<span style=\"color:%1\">%2</span>").arg(color, text));
+      else
+        msgEdit->append(text);
+    };
+
+    for (const auto &entry : m_Owner->message()->entries())
+      addEntry(entry);
+
+    connect(m_Owner->message(), &QRetroMessage::onMessage, msgEdit,
+            [addEntry](const QRetroMessageEntry entry) {
+      addEntry(entry);
+    });
+  }
+
   /* ── Core Options ───────────────────────────────────────────── */
   auto *optionsWidget = m_Owner->options();
   optionsWidget->update();
@@ -1109,6 +1227,8 @@ void QRetroConfig::update()
   addSidebarItem(tr("Core Constants"));
   addSidebarItem(tr("Memory"));
   addSidebarItem(tr("Proc Address"));
+  addSidebarItem(tr("Logging"));
+  addSidebarItem(tr("Messages"));
 
   sidebar->setCurrentItem(firstItem);
 
@@ -1125,6 +1245,8 @@ void QRetroConfig::update()
   stack->addWidget(makeScrollPage(coreConstPage));
   stack->addWidget(makeScrollPage(memPage));
   stack->addWidget(makeScrollPage(procPage));
+  stack->addWidget(logEdit);
+  stack->addWidget(msgEdit);
 
   connect(sidebar, &QListWidget::currentItemChanged,
           [stack](QListWidgetItem *current, QListWidgetItem *) {

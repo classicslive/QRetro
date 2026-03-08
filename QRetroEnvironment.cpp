@@ -127,7 +127,7 @@ static void core_log(enum retro_log_level level, const char *fmt, ...)
 
   final_string = QString(msg);
 
-  emit _this->onCoreLog(level, final_string);
+  _this->log()->push(level, final_string);
 }
 
 /* TODO */
@@ -324,8 +324,12 @@ bool core_environment(unsigned cmd, void *data)
 
   /* 06 */
   case RETRO_ENVIRONMENT_SET_MESSAGE:
-    emit _this->onCoreMessage(reinterpret_cast<const char*>(data));
+  {
+    auto *msg = reinterpret_cast<const struct retro_message*>(data);
+    if (msg)
+      _this->message()->push(QString::fromUtf8(msg->msg));
     break;
+  }
 
   /* 07 / TODO: Test */
   case RETRO_ENVIRONMENT_SHUTDOWN:
@@ -371,7 +375,7 @@ bool core_environment(unsigned cmd, void *data)
         *reinterpret_cast<retro_keyboard_callback*>(data);
     break;
 
-  /* 13 */
+  /* 13 / TODO */
   // case RETRO_ENVIRONMENT_SET_DISK_CONTROL_INTERFACE:
 
   /* 14 / TODO: Vulkan, GLES testing */
@@ -493,6 +497,9 @@ bool core_environment(unsigned cmd, void *data)
     cb->set_rumble_state = core_rumble;
     break;
   }
+
+  /* 24 / TODO */
+  // case RETRO_ENVIRONMENT_GET_INPUT_DEVICE_CAPABILITIES:
 
   /* 25 */
   case RETRO_ENVIRONMENT_GET_SENSOR_INTERFACE:
@@ -755,11 +762,35 @@ bool core_environment(unsigned cmd, void *data)
       *reinterpret_cast<unsigned*>(data) = _this->getPreferredRenderer();
     break;
 
+  /* 57 / TODO */
+  // case RETRO_ENVIRONMENT_GET_DISK_CONTROL_INTERFACE_VERSION:
+
+  /* 58 / TODO */
+  // case RETRO_ENVIRONMENT_SET_DISK_CONTROL_EXT_INTERFACE:
+
+  /* 59 */
+  case RETRO_ENVIRONMENT_GET_MESSAGE_INTERFACE_VERSION:
+    if (data)
+      *reinterpret_cast<unsigned*>(data) = _this->message()->interfaceVersion();
+    break;
+
+  /* 60 */
+  case RETRO_ENVIRONMENT_SET_MESSAGE_EXT:
+    if (data)
+      _this->message()->push(reinterpret_cast<const struct retro_message_ext*>(data));
+    break;
+
   /* 61 */
   case RETRO_ENVIRONMENT_GET_INPUT_MAX_USERS:
     if (data)
       *reinterpret_cast<unsigned*>(data) = _this->input()->maxUsers();
     break;
+
+  /* 62 / TODO */
+  // case RETRO_ENVIRONMENT_SET_AUDIO_BUFFER_STATUS_CALLBACK:
+
+  /* 63 / TODO */
+  // case RETRO_ENVIRONMENT_SET_MINIMUM_AUDIO_LATENCY:
 
   /* 64 */
   case RETRO_ENVIRONMENT_SET_FASTFORWARDING_OVERRIDE:
@@ -767,6 +798,12 @@ bool core_environment(unsigned cmd, void *data)
       _this->setFastForwardingOverride(
         reinterpret_cast<retro_fastforwarding_override*>(data));
     break;
+
+  /* 65 / TODO */
+  // case RETRO_ENVIRONMENT_SET_CONTENT_INFO_OVERRIDE:
+
+  /* 66 / TODO */
+  // case RETRO_ENVIRONMENT_GET_GAME_INFO_EXT:
 
   /* 67 */
   case RETRO_ENVIRONMENT_SET_CORE_OPTIONS_V2:
@@ -839,7 +876,7 @@ bool core_environment(unsigned cmd, void *data)
   case RETRO_ENVIRONMENT_GET_DEVICE_POWER:
     return _this->devicePower()->get(reinterpret_cast<retro_device_power*>(data));
 
-  /* 78 */
+  /* 78 / TODO */
   // case RETRO_ENVIRONMENT_SET_NETPACKET_INTERFACE:
 
   /* 79 */

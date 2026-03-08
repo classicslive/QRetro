@@ -498,6 +498,7 @@ QRetro::QRetro(QWindow *parent, retro_hw_context_type format)
   initVideo(format);
 
   m_Location = new QRetroLocation(this);
+  m_Message  = new QRetroMessage(this);
 
   setLanguage(qt2lr_language_system());
   setPreferredRenderer(format);

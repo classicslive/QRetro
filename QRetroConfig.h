@@ -69,6 +69,7 @@ private:
   bool           m_IntegerScaling = false;
   bool           m_BilinearFilter = true;
   bool           m_AudioEnabled   = true;
+  float          m_AudioVolume   = 1.0f;
 
   bool  m_SpoofAccelEnabled = false;
   float m_SpoofAccel[3]     = {0, 0, 0};
