@@ -32,9 +32,17 @@ long long unsigned QRetro::getCurrentFramebuffer(void)
 #if QRETRO_HAVE_OPENGL
   m_FboRequestedThisFrame = true;
 
-  /* Create framebuffer if it is invalid or null */
-  if ((!m_OpenGlFbo || m_OpenGlFbo->size() != m_BaseRect.size()) &&
-      !m_BaseRect.size().isEmpty())
+  /**
+   * Create framebuffer if it is invalid or null.
+   * The FBO must be at least max_width x max_height so cores that render
+   * variable-size frames within a larger buffer can do so safely.
+   */
+  auto &geom = m_Core.av_info.geometry;
+  QSize fboSize = (geom.max_width > 0 && geom.max_height > 0)
+    ? QSize(static_cast<int>(geom.max_width), static_cast<int>(geom.max_height))
+    : m_BaseRect.size();
+
+  if ((!m_OpenGlFbo || m_OpenGlFbo->size() != fboSize) && !fboSize.isEmpty())
   {
     if (m_OpenGlFbo)
       delete m_OpenGlFbo;
@@ -48,7 +56,7 @@ long long unsigned QRetro::getCurrentFramebuffer(void)
     else
       format.setAttachment(QOpenGLFramebufferObject::NoAttachment);
 
-    m_OpenGlFbo = new QOpenGLFramebufferObject(m_BaseRect.size(), format);
+    m_OpenGlFbo = new QOpenGLFramebufferObject(fboSize, format);
   }
 
   if (m_OpenGlFbo && !m_ImageDrawing && m_OpenGlFbo->isValid() && !m_OpenGlFbo->isBound())
@@ -732,8 +740,10 @@ void QRetro::timing()
       if (surfaceType() == QSurface::OpenGLSurface && m_OpenGlContextCore && m_Rect.isValid())
       {
         int h    = size().height();
-        int sw   = m_BaseRect.width();
-        int sh   = m_BaseRect.height();
+        /* Use the actual rendered frame dimensions reported by video_refresh.
+         * Falls back to base geometry if video_refresh hasn't fired yet. */
+        int sw   = (m_VideoWidth  > 0) ? static_cast<int>(m_VideoWidth)  : m_BaseRect.width();
+        int sh   = (m_VideoHeight > 0) ? static_cast<int>(m_VideoHeight) : m_BaseRect.height();
         int dx0  = m_Rect.x();
         int dy0  = h - m_Rect.y() - m_Rect.height();
         int dx1  = m_Rect.x() + m_Rect.width();
