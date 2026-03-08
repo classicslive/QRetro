@@ -341,6 +341,42 @@ int lr2qt_keyboard(retro_key key)
     return Qt::Key_PowerOff;
   case RETROK_UNDO:
     return Qt::Key_Undo;
+  case RETROK_BROWSER_BACK:
+    return Qt::Key_Back;
+  case RETROK_BROWSER_FORWARD:
+    return Qt::Key_Forward;
+  case RETROK_BROWSER_REFRESH:
+    return Qt::Key_Refresh;
+  case RETROK_BROWSER_STOP:
+    return Qt::Key_Stop;
+  case RETROK_BROWSER_SEARCH:
+    return Qt::Key_Search;
+  case RETROK_BROWSER_FAVORITES:
+    return Qt::Key_Favorites;
+  case RETROK_BROWSER_HOME:
+    return Qt::Key_HomePage;
+  case RETROK_VOLUME_MUTE:
+    return Qt::Key_VolumeMute;
+  case RETROK_VOLUME_DOWN:
+    return Qt::Key_VolumeDown;
+  case RETROK_VOLUME_UP:
+    return Qt::Key_VolumeUp;
+  case RETROK_MEDIA_NEXT:
+    return Qt::Key_MediaNext;
+  case RETROK_MEDIA_PREV:
+    return Qt::Key_MediaPrevious;
+  case RETROK_MEDIA_STOP:
+    return Qt::Key_MediaStop;
+  case RETROK_MEDIA_PLAY_PAUSE:
+    return Qt::Key_MediaPlay;
+  case RETROK_LAUNCH_MAIL:
+    return Qt::Key_LaunchMail;
+  case RETROK_LAUNCH_MEDIA:
+    return Qt::Key_LaunchMedia;
+  case RETROK_LAUNCH_APP1:
+    return Qt::Key_Launch1;
+  case RETROK_LAUNCH_APP2:
+    return Qt::Key_Launch2;
 
   /** @todo These keys are currently unsupported in both functions. */
   case RETROK_KP0:
@@ -606,9 +642,45 @@ retro_key qt2lr_keyboard(int key)
     return RETROK_POWER;
   case Qt::Key_Undo:
     return RETROK_UNDO;
-  default:
-    return RETROK_UNKNOWN;
+  case Qt::Key_Back:
+    return RETROK_BROWSER_BACK;
+  case Qt::Key_Forward:
+    return RETROK_BROWSER_FORWARD;
+  case Qt::Key_Refresh:
+    return RETROK_BROWSER_REFRESH;
+  case Qt::Key_Stop:
+    return RETROK_BROWSER_STOP;
+  case Qt::Key_Search:
+    return RETROK_BROWSER_SEARCH;
+  case Qt::Key_Favorites:
+    return RETROK_BROWSER_FAVORITES;
+  case Qt::Key_HomePage:
+    return RETROK_BROWSER_HOME;
+  case Qt::Key_VolumeMute:
+    return RETROK_VOLUME_MUTE;
+  case Qt::Key_VolumeDown:
+    return RETROK_VOLUME_DOWN;
+  case Qt::Key_VolumeUp:
+    return RETROK_VOLUME_UP;
+  case Qt::Key_MediaNext:
+    return RETROK_MEDIA_NEXT;
+  case Qt::Key_MediaPrevious:
+    return RETROK_MEDIA_PREV;
+  case Qt::Key_MediaStop:
+    return RETROK_MEDIA_STOP;
+  case Qt::Key_MediaPlay:
+    return RETROK_MEDIA_PLAY_PAUSE;
+  case Qt::Key_LaunchMail:
+    return RETROK_LAUNCH_MAIL;
+  case Qt::Key_LaunchMedia:
+    return RETROK_LAUNCH_MEDIA;
+  case Qt::Key_Launch1:
+    return RETROK_LAUNCH_APP1;
+  case Qt::Key_Launch2:
+    return RETROK_LAUNCH_APP2;
   }
+
+  return RETROK_UNKNOWN;
 }
 
 /* TODO: Caps lock, numlock, etc */
