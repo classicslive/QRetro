@@ -107,6 +107,16 @@ public:
   void setVideoSize(unsigned width, unsigned height) { m_VideoWidth = width; m_VideoHeight = height; }
 
   /**
+   * Returns the FBO for the core to write to.
+   */
+  long long unsigned glGetCurrentFramebuffer(void);
+
+  /**
+   * Returns the function pointer for a given OpenGL symbol.
+   */
+  void* glGetProcAddress(QThread *caller, const char *sym);
+
+  /**
    * Returns the libretro pixel format last reported by the core via
    * RETRO_ENVIRONMENT_SET_PIXEL_FORMAT.
    * @return The retro_pixel_format, or RETRO_PIXEL_FORMAT_UNKNOWN if not set.
@@ -130,13 +140,6 @@ public:
   void setPixelFormat(QImage::Format format);
 
   void setRotation(const unsigned degrees);
-
-  long long unsigned getCurrentFramebuffer();
-
-  /**
-   * Returns the function pointer for a given OpenGL symbol.
-   **/
-  void* getProcAddress(QThread *caller, const char *sym);
 
   /**
    * Returns whether or not the core reports to support starting without any
@@ -372,6 +375,9 @@ public:
    */
   bool hasInputPollHandler() { return m_InputPollHandler != nullptr; }
 
+  bool inputPrePolled(void) const { return m_InputPrePolled; }
+  void clearInputPrePolled(void)  { m_InputPrePolled = false; }
+
   /**
    * Installs a custom handler for polling inputs. The core will then call this
    * function during retro_run instead of using QRetro's built-in gamepad
@@ -467,6 +473,7 @@ private:
   QRetroDevicePower m_DevicePower;
   QRetroDirectories m_Directories;
   QRetroInput m_Input;
+  QRetroInputBackend *m_InputBackend = nullptr;
   QRetroLed m_Led;
   QRetroLog m_Log;
   QRetroMessage *m_Message = nullptr;
@@ -629,9 +636,16 @@ private:
   QOpenGLFramebufferObject *m_OpenGlFbo = nullptr;
   QOpenGLFramebufferObject *m_OpenGlFboIntermediate = nullptr;
   bool m_FboRequestedThisFrame = false;
+  using SwapIntervalFn = int (*)(int);
+  SwapIntervalFn m_pfnSwapInterval = nullptr;
+  bool m_SwapIntervalFetched = false;
 #endif
   bool m_ImageDrawing = false;
   bool m_ImageRendering = false;
+  /* Set to true when input has been pre-polled right after vsync.
+   * core_input_poll skips its re-poll when this flag is set so the
+   * vsync-fresh state is used without any additional delay. */
+  bool m_InputPrePolled = false;
 
   bool (*m_InputPollHandler)(void) = nullptr;
   int16_t (*m_InputStateHandler)(unsigned, unsigned, unsigned, unsigned) = nullptr;

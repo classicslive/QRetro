@@ -21,28 +21,27 @@
 #include "QRetro.h"
 #include "QRetroCommon.h"
 #include "QRetroEnvironment.h"
+#include "QRetroInputBackendSDL3.h"
 
 using namespace std;
 using namespace std::chrono;
 
 static int mousewheel[2];
 
-long long unsigned QRetro::getCurrentFramebuffer(void)
+long long unsigned QRetro::glGetCurrentFramebuffer(void)
 {
 #if QRETRO_HAVE_OPENGL
-  m_FboRequestedThisFrame = true;
-
   /**
    * Create framebuffer if it is invalid or null.
    * The FBO must be at least max_width x max_height so cores that render
    * variable-size frames within a larger buffer can do so safely.
    */
-  auto &geom = m_Core.av_info.geometry;
-  QSize fboSize = (geom.max_width > 0 && geom.max_height > 0)
-    ? QSize(static_cast<int>(geom.max_width), static_cast<int>(geom.max_height))
-    : m_BaseRect.size();
+  QSize fbo_size = QSize(static_cast<int>(m_Core.av_info.geometry.max_width),
+                         static_cast<int>(m_Core.av_info.geometry.max_height));
 
-  if ((!m_OpenGlFbo || m_OpenGlFbo->size() != fboSize) && !fboSize.isEmpty())
+  m_FboRequestedThisFrame = true;
+
+  if ((!m_OpenGlFbo || m_OpenGlFbo->size() != fbo_size) && !fbo_size.isEmpty())
   {
     if (m_OpenGlFbo)
       delete m_OpenGlFbo;
@@ -56,20 +55,51 @@ long long unsigned QRetro::getCurrentFramebuffer(void)
     else
       format.setAttachment(QOpenGLFramebufferObject::NoAttachment);
 
-    m_OpenGlFbo = new QOpenGLFramebufferObject(fboSize, format);
+    m_OpenGlFbo = new QOpenGLFramebufferObject(fbo_size, format);
   }
 
+  /*
   if (m_OpenGlFbo && !m_ImageDrawing && m_OpenGlFbo->isValid() && !m_OpenGlFbo->isBound())
   {
     m_ImageRendering = true;
     m_Image = m_OpenGlFbo->toImage(m_Core.hw_render.bottom_left_origin);
     m_ImageRendering = false;
   }
+  */
 
   return m_OpenGlFbo ? m_OpenGlFbo->handle() : 0;
 #else
   return 0;
 #endif
+}
+
+void* QRetro::glGetProcAddress(QThread *caller, const char *symbol)
+{
+#if QRETRO_HAVE_OPENGL
+  if (!m_OpenGlContextCore)
+  {
+    m_OpenGlContextCore = new QOpenGLContext();
+    m_OpenGlContextCore->moveToThread(caller);
+    m_OpenGlContextCore->setFormat(requestedFormat());
+    m_OpenGlContextCore->create();
+    m_OpenGlContextCore->makeCurrent(this);
+    initializeOpenGLFunctions();
+  }
+
+  if (m_OpenGlContextCore)
+  {
+    void *ptr = nullptr;
+
+    ptr = reinterpret_cast<void*>(m_OpenGlContextCore->getProcAddress(symbol));
+
+    return ptr;
+  }
+#else
+  Q_UNUSED(caller)
+  Q_UNUSED(symbol)
+#endif
+
+  return nullptr;
 }
 
 void QRetro::updateScaling()
@@ -161,6 +191,9 @@ bool QRetro::event(QEvent *ev)
     {
       QPainter painter;
 
+      if (!isExposed())
+        return false;
+
       if (surfaceType() == QSurface::RasterSurface)
       {
         /* Cancel repaint if a HW accelerated core is still copying its FBO */
@@ -239,9 +272,9 @@ void QRetro::setImagePtr(const void *data, unsigned width, unsigned height,
   if (!isExposed())
     return;
 
-  /* RETRO_HW_FRAME_BUFFER_VALID generates a warning, so use this instead. */
-  if (data && data != reinterpret_cast<void*>(-1))
+  if (data && data != reinterpret_cast<void*>(RETRO_HW_FRAME_BUFFER_VALID))
   {
+    /* Data is a pointer to a new frame image, so use it */
     m_Image = QImage(
       reinterpret_cast<const uchar*>(data),
       static_cast<int>(width),
@@ -249,26 +282,107 @@ void QRetro::setImagePtr(const void *data, unsigned width, unsigned height,
       static_cast<int>(pitch),
       m_PixelFormat
     );
+    /* Update on the GUI thread */
+    QMetaObject::invokeMethod(this, [this]() { requestUpdate(); },
+                              Qt::QueuedConnection);
+
+    return;
   }
-  requestUpdate();
+#if QRETRO_HAVE_OPENGL
+  else if (surfaceType() == QSurface::OpenGLSurface && m_OpenGlContextCore && m_Rect.isValid())
+  {
+    int h   = size().height();
+    int sw  = (width  > 0) ? static_cast<int>(width)  : m_BaseRect.width();
+    int sh  = (height > 0) ? static_cast<int>(height) : m_BaseRect.height();
+    int dx0 = m_Rect.x();
+    int dy0 = h - m_Rect.y() - m_Rect.height();
+    int dx1 = m_Rect.x() + m_Rect.width();
+    int dy1 = h - m_Rect.y();
+
+    auto *ef = m_OpenGlContextCore->extraFunctions();
+    GLenum filter = m_BilinearFilter ? GL_LINEAR : GL_NEAREST;
+    if (ef && sw > 0 && sh > 0)
+    {
+      /* Some cores will scissor to their internal resolution, disable that */
+      glDisable(GL_SCISSOR_TEST);
+
+      if (m_FboRequestedThisFrame && m_OpenGlFbo && m_OpenGlFbo->isValid())
+      {
+        /* Core rendered into our FBO via get_current_framebuffer.
+         * Blit it directly to the window at the scaled rect. */
+        ef->glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+        glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT);
+        ef->glBindFramebuffer(GL_READ_FRAMEBUFFER, m_OpenGlFbo->handle());
+        if (m_Core.hw_render.bottom_left_origin)
+          ef->glBlitFramebuffer(0, 0, sw, sh, dx0, dy0, dx1, dy1,
+                                GL_COLOR_BUFFER_BIT, filter);
+        else
+          ef->glBlitFramebuffer(0, sh, sw, 0, dx0, dy0, dx1, dy1,
+                                GL_COLOR_BUFFER_BIT, filter);
+      }
+      else
+      {
+        /* Core rendered directly to FBO 0 at native size (bottom-left).
+         * Two-pass: copy native region to intermediate FBO, then blit scaled. */
+        if (!m_OpenGlFboIntermediate ||
+            m_OpenGlFboIntermediate->size() != m_BaseRect.size())
+        {
+          delete m_OpenGlFboIntermediate;
+          m_OpenGlFboIntermediate = new QOpenGLFramebufferObject(m_BaseRect.size());
+        }
+        if (m_OpenGlFboIntermediate->isValid())
+        {
+          /* Pass 1: 1:1 copy from FBO 0 → intermediate FBO (always nearest) */
+          ef->glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+          ef->glBindFramebuffer(GL_DRAW_FRAMEBUFFER, m_OpenGlFboIntermediate->handle());
+          ef->glBlitFramebuffer(0, 0, sw, sh, 0, 0, sw, sh,
+                                GL_COLOR_BUFFER_BIT, GL_NEAREST);
+
+          /* Pass 2: blit intermediate FBO → FBO 0 at scaled rect */
+          ef->glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+          glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+          glClear(GL_COLOR_BUFFER_BIT);
+          ef->glBindFramebuffer(GL_READ_FRAMEBUFFER, m_OpenGlFboIntermediate->handle());
+          ef->glBlitFramebuffer(0, 0, sw, sh, dx0, dy0, dx1, dy1,
+                                GL_COLOR_BUFFER_BIT, filter);
+        }
+      }
+    }
+
+    /* Toggle vsync based on fast-forward state, then present. */
+    if (m_pfnSwapInterval)
+      m_pfnSwapInterval(m_FastForwarding ? 0 : 1);
+    m_OpenGlContextCore->swapBuffers(this);
+  }
+#endif
+  /* Pre-poll input immediately after vsync */
+  m_Input.poll();
+  m_InputPrePolled = true;
+
+  QMetaObject::invokeMethod(this, [this]() { requestUpdate(); },
+                            Qt::QueuedConnection);
 }
 
 static void core_input_poll(void)
 {
   auto _this = _qrthis();
 
-  if (_this)
-    _this->input()->poll();
+  if (!_this)
+    return;
 
   /* If a custom input poll handler has been installed, use that instead */
-  if (_this && _this->hasInputPollHandler())
+  if (_this->hasInputPollHandler())
   {
     _this->runInputPollHandler();
     return;
   }
+  else if (_this->inputPrePolled())
+    _this->clearInputPrePolled();
+  else
+    _this->input()->poll();
 
-  if (_this)
-    _this->updateMouse();
+  _this->updateMouse();
 }
 
 void QRetro::updateMouse(void)
@@ -500,6 +614,21 @@ QRetro::QRetro(QWindow *parent, retro_hw_context_type format)
   m_Location = new QRetroLocation(this);
   m_Message  = new QRetroMessage(this);
 
+#if QRETRO_HAVE_SDL3
+  m_InputBackend = new QRetroInputBackendSDL3(this);
+#elif QRETRO_HAVE_GAMEPAD
+  m_InputBackend = new QRetroInputBackendQGamepad(this);
+#endif
+  if (m_InputBackend)
+  {
+    m_InputBackend->init(m_Input.joypads(), m_Input.maxUsers());
+    m_Input.setBackend(m_InputBackend);
+    /* Keyboard macros actively clear buttons each frame when their key isn't
+     * held, which overwrites state set by the hardware backend. Disable them
+     * so the backend has full control; re-enable with setUseMaps(true). */
+    m_Input.setUseMaps(false);
+  }
+
   setLanguage(qt2lr_language_system());
   setPreferredRenderer(format);
 
@@ -598,13 +727,8 @@ void QRetro::timing()
   frameTimer.start();
 
 #if QRETRO_HAVE_OPENGL
-  /* Platform function to toggle vsync on the fly.
-   * glXSwapIntervalMESA (Linux/GLX) and wglSwapIntervalEXT (Windows/WGL)
-   * share the same single-int signature and can be called while the context
-   * is current without recreating it.  Looked up once after first makeCurrent. */
-  using SwapIntervalFn = int (*)(int);
-  SwapIntervalFn pfnSwapInterval = nullptr;
-  bool swapIntervalFetched = false;
+  m_pfnSwapInterval    = nullptr;
+  m_SwapIntervalFetched = false;
 #endif
 
   /* Map our emulation thread to this instance of a QRetro object */
@@ -718,12 +842,12 @@ void QRetro::timing()
         m_OpenGlContextCore->makeCurrent(this);
         m_FboRequestedThisFrame = false;
 
-        if (!swapIntervalFetched)
+        if (!m_SwapIntervalFetched)
         {
-          swapIntervalFetched = true;
+          m_SwapIntervalFetched = true;
           auto p = m_OpenGlContextCore->getProcAddress("glXSwapIntervalMESA");
           if (!p) p = m_OpenGlContextCore->getProcAddress("wglSwapIntervalEXT");
-          pfnSwapInterval = reinterpret_cast<SwapIntervalFn>(p);
+          m_pfnSwapInterval = reinterpret_cast<SwapIntervalFn>(p);
         }
       }
 #endif
@@ -738,89 +862,13 @@ void QRetro::timing()
       emit onFrame();
 
 #if QRETRO_HAVE_OPENGL
-      if (surfaceType() == QSurface::OpenGLSurface && m_OpenGlContextCore && m_Rect.isValid())
+      if (surfaceType() == QSurface::OpenGLSurface && m_OpenGlContextCore && !m_Active)
       {
-        int h    = size().height();
-        /* Use the actual rendered frame dimensions reported by video_refresh.
-         * Falls back to base geometry if video_refresh hasn't fired yet. */
-        int sw   = (m_VideoWidth  > 0) ? static_cast<int>(m_VideoWidth)  : m_BaseRect.width();
-        int sh   = (m_VideoHeight > 0) ? static_cast<int>(m_VideoHeight) : m_BaseRect.height();
-        int dx0  = m_Rect.x();
-        int dy0  = h - m_Rect.y() - m_Rect.height();
-        int dx1  = m_Rect.x() + m_Rect.width();
-        int dy1  = h - m_Rect.y();
-
-        auto *ef = m_OpenGlContextCore->extraFunctions();
-        GLenum filter = m_BilinearFilter ? GL_LINEAR : GL_NEAREST;
-        if (ef && sw > 0 && sh > 0)
-        {
-          /* Some cores will scissor to their internal resolution, disable that */
-          glDisable(GL_SCISSOR_TEST);
-
-          if (m_FboRequestedThisFrame && m_OpenGlFbo && m_OpenGlFbo->isValid())
-          {
-            /* Core rendered into our FBO via get_current_framebuffer.
-             * Blit it directly to the window at the scaled rect. */
-            ef->glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-            glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-            glClear(GL_COLOR_BUFFER_BIT);
-            ef->glBindFramebuffer(GL_READ_FRAMEBUFFER, m_OpenGlFbo->handle());
-            if (m_Core.hw_render.bottom_left_origin)
-              ef->glBlitFramebuffer(0, 0, sw, sh, dx0, dy0, dx1, dy1,
-                                    GL_COLOR_BUFFER_BIT, filter);
-            else
-              ef->glBlitFramebuffer(0, sh, sw, 0, dx0, dy0, dx1, dy1,
-                                    GL_COLOR_BUFFER_BIT, filter);
-          }
-          else
-          {
-            /* Core rendered directly to FBO 0 at native size (bottom-left).
-             * Two-pass: copy native region to intermediate FBO, then blit scaled. */
-            if (!m_OpenGlFboIntermediate ||
-                m_OpenGlFboIntermediate->size() != m_BaseRect.size())
-            {
-              delete m_OpenGlFboIntermediate;
-              m_OpenGlFboIntermediate =
-                new QOpenGLFramebufferObject(m_BaseRect.size());
-            }
-            if (m_OpenGlFboIntermediate->isValid())
-            {
-              /* Pass 1: 1:1 copy from FBO 0 → intermediate FBO (always nearest) */
-              ef->glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
-              ef->glBindFramebuffer(GL_DRAW_FRAMEBUFFER,
-                                    m_OpenGlFboIntermediate->handle());
-              ef->glBlitFramebuffer(0, 0, sw, sh, 0, 0, sw, sh,
-                                    GL_COLOR_BUFFER_BIT, GL_NEAREST);
-
-              /* Pass 2: blit intermediate FBO → FBO 0 at scaled rect */
-              ef->glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-              glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-              glClear(GL_COLOR_BUFFER_BIT);
-              ef->glBindFramebuffer(GL_READ_FRAMEBUFFER,
-                                    m_OpenGlFboIntermediate->handle());
-              ef->glBlitFramebuffer(0, 0, sw, sh, dx0, dy0, dx1, dy1,
-                                    GL_COLOR_BUFFER_BIT, filter);
-            }
-          }
-        }
-
-        if (!m_Active)
-        {
-          m_OpenGlContextCore->doneCurrent();
-          /* Move the context back to the main thread while we are still on
-           * the timing thread (its current owner), so the main thread can
-           * safely make it current and delete it without timer warnings. */
-          m_OpenGlContextCore->moveToThread(QCoreApplication::instance()->thread());
-        }
-        else
-        {
-          /* Toggle vsync based on fast-forward state so swapBuffers never
-           * blocks on vsync during fast-forward, while still presenting
-           * every frame (frames would freeze if we skipped the swap). */
-          if (pfnSwapInterval)
-            pfnSwapInterval(m_FastForwarding ? 0 : 1);
-          m_OpenGlContextCore->swapBuffers(this);
-        }
+        m_OpenGlContextCore->doneCurrent();
+        /* Move the context back to the main thread while we are still on
+         * the timing thread (its current owner), so the main thread can
+         * safely make it current and delete it without timer warnings. */
+        m_OpenGlContextCore->moveToThread(QCoreApplication::instance()->thread());
       }
 #endif
 
@@ -835,8 +883,8 @@ void QRetro::timing()
     m_Audio->playFrame();
 
 #if QRETRO_HAVE_OPENGL
-    /* At normal speed, swapBuffers already provided vsync pacing — no sleep needed.
-     * When fast-forwarding, swap is skipped above, so fall through to the sleep
+    /* At normal speed, swapBuffers in setImagePtr already provided vsync pacing — no sleep needed.
+     * When fast-forwarding, vsync is disabled so fall through to the sleep
      * logic below which respects m_FastForwardRatio. */
     if (surfaceType() == QSurface::OpenGLSurface && m_OpenGlContextCore && !m_FastForwarding)
       continue;
@@ -864,6 +912,10 @@ void QRetro::timing()
          * semaphore. Wait for it so emulation is coupled to the display rate. */
         m_FramePresented.tryAcquire(1, ms + 4);
       }
+      /* Pre-poll input immediately after the frame boundary (sleep or vsync)
+       * so core_input_poll gets the freshest state with minimal extra delay. */
+      m_Input.poll();
+      m_InputPrePolled = true;
     }
   }
 
@@ -981,7 +1033,7 @@ void QRetro::keyPressEvent(QKeyEvent *event)
     case Qt::Key_X:
       stateLoad();
       break;
-    case Qt::Key_9:
+    case Qt::Key_T:
       setRotation(m_Rotation + 90);
       break;
     case Qt::Key_F1:
@@ -1091,6 +1143,16 @@ bool QRetro::startCore(void)
     m_Frames = 0;
     m_SramReady = false;
     m_Active = true;
+
+    /* Paint black immediately so the window doesn't show garbage
+       from whatever is underneath while the core initialises. */
+    if (size().isValid())
+    {
+      m_Image = QImage(size(), m_PixelFormat);
+      m_Image.fill(Qt::black);
+    }
+    QMetaObject::invokeMethod(this, [this]() { requestUpdate(); }, Qt::QueuedConnection);
+
     m_ThreadSaving = QThread::create([this]{saving();});
     m_ThreadSaving->start();
 
@@ -1217,35 +1279,6 @@ bool QRetro::loadCore(const char *path)
   return true;
 }
 
-void* QRetro::getProcAddress(QThread *caller, const char *symbol)
-{
-#if QRETRO_HAVE_OPENGL
-  if (!m_OpenGlContextCore)
-  {
-    m_OpenGlContextCore = new QOpenGLContext();
-    m_OpenGlContextCore->moveToThread(caller);
-    m_OpenGlContextCore->setFormat(requestedFormat());
-    m_OpenGlContextCore->create();
-    m_OpenGlContextCore->makeCurrent(this);
-    initializeOpenGLFunctions();
-  }
-
-  if (m_OpenGlContextCore)
-  {
-    void *ptr = nullptr;
-
-    ptr = reinterpret_cast<void*>(m_OpenGlContextCore->getProcAddress(symbol));
-
-    return ptr;
-  }
-#else
-  Q_UNUSED(caller)
-  Q_UNUSED(symbol)
-#endif
-
-  return nullptr;
-}
-
 bool QRetro::initVideo(retro_hw_context_type format)
 {
   /* Discard any semaphore tokens accumulated under the previous backend.
@@ -1291,7 +1324,14 @@ bool QRetro::initVideo(retro_hw_context_type format)
     return false;
   }
 
-  connect(this, SIGNAL(onVideoRefresh(const void*, unsigned, unsigned, unsigned)), this, SLOT(setImagePtr(const void*, unsigned, unsigned, unsigned)));
+  /* DirectConnection: setImagePtr must run on the timing thread so that
+   * m_OpenGlContextCore (current only on that thread) is valid for the blit.
+   * UniqueConnection: initVideo can be called multiple times (e.g. switching
+   * video backends), so guard against duplicate connections that would cause
+   * setImagePtr — and thus swapBuffers — to fire more than once per frame. */
+  connect(this, SIGNAL(onVideoRefresh(const void*, unsigned, unsigned, unsigned)),
+          this, SLOT(setImagePtr(const void*, unsigned, unsigned, unsigned)),
+          static_cast<Qt::ConnectionType>(Qt::DirectConnection | Qt::UniqueConnection));
 
   return true;
 }

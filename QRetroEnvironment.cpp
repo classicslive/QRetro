@@ -48,7 +48,7 @@ static long long unsigned core_hw_get_current_framebuffer()
   auto _this = _qrthis();
 
   if (_this && _this->core()->hw_render.context_type)
-    return _this->getCurrentFramebuffer();
+    return _this->glGetCurrentFramebuffer();
 
   return 0;
 }
@@ -58,7 +58,7 @@ static void* core_hw_get_proc_address(const char *sym)
   auto _this = _qrthis();
 
   if (_this)
-    return _this->getProcAddress(QThread::currentThread(), sym);
+    return _this->glGetProcAddress(QThread::currentThread(), sym);
 
   return nullptr;
 }
@@ -130,12 +130,15 @@ static void core_log(enum retro_log_level level, const char *fmt, ...)
   _this->log()->push(level, final_string);
 }
 
-/* TODO */
 static bool core_rumble(unsigned int port, retro_rumble_effect effect,
   unsigned short strength)
 {
-  Q_UNUSED(port) Q_UNUSED(effect) Q_UNUSED(strength)
-  return true;
+  auto _this = _qrthis();
+
+  if (!_this)
+    return false;
+
+  return _this->input()->setRumble(port, effect, strength);
 }
 
 static bool core_sensor_set_state(unsigned port, retro_sensor_action action,
@@ -145,8 +148,17 @@ static bool core_sensor_set_state(unsigned port, retro_sensor_action action,
 
   if (!_this)
     return false;
-  else
-    return _this->sensors()->setState(port, action, rate);
+
+  // Try the input backend first (e.g. SDL3 gamepad IMU sensors).
+  bool backendOk = _this->input()->setSensorState(port, action, rate);
+
+  // Always also inform platform sensors so they are primed as a fallback.
+  // If the backend later loses its sensor feed (e.g. after a context reset),
+  // backendHandlesSensor() will return false and getSensorInput() will
+  // transparently return platform sensor data instead.
+  bool sensorsOk = _this->sensors()->setState(port, action, rate);
+
+  return backendOk || sensorsOk;
 }
 
 static float core_sensor_get_input(unsigned port, unsigned id)
@@ -154,9 +166,13 @@ static float core_sensor_get_input(unsigned port, unsigned id)
   auto _this = _qrthis();
 
   if (!_this)
-    return false;
-  else
-    return _this->sensors()->getInput(port, id);
+    return 0.0f;
+
+  // Use backend sensor data if the backend accepted the enable call.
+  if (_this->input()->backendHandlesSensor(port, id))
+    return _this->input()->getSensorInput(port, id);
+
+  return _this->sensors()->getInput(port, id);
 }
 
 static void core_led_set_state(int led, int state)
