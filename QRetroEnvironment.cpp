@@ -293,8 +293,10 @@ void core_video_refresh(const void *data, unsigned width,
 bool core_environment(unsigned cmd, void *data)
 {
   auto _this = _qrthis();
-  bool experimental = cmd & RETRO_ENVIRONMENT_EXPERIMENTAL;
+  bool experimental = (cmd & RETRO_ENVIRONMENT_EXPERIMENTAL) ? true : false;
+  bool privated = (cmd & RETRO_ENVIRONMENT_PRIVATE) ? true : false;
   unsigned cmd_noflags = cmd & 0xFF;
+  unsigned cmd_dispatch = cmd & ~RETRO_ENVIRONMENT_PRIVATE;
 
   if (!_this)
   {
@@ -306,7 +308,7 @@ bool core_environment(unsigned cmd, void *data)
   if (!_this->environmentCallbackSupported(cmd_noflags))
     return false;
 
-  switch (cmd)
+  switch (cmd_dispatch)
   {
   /* 01 */
   case RETRO_ENVIRONMENT_SET_ROTATION:
@@ -919,10 +921,11 @@ bool core_environment(unsigned cmd, void *data)
   // case RETRO_ENVIRONMENT_GET_NETPLAY_CLIENT_INDEX:
 
   default:
-    qWarning("Unimplemented environment callback %u%s%s.",
-      cmd_noflags,
+    qWarning("Unimplemented environment callback %u (%08X)%s%s%s.",
+      cmd_noflags, cmd,
       cmd_noflags >= RETRO_ENVIRONMENT_SIZE ? " (above maximum)" : "",
-      experimental ? " (experimental)" : "");
+      experimental ? " (experimental)" : "",
+      privated ? " (private)" : "");
     return false;
   }
 
