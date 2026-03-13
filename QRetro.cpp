@@ -21,12 +21,14 @@
 #include "QRetro.h"
 #include "QRetroCommon.h"
 #include "QRetroEnvironment.h"
+#if QRETRO_HAVE_SDL3
 #include "QRetroInputBackendSDL3.h"
+#elif
+#include "QRetroInputBackendQGamepad.h"
+#endif
 
 using namespace std;
 using namespace std::chrono;
-
-static int mousewheel[2];
 
 long long unsigned QRetro::glGetCurrentFramebuffer(void)
 {
@@ -76,16 +78,6 @@ long long unsigned QRetro::glGetCurrentFramebuffer(void)
 void* QRetro::glGetProcAddress(QThread *caller, const char *symbol)
 {
 #if QRETRO_HAVE_OPENGL
-  if (!m_OpenGlContextCore)
-  {
-    m_OpenGlContextCore = new QOpenGLContext();
-    m_OpenGlContextCore->moveToThread(caller);
-    m_OpenGlContextCore->setFormat(requestedFormat());
-    m_OpenGlContextCore->create();
-    m_OpenGlContextCore->makeCurrent(this);
-    initializeOpenGLFunctions();
-  }
-
   if (m_OpenGlContextCore)
   {
     void *ptr = nullptr;
@@ -457,13 +449,13 @@ static int16_t core_input_state(unsigned port, unsigned device, unsigned index,
     case RETRO_DEVICE_ID_MOUSE_BUTTON_5:
       return QApplication::mouseButtons().testFlag(Qt::ExtraButton2);
     case RETRO_DEVICE_ID_MOUSE_WHEELUP:
-      return mousewheel[0] > 0;
+      return m_Mousewheel[0] > 0;
     case RETRO_DEVICE_ID_MOUSE_WHEELDOWN:
-      return mousewheel[0] < 0;
+      return m_Mousewheel[0] < 0;
     case RETRO_DEVICE_ID_MOUSE_HORIZ_WHEELUP:
-      return mousewheel[1] > 0;
+      return m_Mousewheel[1] > 0;
     case RETRO_DEVICE_ID_MOUSE_HORIZ_WHEELDOWN:
-      return mousewheel[1] < 0;
+      return m_Mousewheel[1] < 0;
     default:
       return 0;
     }
@@ -1354,6 +1346,6 @@ void QRetro::setPixelFormat(QImage::Format format)
 
 void QRetro::wheelEvent(QWheelEvent *event)
 {
-  mousewheel[0] = event->angleDelta().y() / 8;
-  mousewheel[1] = event->angleDelta().x() / 8;
+  m_Mousewheel[0] = event->angleDelta().y() / 8;
+  m_Mousewheel[1] = event->angleDelta().x() / 8;
 }

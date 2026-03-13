@@ -543,6 +543,9 @@ private:
   /// The previous mouse position, used to calculate delta
   QPoint m_MousePosition;
 
+  /// Vertical and horizontal mouse wheel deltas since last input poll
+  int m_Mousewheel[2] = {};
+
   /// Whether the user has paused the frontend. Will halt calls to retro_run
   bool m_Paused = false;
 
