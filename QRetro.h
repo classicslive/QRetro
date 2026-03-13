@@ -534,7 +534,7 @@ private:
   QString m_CoreTempPath;
 
   /// The minimum log level for messages to be emitted as signals
-  retro_log_level m_LogLevel = RETRO_LOG_ERROR;
+  retro_log_level m_LogLevel = RETRO_LOG_DEBUG;
 
   /// The memory map reported by the core
   retro_memory_map m_MemoryMaps = { nullptr, 0 };

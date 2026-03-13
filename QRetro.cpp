@@ -1255,10 +1255,9 @@ bool QRetro::loadCore(const char *path)
   }
 
 #ifdef _WIN32
-  /* TODO: Will this work on paths with unicode characters? */
-  m_Library = LoadLibraryA(m_CoreTempPath.toLocal8Bit().constData());
+  m_Library = LoadLibraryW(reinterpret_cast<LPCWSTR>(m_CoreTempPath.utf16()));
 #else
-  m_Library = dlopen(m_CoreTempPath.toLocal8Bit().constData(), RTLD_LAZY);
+  m_Library = dlopen(m_CoreTempPath.toUtf8().constData(), RTLD_LAZY);
 #endif
 
   if (!m_Library)
@@ -1337,7 +1336,7 @@ bool QRetro::initVideo(retro_hw_context_type format)
    * setImagePtr — and thus swapBuffers — to fire more than once per frame. */
   connect(this, SIGNAL(onVideoRefresh(const void*, unsigned, unsigned, unsigned)),
           this, SLOT(setImagePtr(const void*, unsigned, unsigned, unsigned)),
-          static_cast<Qt::ConnectionType>(int(Qt::DirectConnection) | int(Qt::UniqueConnection)));
+          static_cast<Qt::ConnectionType>(Qt::DirectConnection | Qt::UniqueConnection));
 
   return true;
 }
