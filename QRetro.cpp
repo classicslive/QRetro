@@ -23,7 +23,7 @@
 #include "QRetroEnvironment.h"
 #if QRETRO_HAVE_SDL3
 #include "QRetroInputBackendSDL3.h"
-#elif
+#elif QRETRO_HAVE_GAMEPAD
 #include "QRetroInputBackendQGamepad.h"
 #endif
 
