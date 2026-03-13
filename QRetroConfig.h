@@ -112,6 +112,11 @@ private:
   QLabel             *m_LedEmptyLabel  = nullptr;
   QMap<int, QLabel*>  m_LedLabels;
 
+  QFormLayout *m_MicForm       = nullptr;
+  QLabel      *m_MicEmptyLabel = nullptr;
+  QMap<retro_microphone_t*, QLabel*> m_MicStateLabels;
+  QMap<retro_microphone_t*, QLabel*> m_MicRateLabels;
+
   QLabel *m_MemDataPtrLabel[4]  = {nullptr, nullptr, nullptr, nullptr};
   QLabel *m_MemDataSizeLabel[4] = {nullptr, nullptr, nullptr, nullptr};
 

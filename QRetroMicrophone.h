@@ -1,6 +1,9 @@
 #ifndef QRETRO_MICROPHONE_H
 #define QRETRO_MICROPHONE_H
 
+#include <QList>
+#include <QString>
+
 #include "libretro.h"
 
 static_assert(RETRO_MICROPHONE_INTERFACE_VERSION == 1,
@@ -31,8 +34,13 @@ public:
 
   void setInterfaceVersion(unsigned version) { m_Version = version; }
 
+  QList<retro_microphone_t*> openMics() const { return m_OpenMics; }
+
+  QString deviceName() const;
+
 private:
   unsigned m_Version = RETRO_MICROPHONE_INTERFACE_VERSION;
+  QList<retro_microphone_t*> m_OpenMics;
 };
 
 #endif

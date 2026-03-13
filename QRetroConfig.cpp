@@ -174,6 +174,39 @@ QRetroConfig::QRetroConfig(QRetro *owner)
       if (m_LocationDistLabel)     m_LocationDistLabel->setText(dist(loc->distanceInterval()));
     }
 
+    if (m_MicForm)
+    {
+      int idx = 0;
+      for (auto *handle : m_Owner->microphone()->openMics())
+      {
+        retro_microphone_params_t params{};
+        bool active = m_Owner->microphone()->getState(handle);
+        unsigned rate = 0;
+        m_Owner->microphone()->getParams(handle, &params);
+        rate = params.rate;
+        QString rateStr = rate ? QString::number(rate) + tr(" Hz") : QStringLiteral("—");
+
+        if (!m_MicStateLabels.contains(handle))
+        {
+          auto *stateLabel = new QLabel(active ? tr("Recording") : tr("Stopped"));
+          auto *rateLabel  = new QLabel(rateStr);
+          m_MicStateLabels[handle] = stateLabel;
+          m_MicRateLabels[handle]  = rateLabel;
+          m_MicForm->addRow(tr("Instance %1 State").arg(idx + 1), stateLabel);
+          m_MicForm->addRow(tr("Instance %1 Rate").arg(idx + 1),  rateLabel);
+          if (m_MicEmptyLabel)
+            m_MicEmptyLabel->setVisible(false);
+        }
+        else
+        {
+          m_MicStateLabels[handle]->setText(active ? tr("Recording") : tr("Stopped"));
+          if (m_MicRateLabels.contains(handle))
+            m_MicRateLabels[handle]->setText(rateStr);
+        }
+        ++idx;
+      }
+    }
+
     if (m_LedForm)
     {
       for (auto &[idx, val] : m_Owner->led()->leds())
@@ -395,6 +428,10 @@ void QRetroConfig::update()
   m_LedForm       = nullptr;
   m_LedEmptyLabel = nullptr;
   m_LedLabels.clear();
+  m_MicForm       = nullptr;
+  m_MicEmptyLabel = nullptr;
+  m_MicStateLabels.clear();
+  m_MicRateLabels.clear();
   m_CoreAchievementsLabel   = nullptr;
   m_CorePerfLevelLabel      = nullptr;
   m_CorePixelFormatLabel    = nullptr;
@@ -969,6 +1006,55 @@ void QRetroConfig::update()
     pageLayout->addStretch();
   }
 
+  /* ── Microphone ─────────────────────────────────────────────── */
+  auto *micPage = new QWidget();
+  {
+    auto *pageLayout = new QVBoxLayout(micPage);
+    pageLayout->setContentsMargins(12, 12, 12, 12);
+    pageLayout->setSpacing(12);
+
+    auto *group = new QGroupBox(tr("Microphone"));
+    auto *form  = new QFormLayout(group);
+    form->setVerticalSpacing(8);
+
+    auto *deviceLabel = new QLabel(m_Owner->microphone()->deviceName());
+    deviceLabel->setTextInteractionFlags(Qt::TextSelectableByMouse);
+    form->addRow(tr("Input Device"), deviceLabel);
+
+    m_MicEmptyLabel = new QLabel(tr("No microphone instances are currently open."));
+    m_MicEmptyLabel->setWordWrap(true);
+    {
+      QFont f = m_MicEmptyLabel->font();
+      f.setItalic(true);
+      m_MicEmptyLabel->setFont(f);
+    }
+    m_MicEmptyLabel->setForegroundRole(QPalette::Dark);
+    form->addRow(m_MicEmptyLabel);
+
+    int idx = 0;
+    for (auto *handle : m_Owner->microphone()->openMics())
+    {
+      retro_microphone_params_t params{};
+      bool active = m_Owner->microphone()->getState(handle);
+      unsigned rate = 0;
+      m_Owner->microphone()->getParams(handle, &params);
+      rate = params.rate;
+
+      auto *stateLabel = new QLabel(active ? tr("Recording") : tr("Stopped"));
+      auto *rateLabel  = new QLabel(rate ? QString::number(rate) + tr(" Hz") : QStringLiteral("—"));
+      m_MicStateLabels[handle] = stateLabel;
+      m_MicRateLabels[handle]  = rateLabel;
+      form->addRow(tr("Instance %1 State").arg(idx + 1), stateLabel);
+      form->addRow(tr("Instance %1 Rate").arg(idx + 1),  rateLabel);
+      ++idx;
+    }
+    m_MicEmptyLabel->setVisible(m_MicStateLabels.isEmpty());
+    m_MicForm = form;
+
+    pageLayout->addWidget(group);
+    pageLayout->addStretch();
+  }
+
   /* ── Core Constants ─────────────────────────────────────────── */
   auto *coreConstPage = new QWidget();
   {
@@ -1348,6 +1434,7 @@ void QRetroConfig::update()
   addSidebarItem(tr("Sensors"));
   addSidebarItem(tr("Location"));
   addSidebarItem(tr("LED"));
+  addSidebarItem(tr("Microphone"));
 
   addDivider("DEVELOPER");
   addSidebarItem(tr("Core Constants"));
@@ -1369,6 +1456,7 @@ void QRetroConfig::update()
   stack->addWidget(makeScrollPage(sensorsPage));
   stack->addWidget(makeScrollPage(locationPage));
   stack->addWidget(makeScrollPage(ledPage));
+  stack->addWidget(makeScrollPage(micPage));
   stack->addWidget(makeScrollPage(coreConstPage));
   stack->addWidget(makeScrollPage(memPage));
   stack->addWidget(makeScrollPage(procPage));

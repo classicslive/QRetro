@@ -1,3 +1,4 @@
+#include <QAudioDeviceInfo>
 #include <QAudioInput>
 
 #include "QRetroMicrophone.h"
@@ -34,12 +35,20 @@ retro_microphone_t* QRetroMicrophone::open(const retro_microphone_params_t *para
     delete mic;
     return nullptr;
   }
-  else
-    return reinterpret_cast<retro_microphone_t*>(mic);
+
+  auto *handle = reinterpret_cast<retro_microphone_t*>(mic);
+  m_OpenMics.append(handle);
+  return handle;
+}
+
+QString QRetroMicrophone::deviceName() const
+{
+  return QAudioDeviceInfo::defaultInputDevice().deviceName();
 }
 
 void QRetroMicrophone::close(retro_microphone_t *microphone)
 {
+  m_OpenMics.removeOne(microphone);
   auto mic = reinterpret_cast<qretro_microphone_t*>(microphone);
 
   if (mic)
