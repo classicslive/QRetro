@@ -93,6 +93,8 @@ public:
 
   QPoint mouseDelta() { return m_MouseDelta; }
   QPoint mousePosition() { return m_MousePosition; }
+  int mousewheelV() { return m_Mousewheel[0]; }
+  int mousewheelH() { return m_Mousewheel[1]; }
   QPoint pointerPosition() { return m_PointerPosition; }
   bool pointerValid() { return m_PointerValid; }
   bool isActive() { return m_Active; }

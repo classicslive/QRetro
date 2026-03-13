@@ -78,6 +78,16 @@ long long unsigned QRetro::glGetCurrentFramebuffer(void)
 void* QRetro::glGetProcAddress(QThread *caller, const char *symbol)
 {
 #if QRETRO_HAVE_OPENGL
+  if (!m_OpenGlContextCore)
+  {
+    m_OpenGlContextCore = new QOpenGLContext();
+    m_OpenGlContextCore->moveToThread(caller);
+    m_OpenGlContextCore->setFormat(requestedFormat());
+    m_OpenGlContextCore->create();
+    m_OpenGlContextCore->makeCurrent(this);
+    initializeOpenGLFunctions();
+  }
+
   if (m_OpenGlContextCore)
   {
     void *ptr = nullptr;
@@ -449,13 +459,13 @@ static int16_t core_input_state(unsigned port, unsigned device, unsigned index,
     case RETRO_DEVICE_ID_MOUSE_BUTTON_5:
       return QApplication::mouseButtons().testFlag(Qt::ExtraButton2);
     case RETRO_DEVICE_ID_MOUSE_WHEELUP:
-      return m_Mousewheel[0] > 0;
+      return _this->mousewheelV() > 0;
     case RETRO_DEVICE_ID_MOUSE_WHEELDOWN:
-      return m_Mousewheel[0] < 0;
+      return _this->mousewheelV() < 0;
     case RETRO_DEVICE_ID_MOUSE_HORIZ_WHEELUP:
-      return m_Mousewheel[1] > 0;
+      return _this->mousewheelH() > 0;
     case RETRO_DEVICE_ID_MOUSE_HORIZ_WHEELDOWN:
-      return m_Mousewheel[1] < 0;
+      return _this->mousewheelH() < 0;
     default:
       return 0;
     }
