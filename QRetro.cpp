@@ -1236,14 +1236,15 @@ bool QRetro::loadCore(const char *path)
     return false;
   }
 
-  /* Copy the core to a unique temp path before opening it. The dynamic linker
-   * deduplicates handles by path, so loading from distinct temp copies allows
-   * multiple QRetro instances to use the same core simultaneously. */
+  /**
+   * Copy the core to a unique temp path before opening it, so multiple
+   * instances of the same core can be loaded
+   */
   QString ext = fileinfo.suffix();
   m_CoreTempPath = QString("%1/qretro_%2%3")
-    .arg(QDir::tempPath())
-    .arg(QUuid::createUuid().toString(QUuid::Id128))
-    .arg(ext.isEmpty() ? "" : "." + ext);
+    .arg(QDir::tempPath(),
+         QUuid::createUuid().toString(QUuid::Id128),
+         ext.isEmpty() ? "" : "." + ext);
 
   if (!QFile::copy(path, m_CoreTempPath))
   {
@@ -1336,7 +1337,7 @@ bool QRetro::initVideo(retro_hw_context_type format)
    * setImagePtr — and thus swapBuffers — to fire more than once per frame. */
   connect(this, SIGNAL(onVideoRefresh(const void*, unsigned, unsigned, unsigned)),
           this, SLOT(setImagePtr(const void*, unsigned, unsigned, unsigned)),
-          static_cast<Qt::ConnectionType>(Qt::DirectConnection | Qt::UniqueConnection));
+          static_cast<Qt::ConnectionType>(int(Qt::DirectConnection) | int(Qt::UniqueConnection)));
 
   return true;
 }
