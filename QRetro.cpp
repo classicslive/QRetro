@@ -106,8 +106,11 @@ void* QRetro::glGetProcAddress(QThread *caller, const char *symbol)
 
 void QRetro::updateScaling()
 {
-  double x = static_cast<double>(size().height()) / m_BaseRect.height();
-  double y = static_cast<double>(size().width())  / m_BaseRect.width();
+  bool swap = (m_Rotation == 90 || m_Rotation == 270);
+  int fitw = swap ? m_BaseRect.height() : m_BaseRect.width();
+  int fith = swap ? m_BaseRect.width() : m_BaseRect.height();
+  double x = static_cast<double>(size().height()) / fith;
+  double y = static_cast<double>(size().width()) / fitw;
   double mult = x > y ? y : x;
 
   if (m_IntegerScaling && mult > 0)
