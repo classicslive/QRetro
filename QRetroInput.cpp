@@ -78,6 +78,11 @@ void QRetroInputJoypad::setAnalogStick(unsigned index, unsigned id,
     m_Sticks[index][id] = value;
 }
 
+void QRetroInputJoypad::setInputMethods(unsigned method)
+{
+  m_InputMethods = method;
+}
+
 #define QRETRO_DEFAULT_MAP_JOYPAD(a, b) \
   m_KeyboardMaps.push_back( \
   { \
@@ -98,73 +103,12 @@ void QRetroInputJoypad::setAnalogStick(unsigned index, unsigned id,
     } \
   })
 
-#define QRETRO_CONNECT_DIGITAL(a, b) \
-  connect(m_Joypads[i].gamepad(), \
-          &a, \
-          this, \
-          [this, i](bool pressed) \
-          { m_Joypads[i].setDigitalButton(b, pressed); })
-
-#define QRETRO_CONNECT_STICK(a, b, c) \
-  connect(m_Joypads[i].gamepad(), \
-          &a, \
-          this, \
-          [this, i](double value) \
-          { m_Joypads[i].setAnalogStick(b, c, qt2lr_analog(value)); })
-
-#define QRETRO_CONNECT_TRIGGER(a, b) \
-  connect(m_Joypads[i].gamepad(), \
-          &a, \
-          this, \
-          [this, i](double value) \
-          { m_Joypads[i].setAnalogButton(b, qt2lr_analog(value)); })
-
 QRetroInput::QRetroInput(QObject *parent)
 {
   setParent(parent);
 
-#if QRETRO_HAVE_GAMEPAD
-  auto gamepads = QGamepadManager::instance()->connectedGamepads();
-#endif
-
   for (unsigned i = 0; i < m_MaxUsers; i++)
-  {
     m_Joypads[i].setPort(i);
-
-#if QRETRO_HAVE_GAMEPAD
-#if _WIN32
-    /* On Windows, just allow xinput controllers to populate at any time */
-    m_Joypads[i].setGamepadPort(i);
-#else
-    /* On Linux, use the actual IDs of connected gamepads */
-    if (gamepads.size() <= static_cast<int>(i))
-      break;
-    m_Joypads[i].setGamepadPort(gamepads.at(static_cast<int>(i)));
-#endif
-    QRETRO_CONNECT_DIGITAL(QGamepad::buttonUpChanged, RETRO_DEVICE_ID_JOYPAD_UP);
-    QRETRO_CONNECT_DIGITAL(QGamepad::buttonDownChanged, RETRO_DEVICE_ID_JOYPAD_DOWN);
-    QRETRO_CONNECT_DIGITAL(QGamepad::buttonLeftChanged, RETRO_DEVICE_ID_JOYPAD_LEFT);
-    QRETRO_CONNECT_DIGITAL(QGamepad::buttonRightChanged, RETRO_DEVICE_ID_JOYPAD_RIGHT);
-    QRETRO_CONNECT_DIGITAL(QGamepad::buttonAChanged, RETRO_DEVICE_ID_JOYPAD_B);
-    QRETRO_CONNECT_DIGITAL(QGamepad::buttonBChanged, RETRO_DEVICE_ID_JOYPAD_A);
-    QRETRO_CONNECT_DIGITAL(QGamepad::buttonXChanged, RETRO_DEVICE_ID_JOYPAD_Y);
-    QRETRO_CONNECT_DIGITAL(QGamepad::buttonYChanged, RETRO_DEVICE_ID_JOYPAD_X);
-    QRETRO_CONNECT_DIGITAL(QGamepad::buttonL1Changed, RETRO_DEVICE_ID_JOYPAD_L);
-    QRETRO_CONNECT_DIGITAL(QGamepad::buttonL3Changed, RETRO_DEVICE_ID_JOYPAD_L3);
-    QRETRO_CONNECT_DIGITAL(QGamepad::buttonR1Changed, RETRO_DEVICE_ID_JOYPAD_R);
-    QRETRO_CONNECT_DIGITAL(QGamepad::buttonR3Changed, RETRO_DEVICE_ID_JOYPAD_R3);
-    QRETRO_CONNECT_DIGITAL(QGamepad::buttonStartChanged, RETRO_DEVICE_ID_JOYPAD_START);
-    QRETRO_CONNECT_DIGITAL(QGamepad::buttonSelectChanged, RETRO_DEVICE_ID_JOYPAD_SELECT);
-
-    QRETRO_CONNECT_STICK(QGamepad::axisLeftXChanged, 0, 0);
-    QRETRO_CONNECT_STICK(QGamepad::axisLeftYChanged, 0, 1);
-    QRETRO_CONNECT_STICK(QGamepad::axisRightXChanged, 1, 0);
-    QRETRO_CONNECT_STICK(QGamepad::axisRightYChanged, 1, 1);
-
-    QRETRO_CONNECT_TRIGGER(QGamepad::buttonL2Changed, RETRO_DEVICE_ID_JOYPAD_L2);
-    QRETRO_CONNECT_TRIGGER(QGamepad::buttonR2Changed, RETRO_DEVICE_ID_JOYPAD_R2);
-#endif
-  }
 
   /* Setup default P1 keyboard controls */
   /* Digital buttons */
@@ -202,13 +146,12 @@ QRetroInput::QRetroInput(QObject *parent)
 
 void QRetroInput::poll(void)
 {
-  for (unsigned i = 0; i < m_MaxUsers; i++)
-    m_Joypads[i].poll();
+  /* Update backend state first. */
+  if (m_Backend)
+    m_Backend->poll();
 
-  /* Check keyboard macros */
-  if (!m_UseMaps)
-    return;
-  else for (const auto& map : m_KeyboardMaps)
+  /* Check keyboard macros, which may also update m_Buttons. */
+  if (m_UseMaps) for (const auto& map : m_KeyboardMaps)
   {
     auto button = &map.buttons[0];
     auto key = &map.keys[0];
@@ -248,6 +191,11 @@ void QRetroInput::poll(void)
       button++;
     }
   }
+
+  /* Snapshot all button state into the bitmask now that every input source
+   * (hardware backend + keyboard macros) has had a chance to update m_Buttons. */
+  for (unsigned i = 0; i < m_MaxUsers; i++)
+    m_Joypads[i].poll();
 }
 
 int16_t QRetroInput::state(unsigned port, unsigned device, unsigned index,

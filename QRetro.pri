@@ -31,6 +31,29 @@ CONFIG(debug, debug|release) {
   }
 }
 
+!QRETRO_CONFIG_NO_SDL3 {
+  SDL3_PATH = $$(SDL3_PATH)
+  !isEmpty(SDL3_PATH) {
+    INCLUDEPATH += $$SDL3_PATH/include
+    LIBS        += -L$$SDL3_PATH/lib -lSDL3
+    DEFINES     += QRETRO_HAVE_SDL3=1
+    message("SDL3 backend added (SDL3_PATH=$$SDL3_PATH).")
+  } else {
+    CONFIG += link_pkgconfig
+    packagesExist(sdl3) {
+      PKGCONFIG += sdl3
+      DEFINES   += QRETRO_HAVE_SDL3=1
+      message("SDL3 backend added (pkg-config).")
+    } else {
+      DEFINES += QRETRO_HAVE_SDL3=0
+      warning("SDL3 backend requested, but SDL3 was not found via SDL3_PATH or pkg-config.")
+    }
+  }
+} else {
+  DEFINES += QRETRO_HAVE_SDL3=0
+  message("SDL3 backend disabled.")
+}
+
 !QRETRO_CONFIG_NO_LOCATION {
   qtHaveModule(positioning) {
     QT += positioning
@@ -120,6 +143,14 @@ SOURCES += \
   $$PWD/QRetroSensors.cpp \
   $$PWD/QRetroUsername.cpp
 
+contains(DEFINES, QRETRO_HAVE_GAMEPAD=1) {
+  SOURCES += $$PWD/QRetroInputBackendQGamepad.cpp
+}
+
+contains(DEFINES, QRETRO_HAVE_SDL3=1) {
+  SOURCES += $$PWD/QRetroInputBackendSDL3.cpp
+}
+
 INCLUDEPATH += \
   $$PWD
 
@@ -134,6 +165,7 @@ HEADERS += \
   $$PWD/QRetroDirectories.h \
   $$PWD/QRetroEnvironment.h \
   $$PWD/QRetroInput.h \
+  $$PWD/QRetroInputBackend.h \
   $$PWD/QRetroLed.h \
   $$PWD/QRetroLog.h \
   $$PWD/QRetroMessage.h \
@@ -147,6 +179,14 @@ HEADERS += \
   $$PWD/QRetro_global.h \
   $$PWD/libretro.h \
   $$PWD/libretro_core.h
+
+contains(DEFINES, QRETRO_HAVE_GAMEPAD=1) {
+  HEADERS += $$PWD/QRetroInputBackendQGamepad.h
+}
+
+contains(DEFINES, QRETRO_HAVE_SDL3=1) {
+  HEADERS += $$PWD/QRetroInputBackendSDL3.h
+}
 
 DISTFILES += \
   $$PWD/resources/camera.png
