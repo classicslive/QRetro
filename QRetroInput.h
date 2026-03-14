@@ -177,6 +177,13 @@ public:
 
   const std::vector<QRetroControllerPort>& controllerPorts(void) const { return m_ControllerPorts; }
 
+  /**
+   * Sets the core's retro_set_controller_port_device function pointer.
+   * Called automatically by setSelectedControllerType() to notify the core
+   * when the active device type for a port changes.
+   */
+  void setControllerPortDevice(void (*fn)(unsigned, unsigned)) { m_SetControllerPortDevice = fn; }
+
   void setControllerInfo(const retro_controller_info *info)
   {
     m_ControllerPorts.clear();
@@ -198,7 +205,11 @@ public:
   void setSelectedControllerType(unsigned port, unsigned id)
   {
     if (port < m_ControllerPorts.size())
+    {
       m_ControllerPorts[port].selectedId = id;
+      if (m_SetControllerPortDevice)
+        m_SetControllerPortDevice(port, id);
+    }
   }
 
   /**
@@ -353,6 +364,7 @@ public:
 private:
   int16_t m_AnalogButtonDeadzone = QRETRO_INPUT_DEFAULT_BUTTON_DEADZONE;
   QRetroInputBackend *m_Backend = nullptr;
+  void (*m_SetControllerPortDevice)(unsigned, unsigned) = nullptr;
   std::vector<QRetroControllerPort> m_ControllerPorts;
   uint64_t m_DeviceCapabilities =
     (1 << RETRO_DEVICE_JOYPAD)   |

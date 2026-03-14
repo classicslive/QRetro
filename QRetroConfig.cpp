@@ -565,12 +565,13 @@ void QRetroConfig::update()
       int idx = combo->findData(selected);
       combo->setCurrentIndex(idx >= 0 ? idx : 0);
 
+      /* Notify the core of the current selection now that the game is loaded. */
+      m_Owner->input()->setSelectedControllerType(p, selected);
+
       connect(combo, QOverload<int>::of(&QComboBox::currentIndexChanged),
               [this, combo, p](int) {
         unsigned id = static_cast<unsigned>(combo->currentData().toUInt());
         m_Owner->input()->setSelectedControllerType(p, id);
-        if (m_Owner->m_Core.retro_set_controller_port_device)
-          m_Owner->m_Core.retro_set_controller_port_device(p, id);
       });
 
       form->addRow(tr("Port %1").arg(p + 1), combo);

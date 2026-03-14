@@ -1281,6 +1281,8 @@ bool QRetro::loadCore(const char *path)
   if (!load_library(&m_Core, m_Library))
     return false;
 
+  m_Input.setControllerPortDevice(m_Core.retro_set_controller_port_device);
+
   m_CorePath = fileinfo.absolutePath().toStdString();
 
   return true;
