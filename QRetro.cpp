@@ -671,22 +671,36 @@ void QRetro::unloadCore(void)
     }
   }
 
-  /* With the timing thread stopped and the surface still valid, make the
-   * GL context current on the main thread so the core can clean up its
-   * GPU resources before we unload it. */
 #if QRETRO_HAVE_OPENGL
   if (surfaceType() == QSurface::OpenGLSurface && m_OpenGlContextCore)
   {
-    m_OpenGlContextCore->makeCurrent(this);
-    if (m_Core.hw_render.context_destroy)
-      m_Core.hw_render.context_destroy();
-    if (m_Core.inited)
+    /* Move core's OpenGL context here to close */
+    m_OpenGlContextCore->moveToThread(QCoreApplication::instance()->thread());
+
+    if (m_OpenGlContextCore->thread() == QThread::currentThread())
     {
-      m_Core.retro_unload_game();
-      m_Core.retro_deinit();
-      m_Core.inited = false;
+      m_OpenGlContextCore->makeCurrent(this);
+      if (m_Core.hw_render.context_destroy)
+        m_Core.hw_render.context_destroy();
+      if (m_Core.inited)
+      {
+        m_Core.retro_unload_game();
+        m_Core.retro_deinit();
+        m_Core.inited = false;
+      }
+      m_OpenGlContextCore->doneCurrent();
     }
-    m_OpenGlContextCore->doneCurrent();
+    else
+    {
+      qDebug() << QRETRO_ERROR("Skipping GL context cleanup: context not on main thread.");
+      if (m_Core.inited)
+      {
+        m_Core.retro_unload_game();
+        m_Core.retro_deinit();
+        m_Core.inited = false;
+      }
+    }
+
     delete m_OpenGlContextCore;
     m_OpenGlContextCore = nullptr;
   }
@@ -907,20 +921,14 @@ void QRetro::timing()
 
       if (surfaceType() == QSurface::RasterSurface)
       {
-        /* Raster flush() returns immediately without blocking on vsync.
-         * Use the elapsed frame timer to sleep only the remaining frame time. */
         int remaining = ms - static_cast<int>(frameTimer.elapsed());
         if (remaining > 0)
           QThread::msleep(remaining);
       }
       else
-      {
-        /* OpenGL software path: swapBuffers blocks on vsync, then releases the
-         * semaphore. Wait for it so emulation is coupled to the display rate. */
         m_FramePresented.tryAcquire(1, ms + 4);
-      }
-      /* Pre-poll input immediately after the frame boundary (sleep or vsync)
-       * so core_input_poll gets the freshest state with minimal extra delay. */
+
+      /* Pre-poll input after run */
       m_Input.poll();
       m_InputPrePolled = true;
     }
