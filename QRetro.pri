@@ -178,7 +178,8 @@ HEADERS += \
   $$PWD/QRetroUsername.h \
   $$PWD/QRetro_global.h \
   $$PWD/libretro.h \
-  $$PWD/libretro_core.h
+  $$PWD/libretro_core.h \
+  $$PWD/libretro_retroarch.h
 
 contains(DEFINES, QRETRO_HAVE_GAMEPAD=1) {
   HEADERS += $$PWD/QRetroInputBackendQGamepad.h
