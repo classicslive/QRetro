@@ -10,14 +10,15 @@
 
 QRetroAudio::QRetroAudio(void)
 {
-  m_SampleRateBase = 44100;
+  m_SampleRateBase = m_TargetSampleRate;
   m_FramesPerSecond = 60.0;
   setTimingMultiplier(1.0);
 }
 
 QRetroAudio::QRetroAudio(double frequency, double core_fps)
 {
-  m_SampleRateBase = frequency;
+  if (frequency < 1.0)
+    frequency = m_TargetSampleRate;
   m_FramesPerSecond = core_fps;
   setTimingMultiplier(1.0);
 }
@@ -26,6 +27,8 @@ QRetroAudio::QRetroAudio(double frequency, double core_fps, double emu_fps)
 {
   double mult = emu_fps / core_fps;
 
+  if (frequency < 1.0)
+    frequency = m_TargetSampleRate;
   m_SampleRateBase = frequency;
   m_FramesPerSecond = emu_fps;
 

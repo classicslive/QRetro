@@ -915,7 +915,11 @@ bool core_environment(unsigned cmd, void *data)
     break;
 
   /* 81 */
-  // case RETRO_ENVIRONMENT_GET_TARGET_SAMPLE_RATE:
+  case RETRO_ENVIRONMENT_GET_TARGET_SAMPLE_RATE:
+    if (data)
+      *reinterpret_cast<unsigned*>(data) =
+        _this->audio()->targetSampleRate();
+    break;
 
   /* 82 */
   // case RETRO_ENVIRONMENT_GET_NETPLAY_CLIENT_INDEX:

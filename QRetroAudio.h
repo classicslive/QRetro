@@ -31,6 +31,11 @@ public:
 
   void pushSamples(const sample_t *data, size_t frames);
 
+  double sampleRate(void) { return m_SampleRateCurrent; }
+
+  unsigned targetSampleRate(void) { return m_TargetSampleRate; }
+  void setTargetSampleRate(unsigned rate) { m_TargetSampleRate = rate; }
+
   /*
     The number of pre-rendered audio frames that must be stored in the audio
     buffer before popping a frame. Raising this number can reduce crackling at
@@ -52,12 +57,13 @@ private:
   QByteArray    m_AudioBuffer;
   QIODevice    *m_AudioDevice = nullptr;
 
-  double m_FramesPerSecond;
+  double m_FramesPerSecond = 60.0;
   unsigned m_BufferFrames = 1;
-  double m_SampleRateBase;
-  int m_SampleRateBytesPerFrame;
-  double m_SampleRateCurrent;
-  double m_SampleRateMultiplier;
+  double m_SampleRateBase = 0.0;
+  int m_SampleRateBytesPerFrame = 0;
+  double m_SampleRateCurrent = 0.0;
+  double m_SampleRateMultiplier = 1.0;
+  unsigned m_TargetSampleRate = 44100;
 };
 
 #endif
