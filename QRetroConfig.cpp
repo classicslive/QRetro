@@ -113,7 +113,7 @@ QRetroConfig::QRetroConfig(QRetro *owner)
   m_SaveTimer = new QTimer(this);
   m_SaveTimer->setSingleShot(true);
   m_SaveTimer->setInterval(400);
-  connect(m_SaveTimer, &QTimer::timeout, [this]() { if (m_Owner->isActive()) save(); });
+  connect(m_SaveTimer, &QTimer::timeout, [this]() { if (m_Owner && m_Owner->isActive()) save(); });
 
   load();
 
@@ -129,7 +129,7 @@ QRetroConfig::QRetroConfig(QRetro *owner)
   auto *sensorReadTimer = new QTimer(this);
   sensorReadTimer->setInterval(200);
   connect(sensorReadTimer, &QTimer::timeout, [this]() {
-    if (!m_Owner->isActive()) return;
+    if (!m_Owner || !m_Owner->isActive()) return;
     auto *s = m_Owner->sensors();
     setAccelXHasBeenRead(s->accelXHasBeenRead());
     setAccelYHasBeenRead(s->accelYHasBeenRead());

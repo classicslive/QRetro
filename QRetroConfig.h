@@ -2,6 +2,7 @@
 #define QRETRO_CONFIG_H
 
 #include <QMap>
+#include <QPointer>
 #include <QTimer>
 #include <QWidget>
 
@@ -86,7 +87,7 @@ private:
   double m_SpoofHAcc            = 0;
   double m_SpoofVAcc            = 0;
 
-  QRetro    *m_Owner      = nullptr;
+  QPointer<QRetro> m_Owner;
   QLabel    *m_DescLabel  = nullptr;
   QTimer    *m_SaveTimer  = nullptr;
   QString    m_Filename;

@@ -189,6 +189,8 @@ bool QRetro::event(QEvent *ev)
   switch (ev->type())
   {
   case QEvent::Close:
+    if (m_Config)
+      m_Config->close();
     unloadCore();
     deleteLater();
     return QWindow::event(ev);
