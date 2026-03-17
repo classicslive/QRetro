@@ -20,6 +20,7 @@ public:
   QRetroConfig(QRetro *owner);
 
   retro_language getLanguage()     const { return m_Language; }
+  bool           useAspectRatio()  const { return m_UseAspectRatio; }
   bool           integerScaling()  const { return m_IntegerScaling; }
   bool           bilinearFilter()  const { return m_BilinearFilter; }
 
@@ -51,6 +52,7 @@ public:
   void setIllumHasBeenRead (bool v) { if (m_IllumValueWidget)   m_IllumValueWidget  ->setEnabled(v); }
 
 signals:
+  void aspectRatioChanged(bool value);
   void integerScalingChanged(bool value);
   void bilinearFilterChanged(bool value);
   void audioEnabledChanged(bool value);
@@ -67,6 +69,7 @@ private:
   void save();
 
   retro_language m_Language       = RETRO_LANGUAGE_ENGLISH;
+  bool           m_UseAspectRatio = true;
   bool           m_IntegerScaling = false;
   bool           m_BilinearFilter = true;
   bool           m_AudioEnabled   = true;

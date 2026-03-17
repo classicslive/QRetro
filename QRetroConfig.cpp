@@ -121,6 +121,7 @@ QRetroConfig::QRetroConfig(QRetro *owner)
   m_Owner->m_AudioEnabled   = m_AudioEnabled;
   if (m_Owner->m_Audio)
     m_Owner->m_Audio->setVolume(m_AudioVolume);
+  m_Owner->m_UseAspectRatio = m_UseAspectRatio;
   m_Owner->m_BilinearFilter = m_BilinearFilter;
   m_Owner->m_IntegerScaling = m_IntegerScaling;
 
@@ -357,6 +358,7 @@ void QRetroConfig::load()
   settings.beginGroup("QRetro");
   m_Language       = static_cast<retro_language>(
     settings.value("language",       RETRO_LANGUAGE_ENGLISH).toInt());
+  m_UseAspectRatio = settings.value("useAspectRatio", true).toBool();
   m_IntegerScaling = settings.value("integerScaling", false).toBool();
   m_BilinearFilter = settings.value("bilinearFilter", true).toBool();
   m_AudioEnabled   = settings.value("audioEnabled",   true).toBool();
@@ -386,6 +388,7 @@ void QRetroConfig::save()
   QSettings settings(m_Filename, QSettings::IniFormat);
   settings.beginGroup("QRetro");
   settings.setValue("language",       static_cast<int>(m_Language));
+  settings.setValue("useAspectRatio", m_UseAspectRatio);
   settings.setValue("integerScaling", m_IntegerScaling);
   settings.setValue("bilinearFilter", m_BilinearFilter);
   settings.setValue("audioEnabled",   m_AudioEnabled);
@@ -460,6 +463,17 @@ void QRetroConfig::update()
     auto *form = new QFormLayout(videoPage);
     form->setContentsMargins(12, 12, 12, 12);
     form->setVerticalSpacing(10);
+
+    auto *aspectRatio = new QCheckBox();
+    aspectRatio->setChecked(m_UseAspectRatio);
+    connect(aspectRatio, &QCheckBox::stateChanged, [this](int state) {
+      m_UseAspectRatio = state != Qt::Unchecked;
+      m_SaveTimer->start();
+      m_Owner->m_UseAspectRatio = m_UseAspectRatio;
+      m_Owner->updateScaling();
+      emit aspectRatioChanged(m_UseAspectRatio);
+    });
+    form->addRow(tr("Aspect Ratio"), aspectRatio);
 
     auto *intScaling = new QCheckBox();
     intScaling->setChecked(m_IntegerScaling);

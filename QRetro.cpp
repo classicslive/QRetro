@@ -106,24 +106,37 @@ void* QRetro::glGetProcAddress(QThread *caller, const char *symbol)
 
 void QRetro::updateScaling()
 {
+  int bw = m_BaseRect.width();
+  int bh = m_BaseRect.height();
+  double ar;
   bool swap = (m_Rotation == 90 || m_Rotation == 270);
-  int fitw = swap ? m_BaseRect.height() : m_BaseRect.width();
-  int fith = swap ? m_BaseRect.width() : m_BaseRect.height();
-  double x = static_cast<double>(size().height()) / fith;
-  double y = static_cast<double>(size().width()) / fitw;
-  double mult = x > y ? y : x;
 
+  if (bw <= 0 || bh <= 0)
+    return;
+
+  /* Setup preferred aspect ratio */
+  if (m_UseAspectRatio && m_Core.av_info.geometry.aspect_ratio > 0.0f)
+    ar = static_cast<double>(m_Core.av_info.geometry.aspect_ratio);
+  else
+    ar = static_cast<double>(bw) / bh;
+
+  double fitW = swap ? static_cast<double>(size().width())  / bh
+                     : static_cast<double>(size().width())  / (ar * bh);
+  double fitH = swap ? static_cast<double>(size().height()) / (ar * bh)
+                     : static_cast<double>(size().height()) / bh;
+  double mult = qMin(fitW, fitH);
+
+  /* Use integer scaling if requested */
   if (m_IntegerScaling && mult > 0)
     mult = floor(mult);
 
-  m_Rect.setSize(QSize(
-    static_cast<int>(m_BaseRect.width()  * mult),
-    static_cast<int>(m_BaseRect.height() * mult)
-  ));
+  int dispW = static_cast<int>(ar * bh * mult);
+  int dispH = static_cast<int>(bh * mult);
 
   /* Center the rect in the available screenspace */
-  m_Rect.moveLeft((size().width() - m_Rect.width())  / 2);
-  m_Rect.moveTop((size().height() - m_Rect.height()) / 2);
+  m_Rect.setSize(QSize(dispW, dispH));
+  m_Rect.moveLeft((size().width()  - dispW) / 2);
+  m_Rect.moveTop((size().height() - dispH) / 2);
 
   m_ScalingFactor = mult;
 }
