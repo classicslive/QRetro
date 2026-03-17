@@ -4,10 +4,6 @@
 
 std::map<std::thread::id, QRetro*> _qr_thread_map;
 
-/**
- * @todo Actually removing it triggers a crash, probably due to race conditions
- * with other instances. Fix so we don't keep a map of dead pointers. 
- */
 bool _qrdelete(QRetro *retro)
 {
   if (!retro)
@@ -16,7 +12,7 @@ bool _qrdelete(QRetro *retro)
   {
     if (it->second == retro)
     {
-      it->second = nullptr;
+      _qr_thread_map.erase(it);
       return true;
     }
   }
