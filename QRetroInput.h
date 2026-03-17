@@ -129,8 +129,8 @@ private:
   int16_t m_AnalogButtonDeadzone = QRETRO_INPUT_DEFAULT_BUTTON_DEADZONE;
   int16_t m_AnalogStickDeadzone = 0;
   bool m_AnalogStickToDigitalPad = false;
-  int16_t m_Bitmask;
-  int16_t m_Buttons[RETRO_DEVICE_ID_JOYPAD_R3 + 1];
+  int16_t m_Bitmask = 0;
+  int16_t m_Buttons[RETRO_DEVICE_ID_JOYPAD_R3 + 1] = {};
   bool m_DigitalPadToAnalogStick = false;
   unsigned m_InputMethods = InputMethodGamepad | InputMethodKeyboard;
   unsigned m_Port = 0;
@@ -145,7 +145,7 @@ private:
   unsigned m_GyroRate = 0;
   float m_Gyro[3] = {};
 
-  int16_t m_Sticks[2][2];
+  int16_t m_Sticks[2][2] = {};
 };
 
 class QRetroInput : public QObject
