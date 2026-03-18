@@ -40,7 +40,7 @@
  * The size of the libretro enviroment callback enum.
  * Update this constant whenever a new libretro environment callback is added.
  */
-#define RETRO_ENVIRONMENT_SIZE (RETRO_ENVIRONMENT_SET_NETPACKET_INTERFACE & 0xFF) + 1
+#define RETRO_ENVIRONMENT_SIZE (RETRO_ENVIRONMENT_GET_NETPLAY_CLIENT_INDEX & 0xFF) + 1
 
 #if QRETRO_HAVE_OPENGL
 class QRETRO_EXPORT QRetro : public QWindow, protected QOpenGLFunctions
