@@ -621,7 +621,7 @@ private:
   unsigned char *m_QuickSave = nullptr;
   size_t m_QuickSaveSize = 0;
 
-  QImage::Format m_PixelFormat;
+  QImage::Format m_PixelFormat = QImage::Format_RGB555;
 
   bool m_AudioEnabled   = true;
   bool m_BilinearFilter = true;
