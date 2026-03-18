@@ -566,7 +566,11 @@ private:
   bool m_PointerValid;
 
   /// The preferred renderer reported by the frontend
-  retro_hw_context_type m_PreferredRenderer;
+#if QRETRO_HAVE_OPENGL
+  retro_hw_context_type m_PreferredRenderer = RETRO_HW_CONTEXT_OPENGL;
+#else
+  retro_hw_context_type m_PreferredRenderer = RETRO_HW_CONTEXT_NONE;
+#endif
 
   /// The libretro pixel format last reported by the core
   /// @see RETRO_ENVIRONMENT_SET_PIXEL_FORMAT
