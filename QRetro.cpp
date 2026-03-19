@@ -5,6 +5,7 @@
 #include <QElapsedTimer>
 #include <QFile>
 #include <QFileInfo>
+#include <QRegularExpression>
 #include <QKeyEvent>
 #include <QPainter>
 #include <QMutexLocker>
@@ -615,7 +616,7 @@ bool QRetro::stateLoad(void)
   return unserialize(m_QuickSave, m_QuickSaveSize);
 }
 
-void QRetro::resetCore(void)
+void QRetro::reset(void)
 {
   execOnTimingThread([this]() { m_Core.retro_reset(); });
 }
@@ -1089,7 +1090,7 @@ void QRetro::keyPressEvent(QKeyEvent *event)
       m_Paused = !m_Paused;
       break;
     case Qt::Key_R:
-      m_Core.retro_reset();
+      reset();
       break;
     case Qt::Key_S:
       initVideo(RETRO_HW_CONTEXT_NONE);

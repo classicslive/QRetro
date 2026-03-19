@@ -448,7 +448,7 @@ public:
 
   bool stateLoad(void);
   bool stateSave(void);
-  void resetCore(void);
+  void reset(void);
 
 signals:
   void onCoreLog(int level, const QString msg);
