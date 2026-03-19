@@ -31,6 +31,8 @@ public:
     CoreAssets,
 
     /// Alias of Directory_CoreAssets.
+    /// Deprecated; use Directory_CoreAssets instead. Included because of the
+    /// deprecated alias RETRO_ENVIRONMENT_GET_CONTENT_DIRECTORY (30).
     Content = CoreAssets,
 
     /// Returned when the core uses environment callback
@@ -41,11 +43,14 @@ public:
     /// RETRO_ENVIRONMENT_GET_FILE_BROWSER_START_DIRECTORY (80).
     FileBrowserStart,
 
-    /* The following are internal, unrelated to libretro callbacks.
+    /// Used internally for saving and loading serialized core state via
+    /// retro_serialize and retro_unserialize.
     State,
+
+    /* Not used yet
     CoreInfo,
     ContentMeta,
-    ...but they're also completely unused right now. */
+    */
 
     /// Size of Directory enum.
     Type_Size

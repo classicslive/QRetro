@@ -26,6 +26,11 @@ QRetroDirectories::QRetroDirectories()
     QDir().mkdir(dir);
   m_Directories[QRetroDirectories::Playlist] = dir.toUtf8();
 
+  dir = QDir::currentPath() + "/state";
+  if (!QDir(dir).exists())
+    QDir().mkdir(dir);
+  m_Directories[QRetroDirectories::State] = dir.toUtf8();
+
   dir = QDir::currentPath();
   m_Directories[QRetroDirectories::FileBrowserStart] = dir.toUtf8();
 }
