@@ -589,7 +589,7 @@ QString QRetro::stateFilePath(void)
   };
 
   QString core    = sanitize(QString(m_Core.system_info.library_name));
-  QString content = sanitize(QFileInfo(contentPath()).baseName());
+  QString content = sanitize(QFileInfo(contentPath()).completeBaseName());
   QString dir     = QString(directories()->get(QRetroDirectories::State));
 
   return QStringLiteral("%1/%2_%3.state").arg(dir, core, content);
@@ -1135,7 +1135,7 @@ void QRetro::saving()
   QCryptographicHash hasher(QCryptographicHash::Md5);
   QFile save_file(QString("%1/%2.sav").arg(
     m_Directories.get(QRetroDirectories::Save),
-    QFileInfo(contentPath()).baseName())
+    QFileInfo(contentPath()).completeBaseName())
   );
 
   QByteArray initialBuffer;
