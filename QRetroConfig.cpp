@@ -381,6 +381,8 @@ void QRetroConfig::load()
     dirs->set(QRetroDirectories::Playlist,        settings.value("dirPlaylist").toString(),        true);
   if (settings.contains("dirFileBrowserStart"))
     dirs->set(QRetroDirectories::FileBrowserStart, settings.value("dirFileBrowserStart").toString(), true);
+  if (settings.contains("dirState"))
+    dirs->set(QRetroDirectories::State, settings.value("dirState").toString(), true);
 }
 
 void QRetroConfig::save()
@@ -406,6 +408,7 @@ void QRetroConfig::save()
   settings.setValue("dirCoreAssets",      dirs->get(QRetroDirectories::CoreAssets));
   settings.setValue("dirPlaylist",        dirs->get(QRetroDirectories::Playlist));
   settings.setValue("dirFileBrowserStart",dirs->get(QRetroDirectories::FileBrowserStart));
+  settings.setValue("dirState",           dirs->get(QRetroDirectories::State));
 
   settings.sync();
 }
@@ -636,6 +639,7 @@ void QRetroConfig::update()
       { "Core Assets",       QRetroDirectories::CoreAssets      },
       { "Playlist",          QRetroDirectories::Playlist        },
       { "File Browser Start",QRetroDirectories::FileBrowserStart},
+      { "State",             QRetroDirectories::State            },
     };
 
     for (auto &row : rows)
