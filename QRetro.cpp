@@ -527,7 +527,15 @@ void QRetro::execOnTimingThread(std::function<void()> action)
   m_PendingDone.wait(&m_PendingMutex);
 }
 
-bool QRetro::coreSerialize(void *data, size_t size)
+
+size_t QRetro::serializeSize(void)
+{
+  size_t sz = 0;
+  execOnTimingThread([&]() { sz = m_Core.retro_serialize_size(); });
+  return sz;
+}
+
+bool QRetro::serialize(void *data, size_t size)
 {
   if (!data || !size)
     return false;
@@ -537,7 +545,7 @@ bool QRetro::coreSerialize(void *data, size_t size)
   return result;
 }
 
-bool QRetro::coreUnserialize(void *data, size_t size)
+bool QRetro::unserialize(const void *data, size_t size)
 {
   if (!data || !size)
     return false;
@@ -547,20 +555,56 @@ bool QRetro::coreUnserialize(void *data, size_t size)
   return result;
 }
 
+bool QRetro::serializeToFile(const QString &path)
+{
+  size_t sz = serializeSize();
+  if (!sz)
+    return false;
+
+  std::vector<unsigned char> buf(sz);
+  if (!serialize(buf.data(), sz))
+    return false;
+
+  QFile f(path);
+  if (!f.open(QIODevice::WriteOnly))
+    return false;
+  return f.write(reinterpret_cast<const char*>(buf.data()), sz) == static_cast<qint64>(sz);
+}
+
+bool QRetro::unserializeFromFile(const QString &path)
+{
+  QFile f(path);
+  if (!f.open(QIODevice::ReadOnly))
+    return false;
+
+  QByteArray data = f.readAll();
+  return unserialize(data.constData(), static_cast<size_t>(data.size()));
+}
+
+QString QRetro::stateFilePath(void)
+{
+  auto sanitize = [](const QString &s) {
+    return s.toLower().replace(QRegularExpression("[^a-z0-9]"), "");
+  };
+
+  QString core    = sanitize(QString(m_Core.system_info.library_name));
+  QString content = sanitize(QFileInfo(contentPath()).baseName());
+  QString dir     = QString(directories()->get(QRetroDirectories::State));
+
+  return QStringLiteral("%1/%2_%3.state").arg(dir, core, content);
+}
+
 bool QRetro::stateSave(void)
 {
-  bool result = false;
-  execOnTimingThread([&]() {
-    size_t sz = m_Core.retro_serialize_size();
-    if (!sz)
-      return;
-    if (m_QuickSave)
-      free(m_QuickSave);
-    m_QuickSave = (unsigned char*)calloc(1, sz);
-    m_QuickSaveSize = sz;
-    result = m_Core.retro_serialize(m_QuickSave, m_QuickSaveSize);
-  });
-  return result;
+  size_t sz = serializeSize();
+  if (!sz)
+    return false;
+
+  if (m_QuickSave)
+    free(m_QuickSave);
+  m_QuickSave = (unsigned char*)calloc(1, sz);
+  m_QuickSaveSize = sz;
+  return serialize(m_QuickSave, m_QuickSaveSize);
 }
 
 bool QRetro::stateLoad(void)
@@ -568,9 +612,7 @@ bool QRetro::stateLoad(void)
   if (!m_QuickSave || !m_QuickSaveSize)
     return false;
 
-  bool result = false;
-  execOnTimingThread([&]() { result = m_Core.retro_unserialize(m_QuickSave, m_QuickSaveSize); });
-  return result;
+  return unserialize(m_QuickSave, m_QuickSaveSize);
 }
 
 void QRetro::resetCore(void)
@@ -1056,10 +1098,10 @@ void QRetro::keyPressEvent(QKeyEvent *event)
       setFastForwarding(!m_FastForwarding);
       break;
     case Qt::Key_Z:
-      stateSave();
+      serializeToFile(stateFilePath());
       break;
     case Qt::Key_X:
-      stateLoad();
+      unserializeFromFile(stateFilePath());
       break;
     case Qt::Key_T:
       setRotation(m_Rotation + 90);

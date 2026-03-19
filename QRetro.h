@@ -440,6 +440,12 @@ public:
   bool jitCapable(void) { return m_JitCapable; }
   void setJitCapable(bool capable) { m_JitCapable = capable; }
 
+  size_t serializeSize(void);
+  bool serialize(void *data, size_t size);
+  bool unserialize(const void *data, size_t size);
+  bool serializeToFile(const QString &path);
+  bool unserializeFromFile(const QString &path);
+
   bool stateLoad(void);
   bool stateSave(void);
   void resetCore(void);
@@ -453,8 +459,6 @@ signals:
                       unsigned bytes_per_line);
 
 public slots:
-  bool coreSerialize(void *data, size_t size);
-  bool coreUnserialize(void *data, size_t size);
   void setImagePtr(const void *ptr, unsigned width, unsigned height,
       unsigned bytes_per_line);
 
@@ -468,6 +472,8 @@ protected:
 
 private:
   friend class QRetroConfig;
+
+  QString stateFilePath(void);
 
   QRetroAudio *m_Audio;
   QRetroAudioVideoEnable m_AudioVideoEnable;
