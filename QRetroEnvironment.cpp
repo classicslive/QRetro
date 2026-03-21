@@ -231,21 +231,17 @@ static bool core_rumble(unsigned int port, retro_rumble_effect effect,
 static bool core_sensor_set_state(unsigned port, retro_sensor_action action,
   unsigned rate)
 {
+  bool input_ok, system_ok;
   auto _this = _qrthis();
 
   if (!_this)
     return false;
 
-  // Try the input backend first (e.g. SDL3 gamepad IMU sensors).
-  bool backendOk = _this->input()->setSensorState(port, action, rate);
+  /* Try initializing sensors on both controller backend and system level */
+  input_ok = _this->input()->setSensorState(port, action, rate);
+  system_ok = _this->sensors()->setState(port, action, rate);
 
-  // Always also inform platform sensors so they are primed as a fallback.
-  // If the backend later loses its sensor feed (e.g. after a context reset),
-  // backendHandlesSensor() will return false and getSensorInput() will
-  // transparently return platform sensor data instead.
-  bool sensorsOk = _this->sensors()->setState(port, action, rate);
-
-  return backendOk || sensorsOk;
+  return input_ok || system_ok;
 }
 
 static float core_sensor_get_input(unsigned port, unsigned id)
@@ -255,7 +251,6 @@ static float core_sensor_get_input(unsigned port, unsigned id)
   if (!_this)
     return 0.0f;
 
-  // Use backend sensor data if the backend accepted the enable call.
   if (_this->input()->backendHandlesSensor(port, id))
     return _this->input()->getSensorInput(port, id);
 
