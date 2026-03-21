@@ -293,6 +293,12 @@ void QRetro::setImagePtr(const void *data, unsigned width, unsigned height,
   if (!isExposed())
     return;
 
+  /**
+   * If data is a valid pointer, treat it as image data.
+   * If data is NULL, treat it as a duplicate frame.
+   * If data is RETRO_HW_FRAME_BUFFER_VALID (-1), treat it as a signal a HW frame is ready.
+   */
+
   if (data && data != reinterpret_cast<void*>(RETRO_HW_FRAME_BUFFER_VALID))
   {
     /* Data is a pointer to a new frame image, so use it */
@@ -385,27 +391,6 @@ void QRetro::setImagePtr(const void *data, unsigned width, unsigned height,
                             Qt::QueuedConnection);
 }
 
-static void core_input_poll(void)
-{
-  auto _this = _qrthis();
-
-  if (!_this)
-    return;
-
-  /* If a custom input poll handler has been installed, use that instead */
-  if (_this->hasInputPollHandler())
-  {
-    _this->runInputPollHandler();
-    return;
-  }
-  else if (_this->inputPrePolled())
-    _this->clearInputPrePolled();
-  else
-    _this->input()->poll();
-
-  _this->updateMouse();
-}
-
 void QRetro::updateMouse(void)
 {
   /* Update RETRO_DEVICE_MOUSE */
@@ -431,103 +416,12 @@ void QRetro::setRotation(const unsigned degrees)
   m_Rotation = degrees % 360;
 }
 
-static int16_t core_input_state(unsigned port, unsigned device, unsigned index,
-  unsigned id)
-{
-  auto _this = _qrthis();
-
-  if (!_this)
-    return 0;
-
-  if (_this->hasInputStateHandler())
-    return _this->runInputStateHandler(port, device, index, id);
-
-  if (device == RETRO_DEVICE_JOYPAD || device == RETRO_DEVICE_ANALOG)
-    return _this->input()->state(port, device, index, id);
-  else if (device == RETRO_DEVICE_POINTER)
-  {
-    switch (id)
-    {
-    case RETRO_DEVICE_ID_POINTER_X:
-      return static_cast<short>(_this->pointerPosition().x());
-    case RETRO_DEVICE_ID_POINTER_Y:
-      return static_cast<short>(_this->pointerPosition().y());
-    case RETRO_DEVICE_ID_POINTER_PRESSED:
-      return _this->pointerValid() && QApplication::mouseButtons().testFlag(Qt::LeftButton);
-    /* TODO: Support multitouch, if ever needed */
-    case RETRO_DEVICE_ID_POINTER_COUNT:
-      return 1;
-    }
-  }
-  else if (device == RETRO_DEVICE_MOUSE)
-  {
-    switch (id)
-    {
-    case RETRO_DEVICE_ID_MOUSE_X:
-      return static_cast<short>(_this->mouseDelta().x());
-    case RETRO_DEVICE_ID_MOUSE_Y:
-      return static_cast<short>(_this->mouseDelta().y());
-    case RETRO_DEVICE_ID_MOUSE_LEFT:
-      return QApplication::mouseButtons().testFlag(Qt::LeftButton);
-    case RETRO_DEVICE_ID_MOUSE_RIGHT:
-      return QApplication::mouseButtons().testFlag(Qt::RightButton);
-    case RETRO_DEVICE_ID_MOUSE_MIDDLE:
-      return QApplication::mouseButtons().testFlag(Qt::MiddleButton);
-    case RETRO_DEVICE_ID_MOUSE_BUTTON_4:
-      return QApplication::mouseButtons().testFlag(Qt::ExtraButton1);
-    case RETRO_DEVICE_ID_MOUSE_BUTTON_5:
-      return QApplication::mouseButtons().testFlag(Qt::ExtraButton2);
-    case RETRO_DEVICE_ID_MOUSE_WHEELUP:
-      return _this->mousewheelV() > 0;
-    case RETRO_DEVICE_ID_MOUSE_WHEELDOWN:
-      return _this->mousewheelV() < 0;
-    case RETRO_DEVICE_ID_MOUSE_HORIZ_WHEELUP:
-      return _this->mousewheelH() > 0;
-    case RETRO_DEVICE_ID_MOUSE_HORIZ_WHEELDOWN:
-      return _this->mousewheelH() < 0;
-    default:
-      return 0;
-    }
-  }
-
-  return 0;
-}
-
-bool load_function(void *func_ptr, QRETRO_LIBRARY_T library, const char *name)
-{
-  if (!library)
-    return false;
-  else
-  {
-    QRETRO_FUNCTION_T new_func = nullptr;
-
-#if defined(_WIN32)
-    new_func = reinterpret_cast<QRETRO_FUNCTION_T>(GetProcAddress(library, name));
-#else
-    new_func = reinterpret_cast<QRETRO_FUNCTION_T>(dlsym(library, name));
-#endif
-
-    if (!new_func)
-    {
-      printf("Could not load %s from dynamic library.\n", name);
-      return false;
-    }
-    else
-    {
-      memcpy(func_ptr, &new_func, sizeof(QRETRO_FUNCTION_T));
-      printf("%p - Loaded %s from dynamic library.\n", func_ptr, name);
-      return true;
-    }
-  }
-}
-
 void QRetro::execOnTimingThread(std::function<void()> action)
 {
   QMutexLocker lock(&m_PendingMutex);
   m_PendingAction = std::move(action);
   m_PendingDone.wait(&m_PendingMutex);
 }
-
 
 size_t QRetro::serializeSize(void)
 {
@@ -621,37 +515,65 @@ void QRetro::reset(void)
   execOnTimingThread([this]() { m_Core.retro_reset(); });
 }
 
-#define _load_function(a) success &= load_function(&core->a, library, #a)
-bool load_library(retro_core_t *core, QRETRO_LIBRARY_T library)
+static bool _qr_load_function(void *func_ptr, QRETRO_LIBRARY_T library, const char *name)
+{
+  if (!library)
+    return false;
+  else
+  {
+    QRETRO_FUNCTION_T new_func = nullptr;
+
+#if defined(_WIN32)
+    new_func = reinterpret_cast<QRETRO_FUNCTION_T>(GetProcAddress(library, name));
+#else
+    new_func = reinterpret_cast<QRETRO_FUNCTION_T>(dlsym(library, name));
+#endif
+
+    if (!new_func)
+    {
+      printf("Could not load %s from dynamic library.\n", name);
+      return false;
+    }
+    else
+    {
+      memcpy(func_ptr, &new_func, sizeof(QRETRO_FUNCTION_T));
+      printf("%p - Loaded %s from dynamic library.\n", func_ptr, name);
+      return true;
+    }
+  }
+}
+
+#define _qr_load_function_name(a) success &= _qr_load_function(&core->a, library, #a)
+static bool _qr_load_library(retro_core_t *core, QRETRO_LIBRARY_T library)
 {
   bool success = true;
 
   memset(core, 0, sizeof(retro_core_t));
-  _load_function(retro_api_version);
-  _load_function(retro_cheat_reset);
-  _load_function(retro_cheat_set);
-  _load_function(retro_deinit);
-  _load_function(retro_get_memory_data);
-  _load_function(retro_get_memory_size);
-  _load_function(retro_get_region);
-  _load_function(retro_get_system_av_info);
-  _load_function(retro_get_system_info);
-  _load_function(retro_init);
-  _load_function(retro_load_game);
-  _load_function(retro_load_game_special);
-  _load_function(retro_reset);
-  _load_function(retro_run);
-  _load_function(retro_serialize);
-  _load_function(retro_serialize_size);
-  _load_function(retro_set_audio_sample);
-  _load_function(retro_set_audio_sample_batch);
-  _load_function(retro_set_controller_port_device);
-  _load_function(retro_set_environment);
-  _load_function(retro_set_input_poll);
-  _load_function(retro_set_input_state);
-  _load_function(retro_set_video_refresh);
-  _load_function(retro_unload_game);
-  _load_function(retro_unserialize);
+  _qr_load_function_name(retro_api_version);
+  _qr_load_function_name(retro_cheat_reset);
+  _qr_load_function_name(retro_cheat_set);
+  _qr_load_function_name(retro_deinit);
+  _qr_load_function_name(retro_get_memory_data);
+  _qr_load_function_name(retro_get_memory_size);
+  _qr_load_function_name(retro_get_region);
+  _qr_load_function_name(retro_get_system_av_info);
+  _qr_load_function_name(retro_get_system_info);
+  _qr_load_function_name(retro_init);
+  _qr_load_function_name(retro_load_game);
+  _qr_load_function_name(retro_load_game_special);
+  _qr_load_function_name(retro_reset);
+  _qr_load_function_name(retro_run);
+  _qr_load_function_name(retro_serialize);
+  _qr_load_function_name(retro_serialize_size);
+  _qr_load_function_name(retro_set_audio_sample);
+  _qr_load_function_name(retro_set_audio_sample_batch);
+  _qr_load_function_name(retro_set_controller_port_device);
+  _qr_load_function_name(retro_set_environment);
+  _qr_load_function_name(retro_set_input_poll);
+  _qr_load_function_name(retro_set_input_state);
+  _qr_load_function_name(retro_set_video_refresh);
+  _qr_load_function_name(retro_unload_game);
+  _qr_load_function_name(retro_unserialize);
 
   if (success)
   {
@@ -1342,7 +1264,7 @@ bool QRetro::loadCore(const char *path)
     return false;
   }
 
-  if (!load_library(&m_Core, m_Library))
+  if (!_qr_load_library(&m_Core, m_Library))
     return false;
 
   m_Input.setControllerPortDevice(m_Core.retro_set_controller_port_device);

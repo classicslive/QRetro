@@ -64,7 +64,4 @@ typedef struct retro_core_t
   uint64_t serialization_quirks_v;
 } retro_core_t;
 
-bool load_function(void *func_ptr, QRETRO_LIBRARY_T library, const char *name);
-bool load_library(retro_core_t *core, QRETRO_LIBRARY_T library);
-
 #endif

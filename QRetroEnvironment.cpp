@@ -5,6 +5,7 @@
 
 #include <libretro.h>
 
+#include <QApplication>
 #include <QThread>
 
 void core_audio_sample(int16_t left, int16_t right)
@@ -64,6 +65,89 @@ static void* core_hw_get_proc_address(const char *sym)
     return _this->glGetProcAddress(QThread::currentThread(), sym);
 
   return nullptr;
+}
+
+void core_input_poll(void)
+{
+  auto _this = _qrthis();
+
+  if (!_this)
+    return;
+
+  /* If a custom input poll handler has been installed, use that instead */
+  if (_this->hasInputPollHandler())
+  {
+    _this->runInputPollHandler();
+    return;
+  }
+  else if (_this->inputPrePolled())
+    _this->clearInputPrePolled();
+  else
+    _this->input()->poll();
+
+  _this->updateMouse();
+}
+
+int16_t core_input_state(unsigned port, unsigned device, unsigned index,
+  unsigned id)
+{
+  auto _this = _qrthis();
+
+  if (!_this)
+    return 0;
+
+  if (_this->hasInputStateHandler())
+    return _this->runInputStateHandler(port, device, index, id);
+
+  if (device == RETRO_DEVICE_JOYPAD || device == RETRO_DEVICE_ANALOG)
+    return _this->input()->state(port, device, index, id);
+  else if (device == RETRO_DEVICE_POINTER)
+  {
+    switch (id)
+    {
+    case RETRO_DEVICE_ID_POINTER_X:
+      return static_cast<short>(_this->pointerPosition().x());
+    case RETRO_DEVICE_ID_POINTER_Y:
+      return static_cast<short>(_this->pointerPosition().y());
+    case RETRO_DEVICE_ID_POINTER_PRESSED:
+      return _this->pointerValid() && QApplication::mouseButtons().testFlag(Qt::LeftButton);
+    /* TODO: Support multitouch, if ever needed */
+    case RETRO_DEVICE_ID_POINTER_COUNT:
+      return 1;
+    }
+  }
+  else if (device == RETRO_DEVICE_MOUSE)
+  {
+    switch (id)
+    {
+    case RETRO_DEVICE_ID_MOUSE_X:
+      return static_cast<short>(_this->mouseDelta().x());
+    case RETRO_DEVICE_ID_MOUSE_Y:
+      return static_cast<short>(_this->mouseDelta().y());
+    case RETRO_DEVICE_ID_MOUSE_LEFT:
+      return QApplication::mouseButtons().testFlag(Qt::LeftButton);
+    case RETRO_DEVICE_ID_MOUSE_RIGHT:
+      return QApplication::mouseButtons().testFlag(Qt::RightButton);
+    case RETRO_DEVICE_ID_MOUSE_MIDDLE:
+      return QApplication::mouseButtons().testFlag(Qt::MiddleButton);
+    case RETRO_DEVICE_ID_MOUSE_BUTTON_4:
+      return QApplication::mouseButtons().testFlag(Qt::ExtraButton1);
+    case RETRO_DEVICE_ID_MOUSE_BUTTON_5:
+      return QApplication::mouseButtons().testFlag(Qt::ExtraButton2);
+    case RETRO_DEVICE_ID_MOUSE_WHEELUP:
+      return _this->mousewheelV() > 0;
+    case RETRO_DEVICE_ID_MOUSE_WHEELDOWN:
+      return _this->mousewheelV() < 0;
+    case RETRO_DEVICE_ID_MOUSE_HORIZ_WHEELUP:
+      return _this->mousewheelH() > 0;
+    case RETRO_DEVICE_ID_MOUSE_HORIZ_WHEELDOWN:
+      return _this->mousewheelH() < 0;
+    default:
+      return 0;
+    }
+  }
+
+  return 0;
 }
 
 /* TODO: Support distance interval */
