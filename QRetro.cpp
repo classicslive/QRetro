@@ -857,8 +857,9 @@ void QRetro::timing()
 
       //m_Camera.update();
 
+      emit frameBegin();
       m_Core.retro_run();
-      emit onFrame();
+      emit frameEnd();
 
 #if QRETRO_HAVE_OPENGL
       if (surfaceType() == QSurface::OpenGLSurface && m_OpenGlContextCore && !m_Active)

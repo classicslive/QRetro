@@ -136,6 +136,7 @@ SOURCES += \
   $$PWD/QRetroInput.cpp \
   $$PWD/QRetroLocation.cpp \
   $$PWD/QRetroMicrophone.cpp \
+  $$PWD/QRetroMemory.cpp \
   $$PWD/QRetroMessage.cpp \
   $$PWD/QRetroMidi.cpp \
   $$PWD/QRetroOptions.cpp \
@@ -168,6 +169,7 @@ HEADERS += \
   $$PWD/QRetroInputBackend.h \
   $$PWD/QRetroLed.h \
   $$PWD/QRetroLog.h \
+  $$PWD/QRetroMemory.h \
   $$PWD/QRetroMessage.h \
   $$PWD/QRetroLocation.h \
   $$PWD/QRetroMicrophone.h \

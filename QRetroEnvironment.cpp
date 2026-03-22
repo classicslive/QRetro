@@ -807,7 +807,7 @@ bool core_environment(unsigned cmd, void *data)
   /// The core provides a description of the address spaces used by the emulated hardware
   /// Returns true if this environment call is available
   case RETRO_ENVIRONMENT_SET_MEMORY_MAPS:
-    _this->setMemoryMaps(reinterpret_cast<const retro_memory_map*>(data));
+    _this->memory().setMemoryMaps(reinterpret_cast<const retro_memory_map*>(data));
     break;
 
   /// 37

@@ -28,6 +28,7 @@
 #include "QRetroLocation.h"
 #include "QRetroMicrophone.h"
 #include "QRetroLog.h"
+#include "QRetroMemory.h"
 #include "QRetroMessage.h"
 #include "QRetroMidi.h"
 #include "QRetroProcAddress.h"
@@ -255,31 +256,7 @@ public:
     *sq = 0;
   }
 
-  retro_memory_map* memoryMaps(void) { return &m_MemoryMaps; }
-  void setMemoryMaps(const struct retro_memory_map* maps)
-  {
-    m_MemoryMaps.num_descriptors = maps->num_descriptors;
-    auto descs = static_cast<retro_memory_descriptor*>(
-      calloc(m_MemoryMaps.num_descriptors, sizeof(retro_memory_descriptor)));
-
-    /* Do a deep copy */
-    for (unsigned i = 0; i < m_MemoryMaps.num_descriptors; i++)
-    {
-      auto dst = &descs[i];
-      auto src = &maps->descriptors[i];
-
-      memcpy(dst, src, sizeof(retro_memory_descriptor));
-      if (src->addrspace)
-      {
-        auto addr = static_cast<char*>(malloc(strlen(src->addrspace) + 1));
-
-        memcpy(addr, src->addrspace, strlen(src->addrspace) + 1);
-        addr[strlen(src->addrspace)] = '\0';
-        dst->addrspace = addr;
-      }
-    }
-    m_MemoryMaps.descriptors = descs;
-  }
+  QRetroMemory& memory() { return m_Memory; }
 
   double targetRefreshRate() { return m_TargetRefreshRate; }
 
@@ -453,7 +430,8 @@ public:
 signals:
   void onCoreLog(int level, const QString msg);
   void onCoreStart(void);
-  void onFrame(void);
+  void frameBegin(void);
+  void frameEnd(void);
   void onSave(void);
   void onVideoRefresh(const void *ptr, unsigned width, unsigned height,
                       unsigned bytes_per_line);
@@ -475,7 +453,7 @@ private:
 
   QString stateFilePath(void);
 
-  QRetroAudio *m_Audio;
+  QRetroAudio *m_Audio = nullptr;
   QRetroAudioVideoEnable m_AudioVideoEnable;
   QRetroCamera m_Camera;
   QRetroDevicePower m_DevicePower;
@@ -484,6 +462,7 @@ private:
   QRetroInputBackend *m_InputBackend = nullptr;
   QRetroLed m_Led;
   QRetroLog m_Log;
+  QRetroMemory m_Memory;
   QRetroMessage *m_Message = nullptr;
   QRetroLocation *m_Location = nullptr;
   QRetroMicrophone m_Microphone;
@@ -541,9 +520,6 @@ private:
 
   /// The minimum log level for messages to be emitted as signals
   retro_log_level m_LogLevel = RETRO_LOG_DEBUG;
-
-  /// The memory map reported by the core
-  retro_memory_map m_MemoryMaps = { nullptr, 0 };
 
   /// The x and y values of how much mouse has moved since last input poll
   QPoint m_MouseDelta;

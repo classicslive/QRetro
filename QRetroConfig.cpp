@@ -279,7 +279,7 @@ QRetroConfig::QRetroConfig(QRetro *owner)
 
     if (m_MemMapsForm)
     {
-      auto *maps = m_Owner->memoryMaps();
+      auto *maps = m_Owner->m_Memory.memoryMaps();
       int count  = maps ? (int)maps->num_descriptors : 0;
       if (count != m_MemMapsShownCount)
       {
