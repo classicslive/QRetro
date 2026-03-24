@@ -126,6 +126,18 @@ void QRetro::updateScaling()
   else
     ar = static_cast<double>(bw) / bh;
 
+  /* Grow the window if it is smaller than 1x scale */
+  int min1xW = swap ? bh : static_cast<int>(ceil(ar * bh));
+  int min1xH = swap ? static_cast<int>(ceil(ar * bh)) : bh;
+  if (size().width() < min1xW || size().height() < min1xH)
+  {
+    int newW = qMax(size().width(),  min1xW);
+    int newH = qMax(size().height(), min1xH);
+    QMetaObject::invokeMethod(this, [this, newW, newH]() { resize(newW, newH); },
+                              Qt::QueuedConnection);
+    return;
+  }
+
   double fitW = swap ? static_cast<double>(size().width())  / bh
                      : static_cast<double>(size().width())  / (ar * bh);
   double fitH = swap ? static_cast<double>(size().height()) / (ar * bh)
