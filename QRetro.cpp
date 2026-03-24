@@ -28,6 +28,11 @@
 #include "QRetroInputBackendQGamepad.h"
 #endif
 
+#if QRETRO_HAVE_ZIP
+#include <private/qzipreader_p.h>
+#include <private/qzipwriter_p.h>
+#endif
+
 using namespace std;
 using namespace std::chrono;
 
@@ -450,7 +455,7 @@ bool QRetro::unserialize(const void *data, size_t size)
   return result;
 }
 
-bool QRetro::serializeToFile(const QString &path)
+bool QRetro::serializeToFile(const QString &path, bool zipped)
 {
   size_t sz = serializeSize();
   if (!sz)
@@ -459,6 +464,17 @@ bool QRetro::serializeToFile(const QString &path)
   std::vector<unsigned char> buf(sz);
   if (!serialize(buf.data(), sz))
     return false;
+
+#if QRETRO_HAVE_ZIP
+  if (zipped) {
+    QZipWriter zip(path);
+    QFileInfo info(path);
+    zip.addFile(info.completeBaseName(), QByteArray(reinterpret_cast<const char*>(buf.data()), sz));
+    return zip.status() == QZipWriter::NoError;
+  }
+#else
+  (void)zipped;
+#endif
 
   QFile f(path);
   if (!f.open(QIODevice::WriteOnly))
@@ -473,6 +489,22 @@ bool QRetro::unserializeFromFile(const QString &path)
     return false;
 
   QByteArray data = f.readAll();
+
+#if QRETRO_HAVE_ZIP
+  if (data.size() >= 4 &&
+      (unsigned char)data[0] == 0x50 && (unsigned char)data[1] == 0x4B &&
+      (unsigned char)data[2] == 0x03 && (unsigned char)data[3] == 0x04)
+  {
+    QZipReader zip(path);
+    const auto entries = zip.fileInfoList();
+    if (entries.isEmpty())
+      return false;
+    data = zip.fileData(entries.first().filePath);
+    if (data.isEmpty())
+      return false;
+  }
+#endif
+
   return unserialize(data.constData(), static_cast<size_t>(data.size()));
 }
 

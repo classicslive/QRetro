@@ -420,7 +420,7 @@ public:
   size_t serializeSize(void);
   bool serialize(void *data, size_t size);
   bool unserialize(const void *data, size_t size);
-  bool serializeToFile(const QString &path);
+  bool serializeToFile(const QString &path, bool zipped = false);
   bool unserializeFromFile(const QString &path);
 
   bool stateLoad(void);

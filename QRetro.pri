@@ -86,6 +86,15 @@ CONFIG(debug, debug|release) {
   }
 }
 
+!QRETRO_CONFIG_NO_ZIP {
+  QT += gui-private
+  DEFINES += QRETRO_HAVE_ZIP=1
+  message("Zip state support enabled.")
+} else {
+  DEFINES += QRETRO_HAVE_ZIP=0
+  message("Zip state support disabled.")
+}
+
 !QRETRO_CONFIG_NO_OPENGL {
   win32 {
     LIBS += -lOpengl32
