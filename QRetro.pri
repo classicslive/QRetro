@@ -137,6 +137,7 @@ SOURCES += \
   $$PWD/QRetro.cpp \
   $$PWD/QRetroConfig.cpp \
   $$PWD/QRetroAudio.cpp \
+  $$PWD/QRetroDiskControl.cpp \
   $$PWD/QRetroCamera.cpp \
   $$PWD/QRetroCommon.cpp \
   $$PWD/QRetroDevicePower.cpp \
@@ -173,6 +174,7 @@ HEADERS += \
   $$PWD/QRetroCommon.h \
   $$PWD/QRetroDevicePower.h \
   $$PWD/QRetroDirectories.h \
+  $$PWD/QRetroDiskControl.h \
   $$PWD/QRetroEnvironment.h \
   $$PWD/QRetroInput.h \
   $$PWD/QRetroInputBackend.h \
