@@ -16,6 +16,7 @@
 #include <QLabel>
 #include <QListWidget>
 #include <QTextEdit>
+#include <QThread>
 #include <QScrollArea>
 #include <QSettings>
 #include <QSlider>
@@ -673,6 +674,184 @@ void QRetroConfig::update()
     }
 
     pageLayout->addWidget(group);
+    pageLayout->addStretch();
+  }
+
+  /* ── Disk Control ───────────────────────────────────────────── */
+  auto *diskPage = new QWidget();
+  {
+    auto *pageLayout = new QVBoxLayout(diskPage);
+    pageLayout->setContentsMargins(12, 12, 12, 12);
+    pageLayout->setSpacing(12);
+
+    auto *dc = m_Owner->diskControl();
+    const bool available = dc->version() != QRetroDiskControl::Invalid;
+
+    /* Status labels — declared here so controls below can update them */
+    QLabel *trayLabel        = nullptr;
+    QLabel *activeImageLabel = nullptr;
+
+    /* Status group */
+    {
+      auto *group = new QGroupBox(tr("Status"));
+      auto *form  = new QFormLayout(group);
+      form->setVerticalSpacing(8);
+
+      QString versionStr;
+      switch (dc->version())
+      {
+        case QRetroDiskControl::v0: versionStr = QStringLiteral("v0");       break;
+        case QRetroDiskControl::v1: versionStr = QStringLiteral("v1 (ext)"); break;
+        default:                    versionStr = tr("Not available");         break;
+      }
+      form->addRow(tr("Interface"), new QLabel(versionStr));
+
+      if (available)
+      {
+        trayLabel = new QLabel(dc->getEjectState() ? tr("Ejected") : tr("Inserted"));
+        form->addRow(tr("Tray"), trayLabel);
+
+        unsigned numImages = dc->getNumImages();
+        unsigned curIndex  = dc->getImageIndex();
+        form->addRow(tr("Images"), new QLabel(QString::number(numImages)));
+
+        activeImageLabel = new QLabel(QString::number(curIndex));
+        form->addRow(tr("Active Image"), activeImageLabel);
+      }
+
+      pageLayout->addWidget(group);
+    }
+
+    auto updateStatus = [dc, trayLabel, activeImageLabel]() {
+      if (trayLabel)
+        trayLabel->setText(dc->getEjectState() ? tr("Ejected") : tr("Inserted"));
+      if (activeImageLabel)
+        activeImageLabel->setText(QString::number(dc->getImageIndex()));
+    };
+
+    if (available)
+    {
+      /* Drive controls */
+      {
+        auto *group = new QGroupBox(tr("Drive"));
+        auto *form  = new QFormLayout(group);
+        form->setVerticalSpacing(8);
+
+        /* Tray toggle — eject or insert only, no index change here.
+         * A background thread blocks on execOnTimingThread so the core
+         * calls land between frames without freezing the UI. */
+        auto *ejectBtn = new QPushButton(dc->getEjectState() ? tr("Insert") : tr("Eject"));
+        connect(ejectBtn, &QPushButton::clicked, [this, dc, ejectBtn, updateStatus]() {
+          bool nowEjected = !dc->getEjectState();
+          auto *t = QThread::create([this, dc, ejectBtn, nowEjected, updateStatus]() {
+            m_Owner->execOnTimingThread([dc, nowEjected]() {
+              dc->setEjectState(nowEjected);
+            });
+            QMetaObject::invokeMethod(ejectBtn, [ejectBtn, nowEjected, updateStatus]() {
+              ejectBtn->setText(nowEjected ? tr("Insert") : tr("Eject"));
+              updateStatus();
+            }, Qt::QueuedConnection);
+          });
+          connect(t, &QThread::finished, t, &QObject::deleteLater);
+          t->start();
+        });
+        form->addRow(tr("Tray"), ejectBtn);
+
+        /* Disk swap: eject → set index → insert, executed on the timing
+         * thread between frames per the libretro spec. */
+        unsigned numImages  = dc->getNumImages();
+        unsigned curIndex   = dc->getImageIndex();
+        auto *diskCombo = new QComboBox();
+        for (unsigned i = 0; i < numImages; ++i)
+        {
+          char label[1024] = {};
+          char path[4096]  = {};
+          QString display;
+          if (dc->version() == QRetroDiskControl::v1)
+          {
+            auto basename = [](const char *s) -> QString {
+              QFileInfo fi(QString::fromUtf8(s));
+              return fi.fileName().isEmpty() ? fi.filePath() : fi.fileName();
+            };
+            dc->getImageLabel(i, label, sizeof(label));
+            if (label[0])
+              display = basename(label);
+            else
+            {
+              dc->getImagePath(i, path, sizeof(path));
+              display = path[0] ? basename(path) : QStringLiteral("—");
+            }
+          }
+          else
+            display = tr("Disk %1").arg(i + 1);
+          diskCombo->addItem(display, i);
+        }
+        diskCombo->setCurrentIndex(static_cast<int>(curIndex));
+
+        auto *swapBtn = new QPushButton(tr("Swap"));
+        connect(swapBtn, &QPushButton::clicked, [this, dc, diskCombo, swapBtn, updateStatus]() {
+          unsigned target = static_cast<unsigned>(diskCombo->currentData().toUInt());
+          swapBtn->setEnabled(false);
+          auto *t = QThread::create([this, dc, target, swapBtn, updateStatus]() {
+            m_Owner->execOnTimingThread([dc, target]() {
+              dc->setImageIndex(target);
+            });
+            QMetaObject::invokeMethod(swapBtn, [swapBtn, updateStatus]() {
+              swapBtn->setEnabled(true);
+              updateStatus();
+            }, Qt::QueuedConnection);
+          });
+          connect(t, &QThread::finished, t, &QObject::deleteLater);
+          t->start();
+        });
+
+        auto *rowWidget = new QWidget();
+        auto *hbox      = new QHBoxLayout(rowWidget);
+        hbox->setContentsMargins(0, 0, 0, 0);
+        hbox->addWidget(diskCombo, 1);
+        hbox->addWidget(swapBtn);
+        form->addRow(tr("Swap Disk"), rowWidget);
+
+        auto *addBtn = new QPushButton(tr("Add Slot"));
+        connect(addBtn, &QPushButton::clicked, [dc, diskCombo]() {
+          if (dc->addImageIndex())
+            diskCombo->addItem(tr("Disk %1").arg(diskCombo->count() + 1),
+                               diskCombo->count());
+        });
+        form->addRow(tr("Slots"), addBtn);
+
+        pageLayout->addWidget(group);
+      }
+
+      /* Image list (v1 only) */
+      if (dc->version() == QRetroDiskControl::v1)
+      {
+        auto *group = new QGroupBox(tr("Images"));
+        auto *form  = new QFormLayout(group);
+        form->setVerticalSpacing(8);
+
+        unsigned numImages = dc->getNumImages();
+        for (unsigned i = 0; i < numImages; ++i)
+        {
+          char path[4096]  = {};
+          char label[1024] = {};
+          dc->getImagePath(i, path, sizeof(path));
+          dc->getImageLabel(i, label, sizeof(label));
+
+          QString display = QString::fromUtf8(label[0] ? label : path[0] ? path : "—");
+          auto *lbl = new QLabel(display);
+          lbl->setTextInteractionFlags(Qt::TextSelectableByMouse);
+          lbl->setToolTip(QString::fromUtf8(path));
+          form->addRow(tr("Slot %1").arg(i), lbl);
+        }
+
+        if (numImages == 0)
+          form->addRow(new QLabel(tr("No images registered.")));
+
+        pageLayout->addWidget(group);
+      }
+    }
+
     pageLayout->addStretch();
   }
 
@@ -1403,14 +1582,15 @@ void QRetroConfig::update()
   indexPage(inputPage);     //  3
   indexPage(envPage);       //  4
   indexPage(dirsPage);      //  5
-  indexPage(sensorsPage);   //  6
-  indexPage(locationPage);  //  7
-  indexPage(ledPage);       //  8
-  indexPage(coreConstPage); //  9
-  indexPage(memPage);       // 10
-  indexPage(procPage);      // 11
-  pageRows.append(QList<SearchRow>());      // 12: logEdit
-  pageRows.append(QList<SearchRow>());      // 13: msgPage
+  indexPage(diskPage);      //  6
+  indexPage(sensorsPage);   //  7
+  indexPage(locationPage);  //  8
+  indexPage(ledPage);       //  9
+  indexPage(coreConstPage); // 10
+  indexPage(memPage);       // 11
+  indexPage(procPage);      // 12
+  pageRows.append(QList<SearchRow>());      // 13: logEdit
+  pageRows.append(QList<SearchRow>());      // 14: msgPage
 
   /* ── Sidebar ────────────────────────────────────────────────── */
   const QString coreName  = m_Owner->options()->coreName();
@@ -1448,6 +1628,7 @@ void QRetroConfig::update()
   addSidebarItem(tr("Input"));
   addSidebarItem(tr("Environment"));
   addSidebarItem(tr("Directories"));
+  addSidebarItem(tr("Disk Control"));
 
   addDivider("ADVANCED");
   addSidebarItem(tr("Sensors"));
@@ -1472,6 +1653,7 @@ void QRetroConfig::update()
   stack->addWidget(makeScrollPage(inputPage));
   stack->addWidget(makeScrollPage(envPage));
   stack->addWidget(makeScrollPage(dirsPage));
+  stack->addWidget(makeScrollPage(diskPage));
   stack->addWidget(makeScrollPage(sensorsPage));
   stack->addWidget(makeScrollPage(locationPage));
   stack->addWidget(makeScrollPage(ledPage));

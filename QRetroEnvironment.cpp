@@ -506,11 +506,15 @@ bool core_environment(unsigned cmd, void *data)
         *reinterpret_cast<retro_keyboard_callback*>(data);
     break;
 
-  /// 13 @todo
+  /// 13
   /// const struct retro_disk_control_callback*
   /// The core provides an interface for the frontend to swap disk images at runtime
   /// Returns true if disk control is supported
-  /// case RETRO_ENVIRONMENT_SET_DISK_CONTROL_INTERFACE:
+  case RETRO_ENVIRONMENT_SET_DISK_CONTROL_INTERFACE:
+    if (data)
+      _this->diskControl()->setInterface(
+        reinterpret_cast<const retro_disk_control_callback*>(data));
+    return true;
 
   /// 14
   /// struct retro_hw_render_callback*
@@ -1009,17 +1013,25 @@ bool core_environment(unsigned cmd, void *data)
       *reinterpret_cast<unsigned*>(data) = _this->getPreferredRenderer();
     break;
 
-  /// 57 @todo
+  /// 57
   /// unsigned*
   /// The frontend provides the version of the disk control interface it supports
   /// Returns true if this environment call is available
-  // case RETRO_ENVIRONMENT_GET_DISK_CONTROL_INTERFACE_VERSION:
+  case RETRO_ENVIRONMENT_GET_DISK_CONTROL_INTERFACE_VERSION:
+    if (data)
+      *reinterpret_cast<unsigned*>(data) =
+        static_cast<unsigned>(_this->diskControl()->maxVersion());
+    return true;
 
-  /// 58 @todo
+  /// 58
   /// const struct retro_disk_control_ext_callback*
   /// The core provides an extended interface for swapping disk images at runtime
   /// Returns true if disk control is supported
-  // case RETRO_ENVIRONMENT_SET_DISK_CONTROL_EXT_INTERFACE:
+  case RETRO_ENVIRONMENT_SET_DISK_CONTROL_EXT_INTERFACE:
+    if (data)
+      _this->diskControl()->setExtInterface(
+        reinterpret_cast<const retro_disk_control_ext_callback*>(data));
+    return true;
 
   /// 59
   /// unsigned*

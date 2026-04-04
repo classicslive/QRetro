@@ -22,6 +22,7 @@
 #include "QRetroAudioVideoEnable.h"
 #include "QRetroCamera.h"
 #include "QRetroDevicePower.h"
+#include "QRetroDiskControl.h"
 #include "QRetroDirectories.h"
 #include "QRetroInput.h"
 #include "QRetroLed.h"
@@ -69,6 +70,7 @@ public:
   QRetroCamera* camera(void) { return &m_Camera; }
   retro_core_t* core(void) { return &m_Core; }
   QRetroDevicePower* devicePower(void) { return &m_DevicePower; }
+  QRetroDiskControl* diskControl(void) { return &m_DiskControl; }
   QRetroInput* input(void) { return &m_Input; }
   QRetroLed* led(void) { return &m_Led; }
   QRetroLog* log(void) { return &m_Log; }
@@ -457,6 +459,7 @@ private:
   QRetroAudioVideoEnable m_AudioVideoEnable;
   QRetroCamera m_Camera;
   QRetroDevicePower m_DevicePower;
+  QRetroDiskControl m_DiskControl;
   QRetroDirectories m_Directories;
   QRetroInput m_Input;
   QRetroInputBackend *m_InputBackend = nullptr;

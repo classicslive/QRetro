@@ -59,7 +59,7 @@ public:
   bool getImageLabel(unsigned index, char *s, size_t len);
 
 private:
-  retro_disk_control_ext_callback m_Callback = { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+  retro_disk_control_ext_callback m_Callback = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
   /// The version of disk control interface currently in use. This is set by
   /// the type of interface sent by the core.
