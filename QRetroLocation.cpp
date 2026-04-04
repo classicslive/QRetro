@@ -1,4 +1,3 @@
-#include "QRetroCommon.h"
 #include "QRetroLocation.h"
 
 QRetroLocation::QRetroLocation(QObject* parent)
@@ -43,7 +42,7 @@ bool QRetroLocation::getPosition(double *lat, double *lon,
 }
 
 #if QRETRO_HAVE_LOCATION
-void QRetroLocation::positionUpdated(const QGeoPositionInfo &update)
+void QRetroLocation::positionUpdated(QGeoPositionInfo update)
 {
   m_Latitude = update.coordinate().latitude();
   m_Longitude = update.coordinate().longitude();

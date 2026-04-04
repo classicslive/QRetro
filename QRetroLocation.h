@@ -47,7 +47,7 @@ public:
 
 #if QRETRO_HAVE_LOCATION
 public slots:
-  void positionUpdated(const QGeoPositionInfo &update);
+  void positionUpdated(QGeoPositionInfo update);
 #endif
 
 private:
