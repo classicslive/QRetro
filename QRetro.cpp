@@ -340,7 +340,10 @@ void QRetro::setImagePtr(const void *data, unsigned width, unsigned height, unsi
     GLenum filter = m_BilinearFilter ? GL_LINEAR : GL_NEAREST;
     if (ef && sw > 0 && sh > 0)
     {
-      /* Some cores will scissor to their internal resolution, disable that */
+      /* Hack -- temporarily disable GL scissor test so our FBO doesn't get clipped */
+      GLboolean scissor_was_enabled = glIsEnabled(GL_SCISSOR_TEST);
+      GLint scissor_box[4];
+      glGetIntegerv(GL_SCISSOR_BOX, scissor_box);
       glDisable(GL_SCISSOR_TEST);
 
       if (m_FboRequestedThisFrame && m_OpenGlFbo && m_OpenGlFbo->isValid())
@@ -379,6 +382,13 @@ void QRetro::setImagePtr(const void *data, unsigned width, unsigned height, unsi
           ef->glBindFramebuffer(GL_READ_FRAMEBUFFER, m_OpenGlFboIntermediate->handle());
           ef->glBlitFramebuffer(0, 0, sw, sh, dx0, dy0, dx1, dy1, GL_COLOR_BUFFER_BIT, filter);
         }
+      }
+
+      /* Hack -- restore the scissor test so the core can use it again */
+      if (scissor_was_enabled)
+      {
+        glScissor(scissor_box[0], scissor_box[1], scissor_box[2], scissor_box[3]);
+        glEnable(GL_SCISSOR_TEST);
       }
     }
 
