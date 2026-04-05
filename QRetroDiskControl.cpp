@@ -1,4 +1,5 @@
 #include "QRetroDiskControl.h"
+
 #include "QRetro.h"
 
 bool QRetroDiskControl::setInterface(const retro_disk_control_callback *callback)
@@ -42,7 +43,7 @@ bool QRetroDiskControl::setEjectState(bool ejected)
 
   if (!m_Callback.set_eject_state)
     return false;
-  m_owner->execOnTimingThread([&]() { retval = m_Callback.set_eject_state(ejected); });
+  qobject_cast<QRetro *>(parent())->execOnTimingThread([&]() { retval = m_Callback.set_eject_state(ejected); });
 
   return retval;
 }
@@ -53,7 +54,7 @@ bool QRetroDiskControl::getEjectState(void)
 
   if (!m_Callback.get_eject_state)
     return false;
-  m_owner->execOnTimingThread([&]() { retval = m_Callback.get_eject_state(); });
+  qobject_cast<QRetro *>(parent())->execOnTimingThread([&]() { retval = m_Callback.get_eject_state(); });
 
   return retval;
 }
@@ -64,7 +65,7 @@ unsigned QRetroDiskControl::getImageIndex(void)
 
   if (!m_Callback.get_image_index)
     return 0;
-  m_owner->execOnTimingThread([&]() { retval = m_Callback.get_image_index(); });
+  qobject_cast<QRetro *>(parent())->execOnTimingThread([&]() { retval = m_Callback.get_image_index(); });
 
   return retval;
 }
@@ -75,7 +76,7 @@ bool QRetroDiskControl::setImageIndex(unsigned index)
 
   if (!m_Callback.set_image_index)
     return false;
-  m_owner->execOnTimingThread([&]() { retval = m_Callback.set_image_index(index); });
+  qobject_cast<QRetro *>(parent())->execOnTimingThread([&]() { retval = m_Callback.set_image_index(index); });
 
   return retval;
 }
@@ -86,7 +87,7 @@ unsigned QRetroDiskControl::getNumImages(void)
 
   if (!m_Callback.get_num_images)
     return 0;
-  m_owner->execOnTimingThread([&]() { retval = m_Callback.get_num_images(); });
+  qobject_cast<QRetro *>(parent())->execOnTimingThread([&]() { retval = m_Callback.get_num_images(); });
 
   return retval;
 }
@@ -97,7 +98,7 @@ bool QRetroDiskControl::replaceImageIndex(unsigned index, const retro_game_info 
 
   if (!m_Callback.replace_image_index)
     return false;
-  m_owner->execOnTimingThread([&]() { retval = m_Callback.replace_image_index(index, info); });
+  qobject_cast<QRetro *>(parent())->execOnTimingThread([&]() { retval = m_Callback.replace_image_index(index, info); });
 
   return retval;
 }
@@ -108,7 +109,7 @@ bool QRetroDiskControl::addImageIndex(void)
 
   if (!m_Callback.add_image_index)
     return false;
-  m_owner->execOnTimingThread([&]() { retval = m_Callback.add_image_index(); });
+  qobject_cast<QRetro *>(parent())->execOnTimingThread([&]() { retval = m_Callback.add_image_index(); });
 
   return retval;
 }
@@ -119,7 +120,7 @@ bool QRetroDiskControl::setInitialImage(unsigned index, const char *path)
 
   if (m_Version != QRetroDiskControl::v1 || !m_Callback.set_initial_image)
     return false;
-  m_owner->execOnTimingThread([&]() { retval = m_Callback.set_initial_image(index, path); });
+  qobject_cast<QRetro *>(parent())->execOnTimingThread([&]() { retval = m_Callback.set_initial_image(index, path); });
 
   return retval;
 }
@@ -130,7 +131,7 @@ bool QRetroDiskControl::getImagePath(unsigned index, char *s, size_t len)
 
   if (m_Version != QRetroDiskControl::v1 || !m_Callback.get_image_path)
     return false;
-  m_owner->execOnTimingThread([&]() { retval = m_Callback.get_image_path(index, s, len); });
+  qobject_cast<QRetro *>(parent())->execOnTimingThread([&]() { retval = m_Callback.get_image_path(index, s, len); });
 
   return retval;
 }
@@ -141,7 +142,7 @@ bool QRetroDiskControl::getImageLabel(unsigned index, char *s, size_t len)
 
   if (m_Version != QRetroDiskControl::v1 || !m_Callback.get_image_label)
     return false;
-  m_owner->execOnTimingThread([&]() { retval = m_Callback.get_image_label(index, s, len); });
+  qobject_cast<QRetro *>(parent())->execOnTimingThread([&]() { retval = m_Callback.get_image_label(index, s, len); });
 
   return retval;
 }

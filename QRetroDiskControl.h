@@ -1,15 +1,16 @@
 #ifndef QRETRO_DISKCONTROL_H
 #define QRETRO_DISKCONTROL_H
 
+#include <QObject>
 #include "libretro.h"
 
-class QRetro;
-
-class QRetroDiskControl
+class QRetroDiskControl : public QObject
 {
+  Q_OBJECT
+
 public:
-  QRetroDiskControl(QRetro *owner)
-    : m_owner(owner)
+  explicit QRetroDiskControl(QObject *parent = nullptr)
+    : QObject(parent)
   {
   }
 
@@ -66,7 +67,6 @@ public:
   bool getImageLabel(unsigned index, char *s, size_t len);
 
 private:
-  QRetro *m_owner = nullptr;
   retro_disk_control_ext_callback m_Callback = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
   /// The version of disk control interface currently in use. This is set by
