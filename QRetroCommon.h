@@ -6,7 +6,7 @@
 
 #include "QRetro.h"
 
-extern std::map<std::thread::id, QRetro*> _qr_thread_map;
+extern std::map<std::thread::id, QRetro *> _qr_thread_map;
 
 #define QRETRO_ERROR(a) _qrerror(__FILE__, __LINE__, a)
 QString _qrerror(const char *file, int line, QString msg);
@@ -26,9 +26,9 @@ bool _qrdelete(QRetro *retro);
  * QRetro object's lifetime.
  * @return true if the instance is successfully added, false otherwise.
  */
-bool _qrnew(std::thread::id id, QRetro* retro);
+bool _qrnew(std::thread::id id, QRetro *retro);
 
-QRetro* _qrthis();
+QRetro *_qrthis();
 
 /**
  * Converts a Qt Gamepad analog input reading as double to a libretro one as

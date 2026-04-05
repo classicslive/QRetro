@@ -17,13 +17,12 @@ public:
     Stopped,
   };
 
-  QRetroLocation(QObject* parent);
+  QRetroLocation(QObject *parent);
   ~QRetroLocation();
 
-  bool getPosition(double *lat, double *lon, double *horiz_accuracy,
-    double *vert_accuracy, bool quiet = false);
-  void setPosition(double lat, double lon, double horiz_accuracy = 0,
-    double vert_accuracy = 0);
+  bool getPosition(
+    double *lat, double *lon, double *horiz_accuracy, double *vert_accuracy, bool quiet = false);
+  void setPosition(double lat, double lon, double horiz_accuracy = 0, double vert_accuracy = 0);
   void setInterval(unsigned ms, unsigned dist);
   bool startUpdates(void);
   bool stopUpdates(void);

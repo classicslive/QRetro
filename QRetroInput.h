@@ -11,22 +11,22 @@
 struct QRetroControllerType
 {
   std::string desc;
-  unsigned    id;
+  unsigned id;
 };
 
 struct QRetroInputDescriptor
 {
-  unsigned    port;
-  unsigned    device;
-  unsigned    index;
-  unsigned    id;
+  unsigned port;
+  unsigned device;
+  unsigned index;
+  unsigned id;
   std::string description;
 };
 
 struct QRetroControllerPort
 {
   std::vector<QRetroControllerType> types;
-  unsigned                          selectedId = RETRO_DEVICE_JOYPAD;
+  unsigned selectedId = RETRO_DEVICE_JOYPAD;
 };
 
 #define QRETRO_INPUT_DEFAULT_MAX_JOYPADS 16
@@ -175,7 +175,7 @@ public:
 
   void setKey(retro_key key, bool down) { m_Keys[key] = down; }
 
-  const std::vector<QRetroControllerPort>& controllerPorts(void) const { return m_ControllerPorts; }
+  const std::vector<QRetroControllerPort> &controllerPorts(void) const { return m_ControllerPorts; }
 
   /**
    * Sets the core's retro_set_controller_port_device function pointer.
@@ -187,7 +187,8 @@ public:
   void setControllerInfo(const retro_controller_info *info)
   {
     m_ControllerPorts.clear();
-    if (!info) return;
+    if (!info)
+      return;
     for (const retro_controller_info *ci = info; ci->types; ci++)
     {
       QRetroControllerPort port;
@@ -199,7 +200,8 @@ public:
 
   unsigned selectedControllerType(unsigned port) const
   {
-    return port < m_ControllerPorts.size() ? m_ControllerPorts[port].selectedId : RETRO_DEVICE_JOYPAD;
+    return port < m_ControllerPorts.size() ? m_ControllerPorts[port].selectedId
+                                           : RETRO_DEVICE_JOYPAD;
   }
 
   void setSelectedControllerType(unsigned port, unsigned id)
@@ -309,13 +311,20 @@ public:
     QRetroInputJoypad &jp = m_Joypads[port];
     switch (id)
     {
-    case RETRO_SENSOR_ACCELEROMETER_X: return jp.accelX();
-    case RETRO_SENSOR_ACCELEROMETER_Y: return jp.accelY();
-    case RETRO_SENSOR_ACCELEROMETER_Z: return jp.accelZ();
-    case RETRO_SENSOR_GYROSCOPE_X:     return jp.gyroX();
-    case RETRO_SENSOR_GYROSCOPE_Y:     return jp.gyroY();
-    case RETRO_SENSOR_GYROSCOPE_Z:     return jp.gyroZ();
-    default:                           return 0.0f;
+    case RETRO_SENSOR_ACCELEROMETER_X:
+      return jp.accelX();
+    case RETRO_SENSOR_ACCELEROMETER_Y:
+      return jp.accelY();
+    case RETRO_SENSOR_ACCELEROMETER_Z:
+      return jp.accelZ();
+    case RETRO_SENSOR_GYROSCOPE_X:
+      return jp.gyroX();
+    case RETRO_SENSOR_GYROSCOPE_Y:
+      return jp.gyroY();
+    case RETRO_SENSOR_GYROSCOPE_Z:
+      return jp.gyroZ();
+    default:
+      return 0.0f;
     }
   }
 
@@ -326,7 +335,8 @@ public:
    */
   bool backendHandlesSensor(unsigned port, unsigned id) const
   {
-    if (port >= m_MaxUsers || !m_Backend) return false;
+    if (port >= m_MaxUsers || !m_Backend)
+      return false;
     return m_Backend->sensorActive(port, id);
   }
 
@@ -334,15 +344,19 @@ public:
    * Returns the input descriptors provided by the core via SET_INPUT_DESCRIPTORS.
    * Each descriptor describes the function of a specific button/axis for a given port.
    */
-  const std::vector<QRetroInputDescriptor>& inputDescriptors(void) const { return m_InputDescriptors; }
+  const std::vector<QRetroInputDescriptor> &inputDescriptors(void) const
+  {
+    return m_InputDescriptors;
+  }
 
   void setInputDescriptors(const retro_input_descriptor *desc)
   {
     m_InputDescriptors.clear();
-    if (!desc) return;
+    if (!desc)
+      return;
     for (; desc->description; desc++)
-      m_InputDescriptors.push_back({ desc->port, desc->device, desc->index, desc->id,
-                                     desc->description });
+      m_InputDescriptors.push_back(
+        { desc->port, desc->device, desc->index, desc->id, desc->description });
   }
 
   /**
@@ -366,17 +380,14 @@ private:
   QRetroInputBackend *m_Backend = nullptr;
   void (*m_SetControllerPortDevice)(unsigned, unsigned) = nullptr;
   std::vector<QRetroControllerPort> m_ControllerPorts;
-  uint64_t m_DeviceCapabilities =
-    (1 << RETRO_DEVICE_JOYPAD)   |
-    (1 << RETRO_DEVICE_MOUSE)    |
-    (1 << RETRO_DEVICE_KEYBOARD) |
-    (1 << RETRO_DEVICE_ANALOG)   |
-    (1 << RETRO_DEVICE_POINTER);
+  uint64_t m_DeviceCapabilities = (1 << RETRO_DEVICE_JOYPAD) | (1 << RETRO_DEVICE_MOUSE) |
+                                  (1 << RETRO_DEVICE_KEYBOARD) | (1 << RETRO_DEVICE_ANALOG) |
+                                  (1 << RETRO_DEVICE_POINTER);
   std::vector<QRetroInputDescriptor> m_InputDescriptors;
   QRetroInputJoypad m_Joypads[QRETRO_INPUT_DEFAULT_MAX_JOYPADS];
   std::vector<qretro_input_kb_map_t> m_KeyboardMaps;
   bool m_BackendAccel[QRETRO_INPUT_DEFAULT_MAX_JOYPADS] = {};
-  bool m_BackendGyro[QRETRO_INPUT_DEFAULT_MAX_JOYPADS]  = {};
+  bool m_BackendGyro[QRETRO_INPUT_DEFAULT_MAX_JOYPADS] = {};
   bool m_Keys[RETROK_LAST] = { false };
   unsigned m_MaxUsers = QRETRO_INPUT_DEFAULT_MAX_JOYPADS;
   bool m_SupportsBitmasks = true;

@@ -9,8 +9,8 @@
 class QRetroMemory
 {
 public:
-  retro_memory_map* memoryMaps(void) { return &m_MemoryMaps; }
-  void setMemoryMaps(const struct retro_memory_map* maps);
+  retro_memory_map *memoryMaps(void) { return &m_MemoryMaps; }
+  void setMemoryMaps(const struct retro_memory_map *maps);
 
   /**
    * Reads data from the core's address space into a buffer.
@@ -37,8 +37,7 @@ public:
    * @param address Address in the core's address space to read from
    * @return Whether the value was successfully read
    */
-  template<typename T>
-  bool readValue(T *value, size_t address)
+  template <typename T> bool readValue(T *value, size_t address)
   {
     const retro_memory_descriptor *desc = containing(address);
 
@@ -50,12 +49,12 @@ public:
     if (offset + sizeof(T) > desc->len)
       return false;
 
-    memcpy(value, static_cast<char*>(desc->ptr) + offset, sizeof(T));
+    memcpy(value, static_cast<char *>(desc->ptr) + offset, sizeof(T));
 
     if (desc->flags & RETRO_MEMDESC_BIGENDIAN)
     {
       /* Swap endianness */
-      char *bytes = reinterpret_cast<char*>(value);
+      char *bytes = reinterpret_cast<char *>(value);
       for (size_t i = 0; i < sizeof(T) / 2; i++)
         std::swap(bytes[i], bytes[sizeof(T) - 1 - i]);
     }
@@ -70,8 +69,7 @@ public:
    * @param address Address in the core's address space to write to
    * @return Whether the value was successfully written
    */
-  template<typename T>
-  bool writeValue(const T &value, size_t address)
+  template <typename T> bool writeValue(const T &value, size_t address)
   {
     const retro_memory_descriptor *desc = containing(address);
 
@@ -90,10 +88,10 @@ public:
       memcpy(bytes, &value, sizeof(T));
       for (size_t i = 0; i < sizeof(T) / 2; i++)
         std::swap(bytes[i], bytes[sizeof(T) - 1 - i]);
-      memcpy(static_cast<char*>(desc->ptr) + offset, bytes, sizeof(T));
+      memcpy(static_cast<char *>(desc->ptr) + offset, bytes, sizeof(T));
     }
     else
-      memcpy(static_cast<char*>(desc->ptr) + offset, &value, sizeof(T));
+      memcpy(static_cast<char *>(desc->ptr) + offset, &value, sizeof(T));
 
     return true;
   }
@@ -102,7 +100,7 @@ public:
    * Finds the memory descriptor containing the given address, or nullptr if
    * no such descriptor exists.
    */
-  const retro_memory_descriptor* containing(size_t address);
+  const retro_memory_descriptor *containing(size_t address);
 
 private:
   retro_memory_map m_MemoryMaps = { nullptr, 0 };

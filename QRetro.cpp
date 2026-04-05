@@ -45,7 +45,7 @@ long long unsigned QRetro::glGetCurrentFramebuffer(void)
    * variable-size frames within a larger buffer can do so safely.
    */
   QSize fbo_size = QSize(static_cast<int>(m_Core.av_info.geometry.max_width),
-                         static_cast<int>(m_Core.av_info.geometry.max_height));
+    static_cast<int>(m_Core.av_info.geometry.max_height));
 
   m_FboRequestedThisFrame = true;
 
@@ -81,7 +81,7 @@ long long unsigned QRetro::glGetCurrentFramebuffer(void)
 #endif
 }
 
-void* QRetro::glGetProcAddress(QThread *caller, const char *symbol)
+void *QRetro::glGetProcAddress(QThread *caller, const char *symbol)
 {
 #if QRETRO_HAVE_OPENGL
   if (!m_OpenGlContextCore)
@@ -98,7 +98,7 @@ void* QRetro::glGetProcAddress(QThread *caller, const char *symbol)
   {
     void *ptr = nullptr;
 
-    ptr = reinterpret_cast<void*>(m_OpenGlContextCore->getProcAddress(symbol));
+    ptr = reinterpret_cast<void *>(m_OpenGlContextCore->getProcAddress(symbol));
 
     return ptr;
   }
@@ -131,15 +131,15 @@ void QRetro::updateScaling()
   int min1xH = swap ? static_cast<int>(ceil(ar * bh)) : bh;
   if (size().width() < min1xW || size().height() < min1xH)
   {
-    int newW = qMax(size().width(),  min1xW);
+    int newW = qMax(size().width(), min1xW);
     int newH = qMax(size().height(), min1xH);
-    QMetaObject::invokeMethod(this, [this, newW, newH]() { resize(newW, newH); },
-                              Qt::QueuedConnection);
+    QMetaObject::invokeMethod(
+      this, [this, newW, newH]() { resize(newW, newH); }, Qt::QueuedConnection);
     return;
   }
 
-  double fitW = swap ? static_cast<double>(size().width())  / bh
-                     : static_cast<double>(size().width())  / (ar * bh);
+  double fitW = swap ? static_cast<double>(size().width()) / bh
+                     : static_cast<double>(size().width()) / (ar * bh);
   double fitH = swap ? static_cast<double>(size().height()) / (ar * bh)
                      : static_cast<double>(size().height()) / bh;
   double mult = qMin(fitW, fitH);
@@ -153,7 +153,7 @@ void QRetro::updateScaling()
 
   /* Center the rect in the available screenspace */
   m_Rect.setSize(QSize(dispW, dispH));
-  m_Rect.moveLeft((size().width()  - dispW) / 2);
+  m_Rect.moveLeft((size().width() - dispW) / 2);
   m_Rect.moveTop((size().height() - dispH) / 2);
 
   m_ScalingFactor = mult;
@@ -206,8 +206,8 @@ void QRetro::setupPainter(QPainter *painter)
   /* TODO: Make scaling work properly on rotation */
   if (m_Rotation)
   {
-    int x = m_Rect.left() + m_Rect.width()  / 2;
-    int y = m_Rect.top()  + m_Rect.height() / 2;
+    int x = m_Rect.left() + m_Rect.width() / 2;
+    int y = m_Rect.top() + m_Rect.height() / 2;
 
     painter->translate(x, y);
     painter->rotate(m_Rotation);
@@ -226,77 +226,77 @@ bool QRetro::event(QEvent *ev)
     deleteLater();
     return QWindow::event(ev);
   case QEvent::UpdateRequest:
-    {
-      QPainter painter;
+  {
+    QPainter painter;
 
-      if (!isExposed())
+    if (!isExposed())
+      return false;
+
+    if (surfaceType() == QSurface::RasterSurface)
+    {
+      /* Cancel repaint if a HW accelerated core is still copying its FBO */
+      if (m_ImageRendering || m_ImageDrawing)
         return false;
 
-      if (surfaceType() == QSurface::RasterSurface)
+      /* Remake the buffer if the window dimensions have changed */
+      bool dirty = false;
+      if (size() != m_BackingStore->size())
       {
-        /* Cancel repaint if a HW accelerated core is still copying its FBO */
-        if (m_ImageRendering || m_ImageDrawing)
-          return false;
+        m_BackingStore->resize(size());
+        dirty = true;
+      }
 
-        /* Remake the buffer if the window dimensions have changed */
-        bool dirty = false;
-        if (size() != m_BackingStore->size())
-        {
-          m_BackingStore->resize(size());
-          dirty = true;
-        }
+      m_ImageDrawing = true;
+      m_BackingStore->beginPaint(m_Image.rect());
+      painter.begin(m_BackingStore->paintDevice());
+      setupPainter(&painter);
 
-        m_ImageDrawing = true;
-        m_BackingStore->beginPaint(m_Image.rect());
-        painter.begin(m_BackingStore->paintDevice());
-        setupPainter(&painter);
-
-        painter.fillRect(0, 0, size().width(), size().height(), Qt::black);
-        painter.drawImage(m_Rect, m_Image);
+      painter.fillRect(0, 0, size().width(), size().height(), Qt::black);
+      painter.drawImage(m_Rect, m_Image);
 
 #if QRETRO_DEBUG
-        painter.setPen(Qt::red);
-        painter.drawText(16, size().height() - 16, "Software");
+      painter.setPen(Qt::red);
+      painter.drawText(16, size().height() - 16, "Software");
 #endif
-        painter.end();
+      painter.end();
 
-        m_BackingStore->endPaint();
-        m_BackingStore->flush(dirty ? QRect(0, 0, size().width(), size().height()) : m_Rect);
-        m_ImageDrawing = false;
-      }
+      m_BackingStore->endPaint();
+      m_BackingStore->flush(dirty ? QRect(0, 0, size().width(), size().height()) : m_Rect);
+      m_ImageDrawing = false;
+    }
 #if QRETRO_HAVE_OPENGL
-      else if (surfaceType() == QSurface::OpenGLSurface)
+    else if (surfaceType() == QSurface::OpenGLSurface)
+    {
+      if (m_OpenGlContextCore)
       {
-        if (m_OpenGlContextCore)
-        {
-          /**
+        /**
            * GL core: timing thread owns m_OpenGlContextCore and handles
            * rendering and buffer swapping. Nothing to do here.
            */
-        }
-        else if (m_OpenGlContext)
-        {
-          /* Software core on an OpenGL surface: draw m_Image via QPainter. */
-          if (!m_OpenGlContext->makeCurrent(this))
-            return false;
-
-          if (!m_OpenGlDevice || m_OpenGlDevice->size() != size())
-          {
-            delete m_OpenGlDevice;
-            m_OpenGlDevice = new QOpenGLPaintDevice(size());
-          }
-
-          painter.begin(m_OpenGlDevice);
-          setupPainter(&painter);
-          painter.fillRect(0, 0, size().width(), size().height(), Qt::black);
-          painter.drawImage(m_Rect, m_Image);
-          painter.end();
-          m_OpenGlContext->swapBuffers(this);
-          m_FramePresented.release();
-        }
       }
-#endif
+      else if (m_OpenGlContext)
+      {
+        /* Software core on an OpenGL surface: draw m_Image via QPainter. */
+        if (!m_OpenGlContext->makeCurrent(this))
+          return false;
+
+        if (!m_OpenGlDevice || m_OpenGlDevice->size() != size())
+        {
+          delete m_OpenGlDevice;
+          m_OpenGlDevice = new QOpenGLPaintDevice(size());
+        }
+
+        painter.begin(m_OpenGlDevice);
+        setupPainter(&painter);
+        painter.fillRect(0, 0, size().width(), size().height(), Qt::black);
+        painter.drawImage(m_Rect, m_Image);
+        painter.end();
+        m_OpenGlContext->swapBuffers(this);
+        m_FramePresented.release();
+      }
     }
+#endif
+  }
 
     return true;
   default:
@@ -304,8 +304,7 @@ bool QRetro::event(QEvent *ev)
   }
 }
 
-void QRetro::setImagePtr(const void *data, unsigned width, unsigned height,
-  unsigned pitch)
+void QRetro::setImagePtr(const void *data, unsigned width, unsigned height, unsigned pitch)
 {
   if (!isExposed())
     return;
@@ -316,28 +315,22 @@ void QRetro::setImagePtr(const void *data, unsigned width, unsigned height,
    * If data is RETRO_HW_FRAME_BUFFER_VALID (-1), treat it as a signal a HW frame is ready.
    */
 
-  if (data && data != reinterpret_cast<void*>(RETRO_HW_FRAME_BUFFER_VALID))
+  if (data && data != reinterpret_cast<void *>(RETRO_HW_FRAME_BUFFER_VALID))
   {
     /* Data is a pointer to a new frame image, so use it */
-    m_Image = QImage(
-      reinterpret_cast<const uchar*>(data),
-      static_cast<int>(width),
-      static_cast<int>(height),
-      static_cast<int>(pitch),
-      m_PixelFormat
-    );
+    m_Image = QImage(reinterpret_cast<const uchar *>(data), static_cast<int>(width),
+      static_cast<int>(height), static_cast<int>(pitch), m_PixelFormat);
     /* Update on the GUI thread */
-    QMetaObject::invokeMethod(this, [this]() { requestUpdate(); },
-                              Qt::QueuedConnection);
+    QMetaObject::invokeMethod(this, [this]() { requestUpdate(); }, Qt::QueuedConnection);
 
     return;
   }
 #if QRETRO_HAVE_OPENGL
   else if (surfaceType() == QSurface::OpenGLSurface && m_OpenGlContextCore && m_Rect.isValid())
   {
-    int h   = size().height();
-    int sw  = (width  > 0) ? static_cast<int>(width)  : m_BaseRect.width();
-    int sh  = (height > 0) ? static_cast<int>(height) : m_BaseRect.height();
+    int h = size().height();
+    int sw = (width > 0) ? static_cast<int>(width) : m_BaseRect.width();
+    int sh = (height > 0) ? static_cast<int>(height) : m_BaseRect.height();
     int dx0 = m_Rect.x();
     int dy0 = h - m_Rect.y() - m_Rect.height();
     int dx1 = m_Rect.x() + m_Rect.width();
@@ -359,18 +352,15 @@ void QRetro::setImagePtr(const void *data, unsigned width, unsigned height,
         glClear(GL_COLOR_BUFFER_BIT);
         ef->glBindFramebuffer(GL_READ_FRAMEBUFFER, m_OpenGlFbo->handle());
         if (m_Core.hw_render.bottom_left_origin)
-          ef->glBlitFramebuffer(0, 0, sw, sh, dx0, dy0, dx1, dy1,
-                                GL_COLOR_BUFFER_BIT, filter);
+          ef->glBlitFramebuffer(0, 0, sw, sh, dx0, dy0, dx1, dy1, GL_COLOR_BUFFER_BIT, filter);
         else
-          ef->glBlitFramebuffer(0, sh, sw, 0, dx0, dy0, dx1, dy1,
-                                GL_COLOR_BUFFER_BIT, filter);
+          ef->glBlitFramebuffer(0, sh, sw, 0, dx0, dy0, dx1, dy1, GL_COLOR_BUFFER_BIT, filter);
       }
       else
       {
         /* Core rendered directly to FBO 0 at native size (bottom-left).
          * Two-pass: copy native region to intermediate FBO, then blit scaled. */
-        if (!m_OpenGlFboIntermediate ||
-            m_OpenGlFboIntermediate->size() != m_BaseRect.size())
+        if (!m_OpenGlFboIntermediate || m_OpenGlFboIntermediate->size() != m_BaseRect.size())
         {
           delete m_OpenGlFboIntermediate;
           m_OpenGlFboIntermediate = new QOpenGLFramebufferObject(m_BaseRect.size());
@@ -380,16 +370,14 @@ void QRetro::setImagePtr(const void *data, unsigned width, unsigned height,
           /* Pass 1: 1:1 copy from FBO 0 → intermediate FBO (always nearest) */
           ef->glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
           ef->glBindFramebuffer(GL_DRAW_FRAMEBUFFER, m_OpenGlFboIntermediate->handle());
-          ef->glBlitFramebuffer(0, 0, sw, sh, 0, 0, sw, sh,
-                                GL_COLOR_BUFFER_BIT, GL_NEAREST);
+          ef->glBlitFramebuffer(0, 0, sw, sh, 0, 0, sw, sh, GL_COLOR_BUFFER_BIT, GL_NEAREST);
 
           /* Pass 2: blit intermediate FBO → FBO 0 at scaled rect */
           ef->glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
           glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
           glClear(GL_COLOR_BUFFER_BIT);
           ef->glBindFramebuffer(GL_READ_FRAMEBUFFER, m_OpenGlFboIntermediate->handle());
-          ef->glBlitFramebuffer(0, 0, sw, sh, dx0, dy0, dx1, dy1,
-                                GL_COLOR_BUFFER_BIT, filter);
+          ef->glBlitFramebuffer(0, 0, sw, sh, dx0, dy0, dx1, dy1, GL_COLOR_BUFFER_BIT, filter);
         }
       }
     }
@@ -404,8 +392,7 @@ void QRetro::setImagePtr(const void *data, unsigned width, unsigned height,
   m_Input.poll();
   m_InputPrePolled = true;
 
-  QMetaObject::invokeMethod(this, [this]() { requestUpdate(); },
-                            Qt::QueuedConnection);
+  QMetaObject::invokeMethod(this, [this]() { requestUpdate(); }, Qt::QueuedConnection);
 }
 
 void QRetro::updateMouse(void)
@@ -413,14 +400,13 @@ void QRetro::updateMouse(void)
   /* Update RETRO_DEVICE_MOUSE */
   auto new_pos = mapFromGlobal(QCursor::pos());
 
-  m_MouseDelta = QPoint(
-    static_cast<int>((new_pos.x() - m_MousePosition.x()) / m_ScalingFactor),
+  m_MouseDelta = QPoint(static_cast<int>((new_pos.x() - m_MousePosition.x()) / m_ScalingFactor),
     static_cast<int>((new_pos.y() - m_MousePosition.y()) / m_ScalingFactor));
   m_MousePosition = new_pos;
 
   /* Update RETRO_DEVICE_POINTER */
   new_pos -= QPoint(m_Rect.left(), m_Rect.top());
-  double x = ((static_cast<double>(new_pos.x()) / m_Rect.width()  * 2.0) - 1.0) * 0x7FFF;
+  double x = ((static_cast<double>(new_pos.x()) / m_Rect.width() * 2.0) - 1.0) * 0x7FFF;
   double y = ((static_cast<double>(new_pos.y()) / m_Rect.height() * 2.0) - 1.0) * 0x7FFF;
 
   m_PointerPosition.setX(fabs(x) >= 0x8000 ? (x > 0 ? 0x7FFF : 0x8000) : static_cast<int>(x));
@@ -478,10 +464,12 @@ bool QRetro::serializeToFile(const QString &path, bool zipped)
     return false;
 
 #if QRETRO_HAVE_ZIP
-  if (zipped) {
+  if (zipped)
+  {
     QZipWriter zip(path);
     QFileInfo info(path);
-    zip.addFile(info.completeBaseName(), QByteArray(reinterpret_cast<const char*>(buf.data()), sz));
+    zip.addFile(
+      info.completeBaseName(), QByteArray(reinterpret_cast<const char *>(buf.data()), sz));
     return zip.status() == QZipWriter::NoError;
   }
 #else
@@ -491,7 +479,7 @@ bool QRetro::serializeToFile(const QString &path, bool zipped)
   QFile f(path);
   if (!f.open(QIODevice::WriteOnly))
     return false;
-  return f.write(reinterpret_cast<const char*>(buf.data()), sz) == static_cast<qint64>(sz);
+  return f.write(reinterpret_cast<const char *>(buf.data()), sz) == static_cast<qint64>(sz);
 }
 
 bool QRetro::unserializeFromFile(const QString &path)
@@ -503,8 +491,7 @@ bool QRetro::unserializeFromFile(const QString &path)
   QByteArray data = f.readAll();
 
 #if QRETRO_HAVE_ZIP
-  if (data.size() >= 4 &&
-      (unsigned char)data[0] == 0x50 && (unsigned char)data[1] == 0x4B &&
+  if (data.size() >= 4 && (unsigned char)data[0] == 0x50 && (unsigned char)data[1] == 0x4B &&
       (unsigned char)data[2] == 0x03 && (unsigned char)data[3] == 0x04)
   {
     QZipReader zip(path);
@@ -526,9 +513,9 @@ QString QRetro::stateFilePath(void)
     return s.toLower().replace(QRegularExpression("[^a-z0-9]"), "");
   };
 
-  QString core    = sanitize(QString(m_Core.system_info.library_name));
+  QString core = sanitize(QString(m_Core.system_info.library_name));
   QString content = sanitize(QFileInfo(contentPath()).completeBaseName());
-  QString dir     = QString(directories()->get(QRetroDirectories::State));
+  QString dir = QString(directories()->get(QRetroDirectories::State));
 
   return QStringLiteral("%1/%2_%3.state").arg(dir, core, content);
 }
@@ -541,7 +528,7 @@ bool QRetro::stateSave(void)
 
   if (m_QuickSave)
     free(m_QuickSave);
-  m_QuickSave = (unsigned char*)calloc(1, sz);
+  m_QuickSave = (unsigned char *)calloc(1, sz);
   m_QuickSaveSize = sz;
   return serialize(m_QuickSave, m_QuickSaveSize);
 }
@@ -557,6 +544,12 @@ bool QRetro::stateLoad(void)
 void QRetro::reset(void)
 {
   execOnTimingThread([this]() { m_Core.retro_reset(); });
+}
+
+void QRetro::waitFrames(int count)
+{
+  for (int i = 0; i < count; i++)
+    execOnTimingThread([]() {});
 }
 
 static bool _qr_load_function(void *func_ptr, QRETRO_LIBRARY_T library, const char *name)
@@ -627,7 +620,7 @@ static bool _qr_load_library(retro_core_t *core, QRETRO_LIBRARY_T library)
   return false;
 }
 
-QRetroConfig* QRetro::config()
+QRetroConfig *QRetro::config()
 {
   if (!m_Config)
     m_Config = new QRetroConfig(this);
@@ -640,8 +633,9 @@ QRetro::QRetro(QWindow *parent, retro_hw_context_type format)
 
   initVideo(format);
 
+  m_DiskControl = new QRetroDiskControl(this);
   m_Location = new QRetroLocation(this);
-  m_Message  = new QRetroMessage(this);
+  m_Message = new QRetroMessage(this);
 
 #if QRETRO_HAVE_SDL3
   m_InputBackend = new QRetroInputBackendSDL3(this);
@@ -728,7 +722,7 @@ void QRetro::unloadCore(void)
   }
   else
 #endif
-  if (m_Core.inited)
+    if (m_Core.inited)
   {
     m_Core.retro_unload_game();
     m_Core.retro_deinit();
@@ -758,6 +752,7 @@ QRetro::~QRetro(void)
 
   /* Delete member variables on heap */
   delete m_Audio;
+  delete m_DiskControl;
   delete m_Location;
 
   /* Remove the object from our static thread map */
@@ -770,7 +765,7 @@ void QRetro::timing()
   frameTimer.start();
 
 #if QRETRO_HAVE_OPENGL
-  m_pfnSwapInterval    = nullptr;
+  m_pfnSwapInterval = nullptr;
   m_SwapIntervalFetched = false;
 #endif
 
@@ -796,18 +791,16 @@ void QRetro::timing()
 
   if (m_Core.content_loaded && !m_Core.retro_load_game(&m_Core.game_info))
   {
-    emit onCoreLog(RETRO_LOG_ERROR,
-                   QRETRO_ERROR(QString("Function retro_load_game failed for "
-                                "an unknown reason:\n%1").arg(
-                                m_Core.game_info.path)));
+    emit onCoreLog(RETRO_LOG_ERROR, QRETRO_ERROR(QString("Function retro_load_game failed for "
+                                                         "an unknown reason:\n%1")
+                                        .arg(m_Core.game_info.path)));
     return;
   }
   else if (!m_Core.content_loaded && !m_SupportsNoGame)
   {
-    emit onCoreLog(RETRO_LOG_ERROR,
-                   QRETRO_ERROR("The core attempted to start without content, "
-                                "but there is no hint that it doing so is "
-                                "supported."));
+    emit onCoreLog(RETRO_LOG_ERROR, QRETRO_ERROR("The core attempted to start without content, "
+                                                 "but there is no hint that it doing so is "
+                                                 "supported."));
     return;
   }
 
@@ -895,7 +888,8 @@ void QRetro::timing()
         {
           m_SwapIntervalFetched = true;
           auto p = m_OpenGlContextCore->getProcAddress("glXSwapIntervalMESA");
-          if (!p) p = m_OpenGlContextCore->getProcAddress("wglSwapIntervalEXT");
+          if (!p)
+            p = m_OpenGlContextCore->getProcAddress("wglSwapIntervalEXT");
           m_pfnSwapInterval = reinterpret_cast<SwapIntervalFn>(p);
         }
       }
@@ -977,9 +971,8 @@ bool QRetro::getCurrentSoftwareFramebuffer(retro_framebuffer *fb)
   auto format = lr2qt_pixel(fb->format);
 
   /* Free our buffer if it's being reconstructed to a new size */
-  if (m_SoftwareFramebuffer && (m_Image.width() != width ||
-                                m_Image.height() != height ||
-                                m_Image.format() != format))
+  if (m_SoftwareFramebuffer &&
+      (m_Image.width() != width || m_Image.height() != height || m_Image.format() != format))
   {
     free(m_SoftwareFramebuffer);
     m_SoftwareFramebuffer = nullptr;
@@ -988,8 +981,8 @@ bool QRetro::getCurrentSoftwareFramebuffer(retro_framebuffer *fb)
   if (!m_SoftwareFramebuffer)
   {
     /* Allocate buffer as black canvas */
-    m_SoftwareFramebuffer = reinterpret_cast<uchar*>(
-      calloc(fb->width * fb->height * fb->pitch, sizeof(uchar)));
+    m_SoftwareFramebuffer =
+      reinterpret_cast<uchar *>(calloc(fb->width * fb->height * fb->pitch, sizeof(uchar)));
 
     /* Update our renderable */
     m_Image = QImage(m_SoftwareFramebuffer, width, height, format);
@@ -1002,7 +995,7 @@ bool QRetro::getCurrentSoftwareFramebuffer(retro_framebuffer *fb)
   return m_Image.bits();
 }
 
-void QRetro::setFastForwardingOverride(retro_fastforwarding_override* ffo)
+void QRetro::setFastForwardingOverride(retro_fastforwarding_override *ffo)
 {
   m_Core.fastforwarding_override = *ffo;
 
@@ -1017,10 +1010,8 @@ void QRetro::keyReleaseEvent(QKeyEvent *event)
   m_Input.setKey(key, false);
 
   if (m_Core.keyboard.callback)
-    m_Core.keyboard.callback(false,
-                             key,
-                             event->nativeVirtualKey(),
-                             qt2lr_keymod(event->modifiers()));
+    m_Core.keyboard.callback(
+      false, key, event->nativeVirtualKey(), qt2lr_keymod(event->modifiers()));
 }
 
 void QRetro::keyPressEvent(QKeyEvent *event)
@@ -1030,15 +1021,13 @@ void QRetro::keyPressEvent(QKeyEvent *event)
   m_Input.setKey(key, true);
 
   if (m_Core.keyboard.callback)
-    m_Core.keyboard.callback(true,
-                             key,
-                             event->nativeVirtualKey(),
-                             qt2lr_keymod(event->modifiers()));
+    m_Core.keyboard.callback(
+      true, key, event->nativeVirtualKey(), qt2lr_keymod(event->modifiers()));
 
   if (event->modifiers().testFlag(Qt::ShiftModifier))
   {
-  switch (event->key())
-  {
+    switch (event->key())
+    {
     case Qt::Key_A:
       m_UseAspectRatio = !m_UseAspectRatio;
       updateScaling();
@@ -1098,22 +1087,22 @@ void QRetro::setFastForwarding(bool enabled)
   if (!m_Core.fastforwarding_override.inhibit_toggle)
     m_FastForwarding = enabled;
   else
-    emit onCoreLog(RETRO_LOG_WARN,
-      "Fastforward toggling is currently being inhibited by the core.");
+    emit onCoreLog(
+      RETRO_LOG_WARN, "Fastforward toggling is currently being inhibited by the core.");
 }
 
 void QRetro::saving()
 {
   QByteArray hash;
   QCryptographicHash hasher(QCryptographicHash::Md5);
-  QFile save_file(QString("%1/%2.sav").arg(
-    m_Directories.get(QRetroDirectories::Save),
-    QFileInfo(contentPath()).completeBaseName())
-  );
+  QFile save_file(QString("%1/%2.sav")
+      .arg(
+        m_Directories.get(QRetroDirectories::Save), QFileInfo(contentPath()).completeBaseName()));
 
   QByteArray initialBuffer;
 
-  while (!m_Active);
+  while (!m_Active)
+    ;
 
   /* Read save file into buffer once */
   if (save_file.exists() && save_file.open(QIODevice::ReadOnly))
@@ -1124,7 +1113,8 @@ void QRetro::saving()
 
   /* Wait until retro_load_game has completed (core memory functions are safe),
    * but before the first retro_run (so frame 1 sees the restored SRAM). */
-  while (m_Active && !m_SramReady);
+  while (m_Active && !m_SramReady)
+    ;
 
   /* For first 15 frames, continuously copy buffer into SRAM */
   while (m_Active && m_Frames <= 15)
@@ -1138,7 +1128,7 @@ void QRetro::saving()
       memcpy(data, initialBuffer.constData(), copySize);
 
       hasher.reset();
-      hasher.addData(reinterpret_cast<const char*>(data), static_cast<int>(copySize));
+      hasher.addData(reinterpret_cast<const char *>(data), static_cast<int>(copySize));
       hash = hasher.result();
     }
   }
@@ -1157,7 +1147,7 @@ void QRetro::saving()
       continue;
 
     hasher.reset();
-    hasher.addData(reinterpret_cast<const char*>(data), static_cast<int>(size));
+    hasher.addData(reinterpret_cast<const char *>(data), static_cast<int>(size));
     auto result = hasher.result();
 
     if (result == hash)
@@ -1167,7 +1157,7 @@ void QRetro::saving()
 
     if (save_file.open(QIODevice::WriteOnly | QIODevice::Truncate))
     {
-      save_file.write(static_cast<const char*>(data), static_cast<qint64>(size));
+      save_file.write(static_cast<const char *>(data), static_cast<qint64>(size));
       save_file.close();
       emit onSave();
     }
@@ -1178,8 +1168,7 @@ bool QRetro::startCore(void)
 {
   if (!m_Core.symbols_inited)
   {
-    emit onCoreLog(RETRO_LOG_ERROR,
-      "The core attempted to start without first being initialized.");
+    emit onCoreLog(RETRO_LOG_ERROR, "The core attempted to start without first being initialized.");
     return false;
   }
   else
@@ -1197,10 +1186,10 @@ bool QRetro::startCore(void)
     }
     QMetaObject::invokeMethod(this, [this]() { requestUpdate(); }, Qt::QueuedConnection);
 
-    m_ThreadSaving = QThread::create([this]{saving();});
+    m_ThreadSaving = QThread::create([this] { saving(); });
     m_ThreadSaving->start();
 
-    m_ThreadTiming = QThread::create([this]{timing();});
+    m_ThreadTiming = QThread::create([this] { timing(); });
     m_ThreadTiming->start();
 
     return true;
@@ -1221,14 +1210,14 @@ bool QRetro::loadContent(const char *path, const char *meta)
 
     if (!fileinfo.exists() || !fileinfo.isFile())
     {
-      emit onCoreLog(RETRO_LOG_ERROR, QRETRO_ERROR(QString(
-        "The content file specified does not exist:\n%1").arg(path)));
+      emit onCoreLog(RETRO_LOG_ERROR,
+        QRETRO_ERROR(QString("The content file specified does not exist:\n%1").arg(path)));
       return false;
     }
     else if (!rom.open(QIODevice::ReadOnly))
     {
-      emit onCoreLog(RETRO_LOG_ERROR, QRETRO_ERROR(QString(
-        "The content file specified could not be opened:\n%1").arg(path)));
+      emit onCoreLog(RETRO_LOG_ERROR,
+        QRETRO_ERROR(QString("The content file specified could not be opened:\n%1").arg(path)));
       return false;
     }
     else
@@ -1237,7 +1226,7 @@ bool QRetro::loadContent(const char *path, const char *meta)
 
       if (size < 256 * 1024 * 1024) // TODO: Magic number limit
       {
-        auto *rom_temp = reinterpret_cast<char*>(malloc(size));
+        auto *rom_temp = reinterpret_cast<char *>(malloc(size));
         rom.read(rom_temp, rom.size());
         info.data = rom_temp;
       }
@@ -1264,14 +1253,14 @@ bool QRetro::loadCore(const char *path)
 
   if (m_Library)
   {
-    emit onCoreLog(RETRO_LOG_ERROR, QRETRO_ERROR(QString(
-      "Tried to load a new core without unloading the previous one.")));
+    emit onCoreLog(RETRO_LOG_ERROR,
+      QRETRO_ERROR(QString("Tried to load a new core without unloading the previous one.")));
     return false;
   }
   else if (!fileinfo.exists() || !fileinfo.isFile())
   {
-    emit onCoreLog(RETRO_LOG_ERROR, QRETRO_ERROR(QString(
-      "The core file specified does not exist:\n%1").arg(path)));
+    emit onCoreLog(RETRO_LOG_ERROR,
+      QRETRO_ERROR(QString("The core file specified does not exist:\n%1").arg(path)));
     return false;
   }
 
@@ -1281,14 +1270,13 @@ bool QRetro::loadCore(const char *path)
    */
   QString ext = fileinfo.suffix();
   m_CoreTempPath = QString("%1/qretro_%2%3")
-    .arg(QDir::tempPath(),
-         QUuid::createUuid().toString(QUuid::Id128),
-         ext.isEmpty() ? "" : "." + ext);
+                     .arg(QDir::tempPath(), QUuid::createUuid().toString(QUuid::Id128),
+                       ext.isEmpty() ? "" : "." + ext);
 
   if (!QFile::copy(path, m_CoreTempPath))
   {
-    emit onCoreLog(RETRO_LOG_ERROR, QRETRO_ERROR(QString(
-      "Failed to copy core to temp path:\n%1").arg(m_CoreTempPath)));
+    emit onCoreLog(RETRO_LOG_ERROR,
+      QRETRO_ERROR(QString("Failed to copy core to temp path:\n%1").arg(m_CoreTempPath)));
     m_CoreTempPath.clear();
     return false;
   }
@@ -1304,13 +1292,13 @@ bool QRetro::loadCore(const char *path)
     QFile::remove(m_CoreTempPath);
     m_CoreTempPath.clear();
 #ifdef _WIN32
-    emit onCoreLog(RETRO_LOG_ERROR, QRETRO_ERROR(QString(
-      "Unable to load dynamic library from:\n%1\n\nError code: %2").arg(
-      path, static_cast<int>(GetLastError()))));
+    emit onCoreLog(RETRO_LOG_ERROR,
+      QRETRO_ERROR(QString("Unable to load dynamic library from:\n%1\n\nError code: %2")
+          .arg(path, static_cast<int>(GetLastError()))));
 #else
-    emit onCoreLog(RETRO_LOG_ERROR, QRETRO_ERROR(QString(
-      "Unable to load dynamic library from:\n%1\n\nError: %2").arg(
-      path, dlerror())));
+    emit onCoreLog(RETRO_LOG_ERROR,
+      QRETRO_ERROR(
+        QString("Unable to load dynamic library from:\n%1\n\nError: %2").arg(path, dlerror())));
 #endif
     return false;
   }
@@ -1330,7 +1318,9 @@ bool QRetro::initVideo(retro_hw_context_type format)
   /* Discard any semaphore tokens accumulated under the previous backend.
    * Without this, switching from a raster backend (where tokens are not
    * consumed) to an OpenGL one would cause a burst of unthrottled frames. */
-  while (m_FramePresented.tryAcquire()) {}
+  while (m_FramePresented.tryAcquire())
+  {
+  }
 
   QSurfaceFormat settings;
   settings.setSwapInterval(1);
@@ -1375,9 +1365,9 @@ bool QRetro::initVideo(retro_hw_context_type format)
    * UniqueConnection: initVideo can be called multiple times (e.g. switching
    * video backends), so guard against duplicate connections that would cause
    * setImagePtr — and thus swapBuffers — to fire more than once per frame. */
-  connect(this, SIGNAL(onVideoRefresh(const void*, unsigned, unsigned, unsigned)),
-          this, SLOT(setImagePtr(const void*, unsigned, unsigned, unsigned)),
-          static_cast<Qt::ConnectionType>(Qt::DirectConnection | Qt::UniqueConnection));
+  connect(this, SIGNAL(onVideoRefresh(const void *, unsigned, unsigned, unsigned)), this,
+    SLOT(setImagePtr(const void *, unsigned, unsigned, unsigned)),
+    static_cast<Qt::ConnectionType>(Qt::DirectConnection | Qt::UniqueConnection));
 
   return true;
 }

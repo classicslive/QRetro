@@ -35,9 +35,15 @@ QRetroMidi::QRetroMidi()
 #endif
 }
 
-bool QRetroMidi::inputEnabled(void) { return m_InEnabled; }
+bool QRetroMidi::inputEnabled(void)
+{
+  return m_InEnabled;
+}
 
-bool QRetroMidi::outputEnabled(void) { return m_OutEnabled; }
+bool QRetroMidi::outputEnabled(void)
+{
+  return m_OutEnabled;
+}
 
 bool QRetroMidi::read(uint8_t *byte)
 {

@@ -28,9 +28,9 @@ private slots:
 
 private:
   // Parallel array to the joypads; index == port. Owned by this backend.
-  QGamepad          *m_Gamepads[QRETRO_INPUT_DEFAULT_MAX_JOYPADS] = {};
-  QRetroInputJoypad *m_Joypads  = nullptr;
-  unsigned           m_MaxUsers = 0;
+  QGamepad *m_Gamepads[QRETRO_INPUT_DEFAULT_MAX_JOYPADS] = {};
+  QRetroInputJoypad *m_Joypads = nullptr;
+  unsigned m_MaxUsers = 0;
 
   void connectPort(unsigned port, int deviceId);
 };

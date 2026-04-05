@@ -3,9 +3,16 @@
 
 #include "libretro.h"
 
+class QRetro;
+
 class QRetroDiskControl
 {
 public:
+  QRetroDiskControl(QRetro *owner)
+    : m_owner(owner)
+  {
+  }
+
   enum Version
   {
     /// Format used by RETRO_ENVIRONMENT_SET_DISK_CONTROL_INTERFACE.
@@ -59,6 +66,7 @@ public:
   bool getImageLabel(unsigned index, char *s, size_t len);
 
 private:
+  QRetro *m_owner = nullptr;
   retro_disk_control_ext_callback m_Callback = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
   /// The version of disk control interface currently in use. This is set by

@@ -22,7 +22,7 @@ public:
     return led == m_Leds.end() ? QRETRO_LED_DEFAULT_STATE : led->second;
   }
 
-  const std::map<int, int>& leds(void) const { return m_Leds; }
+  const std::map<int, int> &leds(void) const { return m_Leds; }
 
   /**
    * @brief Set the state of the LED with the specified index.

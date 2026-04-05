@@ -10,7 +10,7 @@ class QRetroUsername
 public:
   QRetroUsername(void);
 
-  const char* get(void);
+  const char *get(void);
   void set(const char *username);
   void set(const std::string &username);
   void set(const QString &username);

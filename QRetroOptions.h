@@ -27,11 +27,11 @@ enum Language
 class QRetroOptionCategory
 {
 public:
-  QRetroOptionCategory(retro_core_option_v2_category* us,
-    retro_core_option_v2_category* local = nullptr);
+  QRetroOptionCategory(
+    retro_core_option_v2_category *us, retro_core_option_v2_category *local = nullptr);
 
-  const char* title(Language lang = Default);
-  const char* description(Language lang = Default);
+  const char *title(Language lang = Default);
+  const char *description(Language lang = Default);
 
 private:
   std::string m_Title[Language_Size];
@@ -78,24 +78,23 @@ public:
     Type_Size
   };
 
-  QRetroOption(retro_variable* var);
-  QRetroOption(retro_core_option_definition* us,
-    retro_core_option_definition* local = nullptr);
-  QRetroOption(retro_core_option_v2_definition* us,
-    retro_core_option_v2_definition* local = nullptr);
+  QRetroOption(retro_variable *var);
+  QRetroOption(retro_core_option_definition *us, retro_core_option_definition *local = nullptr);
+  QRetroOption(
+    retro_core_option_v2_definition *us, retro_core_option_v2_definition *local = nullptr);
 
-  const char* title(Language lang = Local);
-  const char* description(Language lang = Local);
+  const char *title(Language lang = Local);
+  const char *description(Language lang = Local);
 
-  const char* getValue() { return m_CurrentValue.c_str(); }
+  const char *getValue() { return m_CurrentValue.c_str(); }
   void setValue(std::string val) { m_CurrentValue = val; }
 
   bool getVisibility() { return m_Visible; }
   void setVisibility(bool enabled) { m_Visible = enabled; }
 
-  const char* categoryKey()   { return m_CategoryKey.c_str(); }
-  const char* boolTrueValue() { return m_BoolTrueValue.c_str(); }
-  const char* boolFalseValue(){ return m_BoolFalseValue.c_str(); }
+  const char *categoryKey() { return m_CategoryKey.c_str(); }
+  const char *boolTrueValue() { return m_BoolTrueValue.c_str(); }
+  const char *boolFalseValue() { return m_BoolFalseValue.c_str(); }
 
   bool setToDefaultValue();
 
@@ -105,7 +104,7 @@ public:
 private:
   bool determineType();
 
-  const QRetroOptionCategory* m_Category;
+  const QRetroOptionCategory *m_Category;
   std::string m_CategoryKey;
   std::string m_Title[Language_Size];
   std::string m_TitleCategorized[Language_Size];
@@ -122,7 +121,7 @@ private:
 
 class QRetroOptions : public QWidget
 {
-Q_OBJECT
+  Q_OBJECT
 
 public:
   enum Version
@@ -140,8 +139,8 @@ public:
   QRetroOptions();
   ~QRetroOptions();
 
-  QRetroOption* getOption(const char* key);
-  const char* getOptionValue(const char* key);
+  QRetroOption *getOption(const char *key);
+  const char *getOptionValue(const char *key);
 
   /**
    * Sets the name of the core these options belong to. When writing options
@@ -154,7 +153,7 @@ public:
   /**
    * Sets the filename that core options will be written to.
    */
-  void setFilename(const QString& filename) { m_Filename = filename; }
+  void setFilename(const QString &filename) { m_Filename = filename; }
 
   /**
    * Sets the maximum core options API version the frontend reports to support.
@@ -168,49 +167,50 @@ public:
    * issue RETRO_ENVIRONMENT_SET_CORE_OPTIONS_DISPLAY for affected options.
    */
   void setUpdateDisplayCallback(retro_core_options_update_display_callback_t cb)
-    { m_UpdateDisplayCallback = cb; }
+  {
+    m_UpdateDisplayCallback = cb;
+  }
 
   /**
    * Sets the current value of an option with a given key.
    */
-  void setOptionValue(const char* key, const char* value);
+  void setOptionValue(const char *key, const char *value);
 
   /**
    * Initializes core options using the legacy API format 0.
    * Used for RETRO_ENVIRONMENT_SET_VARIABLES.
    */
-  void setOptions(retro_variable* vars);
+  void setOptions(retro_variable *vars);
 
   /**
    * Initializes core options using the API format 1.
    * Used for RETRO_ENVIRONMENT_SET_CORE_OPTIONS.
    */
-  void setOptions(retro_core_option_definition** vars);
+  void setOptions(retro_core_option_definition **vars);
 
   /**
    * Initializes core options using the API format 1, with localization.
    * Used for RETRO_ENVIRONMENT_SET_CORE_OPTIONS_INTL.
    */
-  void setOptions(retro_core_options_intl* vars);
+  void setOptions(retro_core_options_intl *vars);
 
   /**
    * Initializes core options using the API format 2.
    * Used for RETRO_ENVIRONMENT_SET_CORE_OPTIONS_V2.
    */
-  void setOptions(retro_core_options_v2* vars,
-                  retro_core_options_v2* local = nullptr);
+  void setOptions(retro_core_options_v2 *vars, retro_core_options_v2 *local = nullptr);
 
   /**
    * Initializes core options using the API format 2, with localization.
    * Used for RETRO_ENVIRONMENT_SET_CORE_OPTIONS_V2_INTL.
    */
-  void setOptions(retro_core_options_v2_intl* vars);
+  void setOptions(retro_core_options_v2_intl *vars);
 
   /**
    * Toggles the visibility of an option with a given key.
    * Used for RETRO_ENVIRONMENT_SET_CORE_OPTIONS_DISPLAY.
    */
-  void setVisibility(const char* key, bool enabled);
+  void setVisibility(const char *key, bool enabled);
 
   /**
    * Returns whether or not option values have been updated. Will automatically
@@ -229,16 +229,16 @@ public:
 
 public slots:
   void onOptionBoolChanged(int state);
-  void onOptionChoiceChanged(const QString&);
+  void onOptionChoiceChanged(const QString &);
 
 private:
-  std::vector<std::pair<std::string, QRetroOptionCategory*>> m_Categories;
+  std::vector<std::pair<std::string, QRetroOptionCategory *>> m_Categories;
   QString m_CoreName;
   QString m_Filename;
   Version m_MaxVersion = Version::v2;
   retro_core_options_update_display_callback_t m_UpdateDisplayCallback = nullptr;
-  std::vector<std::string>             m_VariableOrder;
-  std::map<std::string, QRetroOption*> m_Variables;
+  std::vector<std::string> m_VariableOrder;
+  std::map<std::string, QRetroOption *> m_Variables;
   Version m_Version;
   bool m_VariablesUpdated;
 };

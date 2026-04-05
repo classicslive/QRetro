@@ -8,7 +8,7 @@ QRetroUsername::QRetroUsername(void)
   setFromApplication();
 }
 
-const char* QRetroUsername::get(void)
+const char *QRetroUsername::get(void)
 {
   return m_Username.constData();
 }

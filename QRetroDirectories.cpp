@@ -35,7 +35,7 @@ QRetroDirectories::QRetroDirectories()
   m_Directories[QRetroDirectories::FileBrowserStart] = dir.toUtf8();
 }
 
-const char* QRetroDirectories::get(QRetroDirectories::Type type)
+const char *QRetroDirectories::get(QRetroDirectories::Type type)
 {
   if (type >= QRetroDirectories::Type_Size)
     return nullptr;

@@ -1,8 +1,6 @@
 #include "QRetroProcAddress.h"
 
-QRetroProcAddress::QRetroProcAddress()
-{
-}
+QRetroProcAddress::QRetroProcAddress() {}
 
 void QRetroProcAddress::add(const char *sym, retro_proc_address_t ptr)
 {

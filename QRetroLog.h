@@ -9,13 +9,16 @@
 struct QRetroLogEntry
 {
   retro_log_level level;
-  QString         message;
+  QString message;
 };
 
 class QRetroLog
 {
 public:
-  explicit QRetroLog(int maxEntries = 200) : m_MaxEntries(maxEntries) {}
+  explicit QRetroLog(int maxEntries = 200)
+    : m_MaxEntries(maxEntries)
+  {
+  }
 
   void push(retro_log_level level, const QString &message)
   {
@@ -24,7 +27,7 @@ public:
     m_Entries.append({ level, message });
   }
 
-  const QList<QRetroLogEntry>& entries() const { return m_Entries; }
+  const QList<QRetroLogEntry> &entries() const { return m_Entries; }
 
   void clear() { m_Entries.clear(); }
 
@@ -32,7 +35,7 @@ public:
   void setMaxEntries(int n) { m_MaxEntries = n; }
 
 private:
-  int                  m_MaxEntries;
+  int m_MaxEntries;
   QList<QRetroLogEntry> m_Entries;
 };
 

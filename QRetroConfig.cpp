@@ -27,73 +27,87 @@
 #include "QRetroConfig.h"
 #include "QRetro.h"
 
-static const struct { const char *name; retro_language id; } k_languages[] = {
-  { "English",               RETRO_LANGUAGE_ENGLISH             },
-  { "Japanese",              RETRO_LANGUAGE_JAPANESE            },
-  { "French",                RETRO_LANGUAGE_FRENCH              },
-  { "Spanish",               RETRO_LANGUAGE_SPANISH             },
-  { "German",                RETRO_LANGUAGE_GERMAN              },
-  { "Italian",               RETRO_LANGUAGE_ITALIAN             },
-  { "Dutch",                 RETRO_LANGUAGE_DUTCH               },
-  { "Portuguese (Brazil)",   RETRO_LANGUAGE_PORTUGUESE_BRAZIL   },
+static const struct
+{
+  const char *name;
+  retro_language id;
+} k_languages[] = {
+  { "English", RETRO_LANGUAGE_ENGLISH },
+  { "Japanese", RETRO_LANGUAGE_JAPANESE },
+  { "French", RETRO_LANGUAGE_FRENCH },
+  { "Spanish", RETRO_LANGUAGE_SPANISH },
+  { "German", RETRO_LANGUAGE_GERMAN },
+  { "Italian", RETRO_LANGUAGE_ITALIAN },
+  { "Dutch", RETRO_LANGUAGE_DUTCH },
+  { "Portuguese (Brazil)", RETRO_LANGUAGE_PORTUGUESE_BRAZIL },
   { "Portuguese (Portugal)", RETRO_LANGUAGE_PORTUGUESE_PORTUGAL },
-  { "Russian",               RETRO_LANGUAGE_RUSSIAN             },
-  { "Korean",                RETRO_LANGUAGE_KOREAN              },
+  { "Russian", RETRO_LANGUAGE_RUSSIAN },
+  { "Korean", RETRO_LANGUAGE_KOREAN },
   { "Chinese (Traditional)", RETRO_LANGUAGE_CHINESE_TRADITIONAL },
-  { "Chinese (Simplified)",  RETRO_LANGUAGE_CHINESE_SIMPLIFIED  },
-  { "Esperanto",             RETRO_LANGUAGE_ESPERANTO           },
-  { "Polish",                RETRO_LANGUAGE_POLISH              },
-  { "Vietnamese",            RETRO_LANGUAGE_VIETNAMESE          },
-  { "Arabic",                RETRO_LANGUAGE_ARABIC              },
-  { "Greek",                 RETRO_LANGUAGE_GREEK               },
-  { "Turkish",               RETRO_LANGUAGE_TURKISH             },
-  { "Slovak",                RETRO_LANGUAGE_SLOVAK              },
-  { "Persian",               RETRO_LANGUAGE_PERSIAN             },
-  { "Hebrew",                RETRO_LANGUAGE_HEBREW              },
-  { "Asturian",              RETRO_LANGUAGE_ASTURIAN            },
-  { "Finnish",               RETRO_LANGUAGE_FINNISH             },
-  { "Indonesian",            RETRO_LANGUAGE_INDONESIAN          },
-  { "Swedish",               RETRO_LANGUAGE_SWEDISH             },
-  { "Ukrainian",             RETRO_LANGUAGE_UKRAINIAN           },
-  { "Czech",                 RETRO_LANGUAGE_CZECH               },
-  { "Catalan (Valencia)",    RETRO_LANGUAGE_CATALAN_VALENCIA    },
-  { "Catalan",               RETRO_LANGUAGE_CATALAN             },
-  { "English (British)",     RETRO_LANGUAGE_BRITISH_ENGLISH     },
-  { "Hungarian",             RETRO_LANGUAGE_HUNGARIAN           },
-  { "Belarusian",            RETRO_LANGUAGE_BELARUSIAN          },
-  { "Galician",              RETRO_LANGUAGE_GALICIAN            },
-  { "Norwegian",             RETRO_LANGUAGE_NORWEGIAN           },
-  { "Irish",                 RETRO_LANGUAGE_IRISH               },
+  { "Chinese (Simplified)", RETRO_LANGUAGE_CHINESE_SIMPLIFIED },
+  { "Esperanto", RETRO_LANGUAGE_ESPERANTO },
+  { "Polish", RETRO_LANGUAGE_POLISH },
+  { "Vietnamese", RETRO_LANGUAGE_VIETNAMESE },
+  { "Arabic", RETRO_LANGUAGE_ARABIC },
+  { "Greek", RETRO_LANGUAGE_GREEK },
+  { "Turkish", RETRO_LANGUAGE_TURKISH },
+  { "Slovak", RETRO_LANGUAGE_SLOVAK },
+  { "Persian", RETRO_LANGUAGE_PERSIAN },
+  { "Hebrew", RETRO_LANGUAGE_HEBREW },
+  { "Asturian", RETRO_LANGUAGE_ASTURIAN },
+  { "Finnish", RETRO_LANGUAGE_FINNISH },
+  { "Indonesian", RETRO_LANGUAGE_INDONESIAN },
+  { "Swedish", RETRO_LANGUAGE_SWEDISH },
+  { "Ukrainian", RETRO_LANGUAGE_UKRAINIAN },
+  { "Czech", RETRO_LANGUAGE_CZECH },
+  { "Catalan (Valencia)", RETRO_LANGUAGE_CATALAN_VALENCIA },
+  { "Catalan", RETRO_LANGUAGE_CATALAN },
+  { "English (British)", RETRO_LANGUAGE_BRITISH_ENGLISH },
+  { "Hungarian", RETRO_LANGUAGE_HUNGARIAN },
+  { "Belarusian", RETRO_LANGUAGE_BELARUSIAN },
+  { "Galician", RETRO_LANGUAGE_GALICIAN },
+  { "Norwegian", RETRO_LANGUAGE_NORWEGIAN },
+  { "Irish", RETRO_LANGUAGE_IRISH },
 };
 
 static const int k_languageCount = int(sizeof(k_languages) / sizeof(k_languages[0]));
 
-static const struct { const char *name; unsigned id; } k_memTypes[4] = {
-  { "RETRO_MEMORY_SAVE_RAM",   RETRO_MEMORY_SAVE_RAM   },
-  { "RETRO_MEMORY_RTC",        RETRO_MEMORY_RTC        },
+static const struct
+{
+  const char *name;
+  unsigned id;
+} k_memTypes[4] = {
+  { "RETRO_MEMORY_SAVE_RAM", RETRO_MEMORY_SAVE_RAM },
+  { "RETRO_MEMORY_RTC", RETRO_MEMORY_RTC },
   { "RETRO_MEMORY_SYSTEM_RAM", RETRO_MEMORY_SYSTEM_RAM },
-  { "RETRO_MEMORY_VIDEO_RAM",  RETRO_MEMORY_VIDEO_RAM  },
+  { "RETRO_MEMORY_VIDEO_RAM", RETRO_MEMORY_VIDEO_RAM },
 };
 
 static QString fmtMemPtr(void *p)
 {
-  if (!p) return QStringLiteral("—");
-  return QString("0x") + QStringLiteral("%1")
-    .arg(reinterpret_cast<quintptr>(p), int(sizeof(void*)) * 2, 16, QChar('0'))
-    .toUpper();
+  if (!p)
+    return QStringLiteral("—");
+  return QString("0x") +
+         QStringLiteral("%1")
+           .arg(reinterpret_cast<quintptr>(p), int(sizeof(void *)) * 2, 16, QChar('0'))
+           .toUpper();
 }
 
 static QString fmtMemSize(size_t s)
 {
-  if (!s) return QStringLiteral("—");
-  if (s >= 1024 * 1024) return QStringLiteral("%1 bytes (%2 MB)").arg(s).arg(s / (1024 * 1024));
-  if (s >= 1024)        return QStringLiteral("%1 bytes (%2 KB)").arg(s).arg(s / 1024);
+  if (!s)
+    return QStringLiteral("—");
+  if (s >= 1024 * 1024)
+    return QStringLiteral("%1 bytes (%2 MB)").arg(s).arg(s / (1024 * 1024));
+  if (s >= 1024)
+    return QStringLiteral("%1 bytes (%2 KB)").arg(s).arg(s / 1024);
   return QStringLiteral("%1 bytes").arg(s);
 }
 
 static QString fmtHex(uint64_t v)
 {
-  if (!v) return QStringLiteral("0x0");
+  if (!v)
+    return QStringLiteral("0x0");
   return QStringLiteral("0x") + QString::number(v, 16).toUpper();
 }
 
@@ -108,50 +122,59 @@ static void makeSmallGray(QLabel *label)
 
 QRetroConfig::QRetroConfig(QRetro *owner)
 {
-  m_Owner    = owner;
+  m_Owner = owner;
   m_Filename = QDir::currentPath() + "/config.ini";
 
   m_SaveTimer = new QTimer(this);
   m_SaveTimer->setSingleShot(true);
   m_SaveTimer->setInterval(400);
-  connect(m_SaveTimer, &QTimer::timeout, [this]() { if (m_Owner && m_Owner->isActive()) save(); });
+  connect(m_SaveTimer, &QTimer::timeout, [this]() {
+    if (m_Owner && m_Owner->isActive())
+      save();
+  });
 
   load();
 
   /* Apply persisted values to the owning QRetro's modules. */
-  m_Owner->m_AudioEnabled   = m_AudioEnabled;
+  m_Owner->m_AudioEnabled = m_AudioEnabled;
   if (m_Owner->m_Audio)
     m_Owner->m_Audio->setVolume(m_AudioVolume);
   m_Owner->m_UseAspectRatio = m_UseAspectRatio;
   m_Owner->m_BilinearFilter = m_BilinearFilter;
   m_Owner->m_IntegerScaling = m_IntegerScaling;
 
-
   /* Poll sensor read-tracking flags and enable/disable per-axis UI widgets. */
   auto *sensorReadTimer = new QTimer(this);
   sensorReadTimer->setInterval(200);
   connect(sensorReadTimer, &QTimer::timeout, [this]() {
-    if (!m_Owner || !m_Owner->isActive()) return;
+    if (!m_Owner || !m_Owner->isActive())
+      return;
     auto *s = m_Owner->sensors();
     setAccelXHasBeenRead(s->accelXHasBeenRead());
     setAccelYHasBeenRead(s->accelYHasBeenRead());
     setAccelZHasBeenRead(s->accelZHasBeenRead());
-    setGyroXHasBeenRead (s->gyroXHasBeenRead());
-    setGyroYHasBeenRead (s->gyroYHasBeenRead());
-    setGyroZHasBeenRead (s->gyroZHasBeenRead());
-    setIllumHasBeenRead (s->illumHasBeenRead());
+    setGyroXHasBeenRead(s->gyroXHasBeenRead());
+    setGyroYHasBeenRead(s->gyroYHasBeenRead());
+    setGyroZHasBeenRead(s->gyroZHasBeenRead());
+    setIllumHasBeenRead(s->illumHasBeenRead());
 
     auto yesNo = [](bool v) { return v ? QStringLiteral("Yes") : QStringLiteral("No"); };
-    auto hz    = [](unsigned r) {
+    auto hz = [](unsigned r) {
       return r ? QString::number(r) + QStringLiteral(" Hz") : QStringLiteral("—");
     };
 
-    if (m_AccelEnabledLabel) m_AccelEnabledLabel->setText(yesNo(s->accelEnabled()));
-    if (m_AccelRateLabel)    m_AccelRateLabel->setText(hz(s->accelRate()));
-    if (m_GyroEnabledLabel)  m_GyroEnabledLabel->setText(yesNo(s->gyroEnabled()));
-    if (m_GyroRateLabel)     m_GyroRateLabel->setText(hz(s->gyroRate()));
-    if (m_IllumEnabledLabel) m_IllumEnabledLabel->setText(yesNo(s->illumEnabled()));
-    if (m_IllumRateLabel)    m_IllumRateLabel->setText(hz(s->illumRate()));
+    if (m_AccelEnabledLabel)
+      m_AccelEnabledLabel->setText(yesNo(s->accelEnabled()));
+    if (m_AccelRateLabel)
+      m_AccelRateLabel->setText(hz(s->accelRate()));
+    if (m_GyroEnabledLabel)
+      m_GyroEnabledLabel->setText(yesNo(s->gyroEnabled()));
+    if (m_GyroRateLabel)
+      m_GyroRateLabel->setText(hz(s->gyroRate()));
+    if (m_IllumEnabledLabel)
+      m_IllumEnabledLabel->setText(yesNo(s->illumEnabled()));
+    if (m_IllumRateLabel)
+      m_IllumRateLabel->setText(hz(s->illumRate()));
 
     if (auto *loc = m_Owner->location())
     {
@@ -160,20 +183,28 @@ QRetroConfig::QRetroConfig(QRetro *owner)
         const char *stateStr = "—";
         switch (loc->state())
         {
-        case QRetroLocation::Uninitialized: stateStr = "Uninitialized"; break;
-        case QRetroLocation::Started:       stateStr = "Started";       break;
-        case QRetroLocation::Stopped:       stateStr = "Stopped";       break;
+        case QRetroLocation::Uninitialized:
+          stateStr = "Uninitialized";
+          break;
+        case QRetroLocation::Started:
+          stateStr = "Started";
+          break;
+        case QRetroLocation::Stopped:
+          stateStr = "Stopped";
+          break;
         }
         m_LocationStateLabel->setText(tr(stateStr));
       }
-      auto ms   = [](unsigned v) {
+      auto ms = [](unsigned v) {
         return v ? QString::number(v) + QStringLiteral(" ms") : QStringLiteral("—");
       };
       auto dist = [](unsigned v) {
         return v ? QString::number(v) + QStringLiteral(" m") : QStringLiteral("—");
       };
-      if (m_LocationIntervalLabel) m_LocationIntervalLabel->setText(ms(loc->millisecondInterval()));
-      if (m_LocationDistLabel)     m_LocationDistLabel->setText(dist(loc->distanceInterval()));
+      if (m_LocationIntervalLabel)
+        m_LocationIntervalLabel->setText(ms(loc->millisecondInterval()));
+      if (m_LocationDistLabel)
+        m_LocationDistLabel->setText(dist(loc->distanceInterval()));
     }
 
     if (m_MicForm)
@@ -191,11 +222,11 @@ QRetroConfig::QRetroConfig(QRetro *owner)
         if (!m_MicStateLabels.contains(handle))
         {
           auto *stateLabel = new QLabel(active ? tr("Recording") : tr("Stopped"));
-          auto *rateLabel  = new QLabel(rateStr);
+          auto *rateLabel = new QLabel(rateStr);
           m_MicStateLabels[handle] = stateLabel;
-          m_MicRateLabels[handle]  = rateLabel;
+          m_MicRateLabels[handle] = rateLabel;
           m_MicForm->addRow(tr("Instance %1 State").arg(idx + 1), stateLabel);
-          m_MicForm->addRow(tr("Instance %1 Rate").arg(idx + 1),  rateLabel);
+          m_MicForm->addRow(tr("Instance %1 Rate").arg(idx + 1), rateLabel);
           if (m_MicEmptyLabel)
             m_MicEmptyLabel->setVisible(false);
         }
@@ -237,19 +268,29 @@ QRetroConfig::QRetroConfig(QRetro *owner)
         yesNoStr(m_Owner->supportsAchievementsSet(), m_Owner->supportsAchievements()));
 
     if (m_CorePerfLevelLabel)
-      m_CorePerfLevelLabel->setText(
-        m_Owner->performanceLevelSet()
-          ? QString::number(m_Owner->performanceLevel())
-          : tr("Unset"));
+      m_CorePerfLevelLabel->setText(m_Owner->performanceLevelSet()
+                                      ? QString::number(m_Owner->performanceLevel())
+                                      : tr("Unset"));
 
-    if (m_CorePixelFormatLabel) {
+    if (m_CorePixelFormatLabel)
+    {
       QString s = tr("Unset");
-      if (m_Owner->pixelFormatSet()) {
-        switch (m_Owner->retroPixelFormat()) {
-          case RETRO_PIXEL_FORMAT_0RGB1555: s = QStringLiteral("0RGB1555"); break;
-          case RETRO_PIXEL_FORMAT_XRGB8888: s = QStringLiteral("XRGB8888"); break;
-          case RETRO_PIXEL_FORMAT_RGB565:   s = QStringLiteral("RGB565");   break;
-          default:                          s = QStringLiteral("Unknown");   break;
+      if (m_Owner->pixelFormatSet())
+      {
+        switch (m_Owner->retroPixelFormat())
+        {
+        case RETRO_PIXEL_FORMAT_0RGB1555:
+          s = QStringLiteral("0RGB1555");
+          break;
+        case RETRO_PIXEL_FORMAT_XRGB8888:
+          s = QStringLiteral("XRGB8888");
+          break;
+        case RETRO_PIXEL_FORMAT_RGB565:
+          s = QStringLiteral("RGB565");
+          break;
+        default:
+          s = QStringLiteral("Unknown");
+          break;
         }
       }
       m_CorePixelFormatLabel->setText(s);
@@ -269,10 +310,12 @@ QRetroConfig::QRetroConfig(QRetro *owner)
     {
       for (int i = 0; i < 4; i++)
       {
-        if (!m_MemDataPtrLabel[i]) continue;
-        void  *ptr = m_Owner->m_Core.retro_get_memory_data(k_memTypes[i].id);
-        size_t sz  = m_Owner->m_Core.retro_get_memory_size
-                     ? m_Owner->m_Core.retro_get_memory_size(k_memTypes[i].id) : 0;
+        if (!m_MemDataPtrLabel[i])
+          continue;
+        void *ptr = m_Owner->m_Core.retro_get_memory_data(k_memTypes[i].id);
+        size_t sz = m_Owner->m_Core.retro_get_memory_size
+                      ? m_Owner->m_Core.retro_get_memory_size(k_memTypes[i].id)
+                      : 0;
         m_MemDataPtrLabel[i]->setText(fmtMemPtr(ptr));
         m_MemDataSizeLabel[i]->setText(fmtMemSize(sz));
       }
@@ -281,7 +324,7 @@ QRetroConfig::QRetroConfig(QRetro *owner)
     if (m_MemMapsForm)
     {
       auto *maps = m_Owner->m_Memory.memoryMaps();
-      int count  = maps ? (int)maps->num_descriptors : 0;
+      int count = maps ? (int)maps->num_descriptors : 0;
       if (count != m_MemMapsShownCount)
       {
         while (m_MemMapsForm->rowCount() > 0)
@@ -302,20 +345,19 @@ QRetroConfig::QRetroConfig(QRetro *owner)
             const auto &d = maps->descriptors[i];
 
             QString header = d.addrspace && *d.addrspace
-              ? QStringLiteral("[%1] %2").arg(i).arg(d.addrspace)
-              : QStringLiteral("[%1]").arg(i);
+                               ? QStringLiteral("[%1] %2").arg(i).arg(d.addrspace)
+                               : QStringLiteral("[%1]").arg(i);
 
-            QString body =
-              QStringLiteral("flags=%1  ptr=%2  offset=%3\n"
-                             "start=%4  select=%5  disconnect=%6\n"
-                             "len=%7")
-              .arg(fmtHex(d.flags))
-              .arg(fmtMemPtr(d.ptr))
-              .arg(fmtHex(d.offset))
-              .arg(fmtHex(d.start))
-              .arg(fmtHex(d.select))
-              .arg(fmtHex(d.disconnect))
-              .arg(fmtMemSize(d.len));
+            QString body = QStringLiteral("flags=%1  ptr=%2  offset=%3\n"
+                                          "start=%4  select=%5  disconnect=%6\n"
+                                          "len=%7")
+                             .arg(fmtHex(d.flags))
+                             .arg(fmtMemPtr(d.ptr))
+                             .arg(fmtHex(d.offset))
+                             .arg(fmtHex(d.start))
+                             .arg(fmtHex(d.select))
+                             .arg(fmtHex(d.disconnect))
+                             .arg(fmtMemSize(d.len));
 
             auto *block = new QLabel(header + QStringLiteral("\n") + body);
             QFont f("Courier");
@@ -324,10 +366,9 @@ QRetroConfig::QRetroConfig(QRetro *owner)
             block->setFont(f);
             block->setWordWrap(true);
             block->setTextInteractionFlags(Qt::TextSelectableByMouse);
-            block->setStyleSheet(
-              "QLabel { background: palette(alternate-base); "
-              "border: 1px solid palette(mid); "
-              "padding: 4px 6px; border-radius: 3px; }");
+            block->setStyleSheet("QLabel { background: palette(alternate-base); "
+                                 "border: 1px solid palette(mid); "
+                                 "padding: 4px 6px; border-radius: 3px; }");
             if (i > 0)
               block->setContentsMargins(0, 4, 0, 0);
             m_MemMapsForm->addRow(block);
@@ -357,31 +398,32 @@ void QRetroConfig::load()
 {
   QSettings settings(m_Filename, QSettings::IniFormat);
   settings.beginGroup("QRetro");
-  m_Language       = static_cast<retro_language>(
-    settings.value("language",       RETRO_LANGUAGE_ENGLISH).toInt());
+  m_Language =
+    static_cast<retro_language>(settings.value("language", RETRO_LANGUAGE_ENGLISH).toInt());
   m_UseAspectRatio = settings.value("useAspectRatio", true).toBool();
   m_IntegerScaling = settings.value("integerScaling", false).toBool();
   m_BilinearFilter = settings.value("bilinearFilter", true).toBool();
-  m_AudioEnabled   = settings.value("audioEnabled",   true).toBool();
-  m_AudioVolume    = settings.value("audioVolume",    1.0f).toFloat();
+  m_AudioEnabled = settings.value("audioEnabled", true).toBool();
+  m_AudioVolume = settings.value("audioVolume", 1.0f).toFloat();
 
   m_SpoofLocationEnabled = settings.value("spoofLocationEnabled", false).toBool();
-  m_SpoofLat             = settings.value("spoofLat",  0.0).toDouble();
-  m_SpoofLon             = settings.value("spoofLon",  0.0).toDouble();
-  m_SpoofHAcc            = settings.value("spoofHAcc", 0.0).toDouble();
-  m_SpoofVAcc            = settings.value("spoofVAcc", 0.0).toDouble();
+  m_SpoofLat = settings.value("spoofLat", 0.0).toDouble();
+  m_SpoofLon = settings.value("spoofLon", 0.0).toDouble();
+  m_SpoofHAcc = settings.value("spoofHAcc", 0.0).toDouble();
+  m_SpoofVAcc = settings.value("spoofVAcc", 0.0).toDouble();
 
   auto *dirs = m_Owner->directories();
   if (settings.contains("dirSave"))
-    dirs->set(QRetroDirectories::Save,       settings.value("dirSave").toString(),       true);
+    dirs->set(QRetroDirectories::Save, settings.value("dirSave").toString(), true);
   if (settings.contains("dirSystem"))
-    dirs->set(QRetroDirectories::System,     settings.value("dirSystem").toString(),     true);
+    dirs->set(QRetroDirectories::System, settings.value("dirSystem").toString(), true);
   if (settings.contains("dirCoreAssets"))
     dirs->set(QRetroDirectories::CoreAssets, settings.value("dirCoreAssets").toString(), true);
   if (settings.contains("dirPlaylist"))
-    dirs->set(QRetroDirectories::Playlist,        settings.value("dirPlaylist").toString(),        true);
+    dirs->set(QRetroDirectories::Playlist, settings.value("dirPlaylist").toString(), true);
   if (settings.contains("dirFileBrowserStart"))
-    dirs->set(QRetroDirectories::FileBrowserStart, settings.value("dirFileBrowserStart").toString(), true);
+    dirs->set(
+      QRetroDirectories::FileBrowserStart, settings.value("dirFileBrowserStart").toString(), true);
   if (settings.contains("dirState"))
     dirs->set(QRetroDirectories::State, settings.value("dirState").toString(), true);
 }
@@ -390,26 +432,26 @@ void QRetroConfig::save()
 {
   QSettings settings(m_Filename, QSettings::IniFormat);
   settings.beginGroup("QRetro");
-  settings.setValue("language",       static_cast<int>(m_Language));
+  settings.setValue("language", static_cast<int>(m_Language));
   settings.setValue("useAspectRatio", m_UseAspectRatio);
   settings.setValue("integerScaling", m_IntegerScaling);
   settings.setValue("bilinearFilter", m_BilinearFilter);
-  settings.setValue("audioEnabled",   m_AudioEnabled);
-  settings.setValue("audioVolume",    m_AudioVolume);
+  settings.setValue("audioEnabled", m_AudioEnabled);
+  settings.setValue("audioVolume", m_AudioVolume);
 
   settings.setValue("spoofLocationEnabled", m_SpoofLocationEnabled);
-  settings.setValue("spoofLat",  m_SpoofLat);
-  settings.setValue("spoofLon",  m_SpoofLon);
+  settings.setValue("spoofLat", m_SpoofLat);
+  settings.setValue("spoofLon", m_SpoofLon);
   settings.setValue("spoofHAcc", m_SpoofHAcc);
   settings.setValue("spoofVAcc", m_SpoofVAcc);
 
   auto *dirs = m_Owner->directories();
-  settings.setValue("dirSave",       dirs->get(QRetroDirectories::Save));
-  settings.setValue("dirSystem",     dirs->get(QRetroDirectories::System));
-  settings.setValue("dirCoreAssets",      dirs->get(QRetroDirectories::CoreAssets));
-  settings.setValue("dirPlaylist",        dirs->get(QRetroDirectories::Playlist));
-  settings.setValue("dirFileBrowserStart",dirs->get(QRetroDirectories::FileBrowserStart));
-  settings.setValue("dirState",           dirs->get(QRetroDirectories::State));
+  settings.setValue("dirSave", dirs->get(QRetroDirectories::Save));
+  settings.setValue("dirSystem", dirs->get(QRetroDirectories::System));
+  settings.setValue("dirCoreAssets", dirs->get(QRetroDirectories::CoreAssets));
+  settings.setValue("dirPlaylist", dirs->get(QRetroDirectories::Playlist));
+  settings.setValue("dirFileBrowserStart", dirs->get(QRetroDirectories::FileBrowserStart));
+  settings.setValue("dirState", dirs->get(QRetroDirectories::State));
 
   settings.sync();
 }
@@ -432,26 +474,26 @@ void QRetroConfig::update()
     delete layout();
   }
 
-  m_LedForm       = nullptr;
+  m_LedForm = nullptr;
   m_LedEmptyLabel = nullptr;
   m_LedLabels.clear();
-  m_MicForm       = nullptr;
+  m_MicForm = nullptr;
   m_MicEmptyLabel = nullptr;
   m_MicStateLabels.clear();
   m_MicRateLabels.clear();
-  m_CoreAchievementsLabel   = nullptr;
-  m_CorePerfLevelLabel      = nullptr;
-  m_CorePixelFormatLabel    = nullptr;
-  m_CoreSerializationLabel  = nullptr;
+  m_CoreAchievementsLabel = nullptr;
+  m_CorePerfLevelLabel = nullptr;
+  m_CorePixelFormatLabel = nullptr;
+  m_CoreSerializationLabel = nullptr;
   m_CoreSupportsNoGameLabel = nullptr;
   for (int i = 0; i < 4; i++)
     m_MemDataPtrLabel[i] = m_MemDataSizeLabel[i] = nullptr;
-  m_MemMapsForm       = nullptr;
-  m_MemoryReady       = false;
+  m_MemMapsForm = nullptr;
+  m_MemoryReady = false;
   m_MemMapsShownCount = -1;
 
   /* Wraps a form widget in a borderless scroll area. */
-  auto makeScrollPage = [](QWidget *inner) -> QScrollArea* {
+  auto makeScrollPage = [](QWidget *inner) -> QScrollArea * {
     auto *scroll = new QScrollArea();
     scroll->setWidget(inner);
     scroll->setWidgetResizable(true);
@@ -573,7 +615,8 @@ void QRetroConfig::update()
     for (unsigned p = 0; p < static_cast<unsigned>(ports.size()); p++)
     {
       const auto &port = ports[p];
-      if (port.types.empty()) continue;
+      if (port.types.empty())
+        continue;
 
       auto *combo = new QComboBox();
       for (const auto &type : port.types)
@@ -586,8 +629,7 @@ void QRetroConfig::update()
       /* Notify the core of the current selection now that the game is loaded. */
       m_Owner->input()->setSelectedControllerType(p, selected);
 
-      connect(combo, QOverload<int>::of(&QComboBox::currentIndexChanged),
-              [this, combo, p](int) {
+      connect(combo, QOverload<int>::of(&QComboBox::currentIndexChanged), [this, combo, p](int) {
         unsigned id = static_cast<unsigned>(combo->currentData().toUInt());
         m_Owner->input()->setSelectedControllerType(p, id);
       });
@@ -606,7 +648,7 @@ void QRetroConfig::update()
   /* ── Environment ────────────────────────────────────────────── */
   auto *envPage = new QWidget();
   {
-    auto *form  = new QFormLayout(envPage);
+    auto *form = new QFormLayout(envPage);
     form->setContentsMargins(12, 12, 12, 12);
     form->setVerticalSpacing(10);
     auto *combo = new QComboBox();
@@ -615,8 +657,7 @@ void QRetroConfig::update()
       combo->addItem(k_languages[i].name, static_cast<int>(k_languages[i].id));
     combo->setCurrentIndex(combo->findData(static_cast<int>(m_Language)));
 
-    connect(combo, QOverload<int>::of(&QComboBox::currentIndexChanged),
-            [this, combo](int) {
+    connect(combo, QOverload<int>::of(&QComboBox::currentIndexChanged), [this, combo](int) {
       m_Language = static_cast<retro_language>(combo->currentData().toInt());
       m_SaveTimer->start();
     });
@@ -631,16 +672,20 @@ void QRetroConfig::update()
     pageLayout->setSpacing(12);
 
     auto *group = new QGroupBox(tr("Directories"));
-    auto *form  = new QFormLayout(group);
+    auto *form = new QFormLayout(group);
     form->setVerticalSpacing(8);
 
-    struct { const char *label; QRetroDirectories::Type type; } rows[] = {
-      { "Save",              QRetroDirectories::Save            },
-      { "System",            QRetroDirectories::System          },
-      { "Core Assets",       QRetroDirectories::CoreAssets      },
-      { "Playlist",          QRetroDirectories::Playlist        },
-      { "File Browser Start",QRetroDirectories::FileBrowserStart},
-      { "State",             QRetroDirectories::State            },
+    struct
+    {
+      const char *label;
+      QRetroDirectories::Type type;
+    } rows[] = {
+      { "Save", QRetroDirectories::Save },
+      { "System", QRetroDirectories::System },
+      { "Core Assets", QRetroDirectories::CoreAssets },
+      { "Playlist", QRetroDirectories::Playlist },
+      { "File Browser Start", QRetroDirectories::FileBrowserStart },
+      { "State", QRetroDirectories::State },
     };
 
     for (auto &row : rows)
@@ -650,8 +695,8 @@ void QRetroConfig::update()
       QRetroDirectories::Type type = row.type;
       auto *browseBtn = new QPushButton(tr("Browse…"));
       connect(browseBtn, &QPushButton::clicked, [this, edit, type]() {
-        QString path = QFileDialog::getExistingDirectory(this, tr("Select Directory"),
-                                                         edit->text());
+        QString path =
+          QFileDialog::getExistingDirectory(this, tr("Select Directory"), edit->text());
         if (!path.isEmpty())
         {
           edit->setText(path);
@@ -688,21 +733,27 @@ void QRetroConfig::update()
     const bool available = dc->version() != QRetroDiskControl::Invalid;
 
     /* Status labels — declared here so controls below can update them */
-    QLabel *trayLabel        = nullptr;
+    QLabel *trayLabel = nullptr;
     QLabel *activeImageLabel = nullptr;
 
     /* Status group */
     {
       auto *group = new QGroupBox(tr("Status"));
-      auto *form  = new QFormLayout(group);
+      auto *form = new QFormLayout(group);
       form->setVerticalSpacing(8);
 
       QString versionStr;
       switch (dc->version())
       {
-        case QRetroDiskControl::v0: versionStr = QStringLiteral("v0");       break;
-        case QRetroDiskControl::v1: versionStr = QStringLiteral("v1 (ext)"); break;
-        default:                    versionStr = tr("Not available");         break;
+      case QRetroDiskControl::v0:
+        versionStr = QStringLiteral("v0");
+        break;
+      case QRetroDiskControl::v1:
+        versionStr = QStringLiteral("v1 (ext)");
+        break;
+      default:
+        versionStr = tr("Not available");
+        break;
       }
       form->addRow(tr("Interface"), new QLabel(versionStr));
 
@@ -712,7 +763,7 @@ void QRetroConfig::update()
         form->addRow(tr("Tray"), trayLabel);
 
         unsigned numImages = dc->getNumImages();
-        unsigned curIndex  = dc->getImageIndex();
+        unsigned curIndex = dc->getImageIndex();
         form->addRow(tr("Images"), new QLabel(QString::number(numImages)));
 
         activeImageLabel = new QLabel(QString::number(curIndex));
@@ -734,7 +785,7 @@ void QRetroConfig::update()
       /* Drive controls */
       {
         auto *group = new QGroupBox(tr("Drive"));
-        auto *form  = new QFormLayout(group);
+        auto *form = new QFormLayout(group);
         form->setVerticalSpacing(8);
 
         /* Tray toggle — eject or insert only, no index change here.
@@ -744,13 +795,14 @@ void QRetroConfig::update()
         connect(ejectBtn, &QPushButton::clicked, [this, dc, ejectBtn, updateStatus]() {
           bool nowEjected = !dc->getEjectState();
           auto *t = QThread::create([this, dc, ejectBtn, nowEjected, updateStatus]() {
-            m_Owner->execOnTimingThread([dc, nowEjected]() {
-              dc->setEjectState(nowEjected);
-            });
-            QMetaObject::invokeMethod(ejectBtn, [ejectBtn, nowEjected, updateStatus]() {
-              ejectBtn->setText(nowEjected ? tr("Insert") : tr("Eject"));
-              updateStatus();
-            }, Qt::QueuedConnection);
+            m_Owner->execOnTimingThread([dc, nowEjected]() { dc->setEjectState(nowEjected); });
+            QMetaObject::invokeMethod(
+              ejectBtn,
+              [ejectBtn, nowEjected, updateStatus]() {
+                ejectBtn->setText(nowEjected ? tr("Insert") : tr("Eject"));
+                updateStatus();
+              },
+              Qt::QueuedConnection);
           });
           connect(t, &QThread::finished, t, &QObject::deleteLater);
           t->start();
@@ -759,13 +811,13 @@ void QRetroConfig::update()
 
         /* Disk swap: eject → set index → insert, executed on the timing
          * thread between frames per the libretro spec. */
-        unsigned numImages  = dc->getNumImages();
-        unsigned curIndex   = dc->getImageIndex();
+        unsigned numImages = dc->getNumImages();
+        unsigned curIndex = dc->getImageIndex();
         auto *diskCombo = new QComboBox();
         for (unsigned i = 0; i < numImages; ++i)
         {
           char label[1024] = {};
-          char path[4096]  = {};
+          char path[4096] = {};
           QString display;
           if (dc->version() == QRetroDiskControl::v1)
           {
@@ -793,20 +845,21 @@ void QRetroConfig::update()
           unsigned target = static_cast<unsigned>(diskCombo->currentData().toUInt());
           swapBtn->setEnabled(false);
           auto *t = QThread::create([this, dc, target, swapBtn, updateStatus]() {
-            m_Owner->execOnTimingThread([dc, target]() {
-              dc->setImageIndex(target);
-            });
-            QMetaObject::invokeMethod(swapBtn, [swapBtn, updateStatus]() {
-              swapBtn->setEnabled(true);
-              updateStatus();
-            }, Qt::QueuedConnection);
+            m_Owner->execOnTimingThread([dc, target]() { dc->setImageIndex(target); });
+            QMetaObject::invokeMethod(
+              swapBtn,
+              [swapBtn, updateStatus]() {
+                swapBtn->setEnabled(true);
+                updateStatus();
+              },
+              Qt::QueuedConnection);
           });
           connect(t, &QThread::finished, t, &QObject::deleteLater);
           t->start();
         });
 
         auto *rowWidget = new QWidget();
-        auto *hbox      = new QHBoxLayout(rowWidget);
+        auto *hbox = new QHBoxLayout(rowWidget);
         hbox->setContentsMargins(0, 0, 0, 0);
         hbox->addWidget(diskCombo, 1);
         hbox->addWidget(swapBtn);
@@ -815,8 +868,7 @@ void QRetroConfig::update()
         auto *addBtn = new QPushButton(tr("Add Slot"));
         connect(addBtn, &QPushButton::clicked, [dc, diskCombo]() {
           if (dc->addImageIndex())
-            diskCombo->addItem(tr("Disk %1").arg(diskCombo->count() + 1),
-                               diskCombo->count());
+            diskCombo->addItem(tr("Disk %1").arg(diskCombo->count() + 1), diskCombo->count());
         });
         form->addRow(tr("Slots"), addBtn);
 
@@ -827,13 +879,13 @@ void QRetroConfig::update()
       if (dc->version() == QRetroDiskControl::v1)
       {
         auto *group = new QGroupBox(tr("Images"));
-        auto *form  = new QFormLayout(group);
+        auto *form = new QFormLayout(group);
         form->setVerticalSpacing(8);
 
         unsigned numImages = dc->getNumImages();
         for (unsigned i = 0; i < numImages; ++i)
         {
-          char path[4096]  = {};
+          char path[4096] = {};
           char label[1024] = {};
           dc->getImagePath(i, path, sizeof(path));
           dc->getImageLabel(i, label, sizeof(label));
@@ -873,9 +925,8 @@ void QRetroConfig::update()
      * Returns the QDoubleSpinBox so callers can connect their emit lambda to
      * its valueChanged signal.
      */
-    auto makeAxisWidget = [](float initVal, double lo, double hi,
-                             int scale, int decimals = 2) -> QPair<QWidget*, QDoubleSpinBox*>
-    {
+    auto makeAxisWidget = [](float initVal, double lo, double hi, int scale,
+                            int decimals = 2) -> QPair<QWidget *, QDoubleSpinBox *> {
       auto *spin = new QDoubleSpinBox();
       spin->setRange(lo, hi);
       spin->setSingleStep(1.0 / scale);
@@ -889,37 +940,34 @@ void QRetroConfig::update()
 
       /* Slider → spinbox (spinbox.valueChanged then fires emit lambda) */
       QObject::connect(slider, &QSlider::valueChanged,
-                       [spin, scale](int v) {
-        spin->setValue(double(v) / scale);
-      });
+        [spin, scale](int v) { spin->setValue(double(v) / scale); });
 
       /* Spinbox → slider (blocked to prevent re-entry) */
-      QObject::connect(spin,
-                       QOverload<double>::of(&QDoubleSpinBox::valueChanged),
-                       [slider, scale](double v) {
-        slider->blockSignals(true);
-        slider->setValue(qRound(v * scale));
-        slider->blockSignals(false);
-      });
+      QObject::connect(
+        spin, QOverload<double>::of(&QDoubleSpinBox::valueChanged), [slider, scale](double v) {
+          slider->blockSignals(true);
+          slider->setValue(qRound(v * scale));
+          slider->blockSignals(false);
+        });
 
-      auto *w    = new QWidget();
+      auto *w = new QWidget();
       auto *hbox = new QHBoxLayout(w);
       hbox->setContentsMargins(0, 0, 0, 0);
       hbox->addWidget(slider, 1);
       hbox->addWidget(spin);
-      return {w, spin};
+      return { w, spin };
     };
 
     /* ── Accelerometer ──────────────────────────────────────── */
     {
       auto *group = new QGroupBox(tr("Accelerometer (m/s²)"));
-      auto *form  = new QFormLayout(group);
+      auto *form = new QFormLayout(group);
       form->setVerticalSpacing(8);
 
       m_AccelEnabledLabel = new QLabel(tr("—"));
-      m_AccelRateLabel    = new QLabel(tr("—"));
+      m_AccelRateLabel = new QLabel(tr("—"));
       form->addRow(tr("Enabled"), m_AccelEnabledLabel);
-      form->addRow(tr("Rate"),    m_AccelRateLabel);
+      form->addRow(tr("Rate"), m_AccelRateLabel);
 
       auto *spoofCheck = new QCheckBox(tr("Spoof values"));
       spoofCheck->setChecked(m_SpoofAccelEnabled);
@@ -927,35 +975,37 @@ void QRetroConfig::update()
       auto [wX, spinX] = makeAxisWidget(m_SpoofAccel[0], -20.0, 20.0, 100);
       auto [wY, spinY] = makeAxisWidget(m_SpoofAccel[1], -20.0, 20.0, 100);
       auto [wZ, spinZ] = makeAxisWidget(m_SpoofAccel[2], -20.0, 20.0, 100);
-      m_AccelAxisWidget[0] = wX; wX->setEnabled(false);
-      m_AccelAxisWidget[1] = wY; wY->setEnabled(false);
-      m_AccelAxisWidget[2] = wZ; wZ->setEnabled(false);
+      m_AccelAxisWidget[0] = wX;
+      wX->setEnabled(false);
+      m_AccelAxisWidget[1] = wY;
+      wY->setEnabled(false);
+      m_AccelAxisWidget[2] = wZ;
+      wZ->setEnabled(false);
 
       auto emitAccel = [this, spoofCheck, spinX, spinY, spinZ]() {
         m_SpoofAccelEnabled = spoofCheck->isChecked();
-        m_SpoofAccel[0]     = static_cast<float>(spinX->value());
-        m_SpoofAccel[1]     = static_cast<float>(spinY->value());
-        m_SpoofAccel[2]     = static_cast<float>(spinZ->value());
+        m_SpoofAccel[0] = static_cast<float>(spinX->value());
+        m_SpoofAccel[1] = static_cast<float>(spinY->value());
+        m_SpoofAccel[2] = static_cast<float>(spinZ->value());
         m_SaveTimer->start();
         m_Owner->sensors()->setSpoofAccelEnabled(m_SpoofAccelEnabled);
         m_Owner->sensors()->setSpoofAccel(m_SpoofAccel[0], m_SpoofAccel[1], m_SpoofAccel[2]);
-        emit spoofAccelChanged(m_SpoofAccelEnabled, m_SpoofAccel[0],
-                              m_SpoofAccel[1], m_SpoofAccel[2]);
+        emit spoofAccelChanged(
+          m_SpoofAccelEnabled, m_SpoofAccel[0], m_SpoofAccel[1], m_SpoofAccel[2]);
       };
 
-      connect(spoofCheck, &QCheckBox::stateChanged,
-              [emitAccel](int) { emitAccel(); });
+      connect(spoofCheck, &QCheckBox::stateChanged, [emitAccel](int) { emitAccel(); });
       connect(spinX, QOverload<double>::of(&QDoubleSpinBox::valueChanged),
-              [emitAccel](double) { emitAccel(); });
+        [emitAccel](double) { emitAccel(); });
       connect(spinY, QOverload<double>::of(&QDoubleSpinBox::valueChanged),
-              [emitAccel](double) { emitAccel(); });
+        [emitAccel](double) { emitAccel(); });
       connect(spinZ, QOverload<double>::of(&QDoubleSpinBox::valueChanged),
-              [emitAccel](double) { emitAccel(); });
+        [emitAccel](double) { emitAccel(); });
 
       form->addRow(tr("Spoof"), spoofCheck);
-      form->addRow(tr("X"),    wX);
-      form->addRow(tr("Y"),    wY);
-      form->addRow(tr("Z"),    wZ);
+      form->addRow(tr("X"), wX);
+      form->addRow(tr("Y"), wY);
+      form->addRow(tr("Z"), wZ);
 
       pageLayout->addWidget(group);
     }
@@ -963,13 +1013,13 @@ void QRetroConfig::update()
     /* ── Gyroscope ──────────────────────────────────────────── */
     {
       auto *group = new QGroupBox(tr("Gyroscope (rad/s)"));
-      auto *form  = new QFormLayout(group);
+      auto *form = new QFormLayout(group);
       form->setVerticalSpacing(8);
 
       m_GyroEnabledLabel = new QLabel(tr("—"));
-      m_GyroRateLabel    = new QLabel(tr("—"));
+      m_GyroRateLabel = new QLabel(tr("—"));
       form->addRow(tr("Enabled"), m_GyroEnabledLabel);
-      form->addRow(tr("Rate"),    m_GyroRateLabel);
+      form->addRow(tr("Rate"), m_GyroRateLabel);
 
       auto *spoofCheck = new QCheckBox(tr("Spoof values"));
       spoofCheck->setChecked(m_SpoofGyroEnabled);
@@ -977,35 +1027,36 @@ void QRetroConfig::update()
       auto [wX, spinX] = makeAxisWidget(m_SpoofGyro[0], -1.0, 1.0, 100);
       auto [wY, spinY] = makeAxisWidget(m_SpoofGyro[1], -1.0, 1.0, 100);
       auto [wZ, spinZ] = makeAxisWidget(m_SpoofGyro[2], -1.0, 1.0, 100);
-      m_GyroAxisWidget[0] = wX; wX->setEnabled(false);
-      m_GyroAxisWidget[1] = wY; wY->setEnabled(false);
-      m_GyroAxisWidget[2] = wZ; wZ->setEnabled(false);
+      m_GyroAxisWidget[0] = wX;
+      wX->setEnabled(false);
+      m_GyroAxisWidget[1] = wY;
+      wY->setEnabled(false);
+      m_GyroAxisWidget[2] = wZ;
+      wZ->setEnabled(false);
 
       auto emitGyro = [this, spoofCheck, spinX, spinY, spinZ]() {
         m_SpoofGyroEnabled = spoofCheck->isChecked();
-        m_SpoofGyro[0]     = static_cast<float>(spinX->value());
-        m_SpoofGyro[1]     = static_cast<float>(spinY->value());
-        m_SpoofGyro[2]     = static_cast<float>(spinZ->value());
+        m_SpoofGyro[0] = static_cast<float>(spinX->value());
+        m_SpoofGyro[1] = static_cast<float>(spinY->value());
+        m_SpoofGyro[2] = static_cast<float>(spinZ->value());
         m_SaveTimer->start();
         m_Owner->sensors()->setSpoofGyroEnabled(m_SpoofGyroEnabled);
         m_Owner->sensors()->setSpoofGyro(m_SpoofGyro[0], m_SpoofGyro[1], m_SpoofGyro[2]);
-        emit spoofGyroChanged(m_SpoofGyroEnabled, m_SpoofGyro[0],
-                             m_SpoofGyro[1], m_SpoofGyro[2]);
+        emit spoofGyroChanged(m_SpoofGyroEnabled, m_SpoofGyro[0], m_SpoofGyro[1], m_SpoofGyro[2]);
       };
 
-      connect(spoofCheck, &QCheckBox::stateChanged,
-              [emitGyro](int) { emitGyro(); });
+      connect(spoofCheck, &QCheckBox::stateChanged, [emitGyro](int) { emitGyro(); });
       connect(spinX, QOverload<double>::of(&QDoubleSpinBox::valueChanged),
-              [emitGyro](double) { emitGyro(); });
+        [emitGyro](double) { emitGyro(); });
       connect(spinY, QOverload<double>::of(&QDoubleSpinBox::valueChanged),
-              [emitGyro](double) { emitGyro(); });
+        [emitGyro](double) { emitGyro(); });
       connect(spinZ, QOverload<double>::of(&QDoubleSpinBox::valueChanged),
-              [emitGyro](double) { emitGyro(); });
+        [emitGyro](double) { emitGyro(); });
 
       form->addRow(tr("Spoof"), spoofCheck);
-      form->addRow(tr("X"),    wX);
-      form->addRow(tr("Y"),    wY);
-      form->addRow(tr("Z"),    wZ);
+      form->addRow(tr("X"), wX);
+      form->addRow(tr("Y"), wY);
+      form->addRow(tr("Z"), wZ);
 
       pageLayout->addWidget(group);
     }
@@ -1013,13 +1064,13 @@ void QRetroConfig::update()
     /* ── Illuminance ────────────────────────────────────────── */
     {
       auto *group = new QGroupBox(tr("Illuminance (lux)"));
-      auto *form  = new QFormLayout(group);
+      auto *form = new QFormLayout(group);
       form->setVerticalSpacing(8);
 
       m_IllumEnabledLabel = new QLabel(tr("—"));
-      m_IllumRateLabel    = new QLabel(tr("—"));
+      m_IllumRateLabel = new QLabel(tr("—"));
       form->addRow(tr("Enabled"), m_IllumEnabledLabel);
-      form->addRow(tr("Rate"),    m_IllumRateLabel);
+      form->addRow(tr("Rate"), m_IllumRateLabel);
 
       auto *spoofCheck = new QCheckBox(tr("Spoof values"));
       spoofCheck->setChecked(m_SpoofIllumEnabled);
@@ -1039,16 +1090,14 @@ void QRetroConfig::update()
       slider->setEnabled(m_SpoofIllum >= 0 && m_SpoofIllum <= 100000);
 
       /* Slider → spinbox */
-      connect(slider, &QSlider::valueChanged, [spin](int v) {
-        spin->setValue(double(v));
-      });
+      connect(slider, &QSlider::valueChanged, [spin](int v) { spin->setValue(double(v)); });
 
       /* Spinbox → slider (disable slider when out of range) */
-      connect(spin, QOverload<double>::of(&QDoubleSpinBox::valueChanged),
-              [slider](double v) {
+      connect(spin, QOverload<double>::of(&QDoubleSpinBox::valueChanged), [slider](double v) {
         bool inRange = (v >= slider->minimum() && v <= slider->maximum());
         slider->setEnabled(inRange);
-        if (inRange) {
+        if (inRange)
+        {
           slider->blockSignals(true);
           slider->setValue(qRound(v));
           slider->blockSignals(false);
@@ -1057,17 +1106,16 @@ void QRetroConfig::update()
 
       auto emitIllum = [this, spoofCheck, spin]() {
         m_SpoofIllumEnabled = spoofCheck->isChecked();
-        m_SpoofIllum        = static_cast<float>(spin->value());
+        m_SpoofIllum = static_cast<float>(spin->value());
         m_SaveTimer->start();
         m_Owner->sensors()->setSpoofIllumEnabled(m_SpoofIllumEnabled);
         m_Owner->sensors()->setSpoofIllum(m_SpoofIllum);
         emit spoofIllumChanged(m_SpoofIllumEnabled, m_SpoofIllum);
       };
 
-      connect(spoofCheck, &QCheckBox::stateChanged,
-              [emitIllum](int) { emitIllum(); });
+      connect(spoofCheck, &QCheckBox::stateChanged, [emitIllum](int) { emitIllum(); });
       connect(spin, QOverload<double>::of(&QDoubleSpinBox::valueChanged),
-              [emitIllum](double) { emitIllum(); });
+        [emitIllum](double) { emitIllum(); });
 
       auto *valueWidget = new QWidget();
       auto *hbox = new QHBoxLayout(valueWidget);
@@ -1077,7 +1125,7 @@ void QRetroConfig::update()
       m_IllumValueWidget = valueWidget;
       valueWidget->setEnabled(false);
 
-      form->addRow(tr("Spoof"),  spoofCheck);
+      form->addRow(tr("Spoof"), spoofCheck);
       form->addRow(tr("Value"), valueWidget);
 
       pageLayout->addWidget(group);
@@ -1094,21 +1142,21 @@ void QRetroConfig::update()
     pageLayout->setSpacing(12);
 
     auto *group = new QGroupBox(tr("Position"));
-    auto *form  = new QFormLayout(group);
+    auto *form = new QFormLayout(group);
     form->setVerticalSpacing(8);
 
-    m_LocationStateLabel    = new QLabel(tr("—"));
+    m_LocationStateLabel = new QLabel(tr("—"));
     m_LocationIntervalLabel = new QLabel(tr("—"));
-    m_LocationDistLabel     = new QLabel(tr("—"));
-    form->addRow(tr("State"),                 m_LocationStateLabel);
-    form->addRow(tr("Time interval (ms)"),    m_LocationIntervalLabel);
+    m_LocationDistLabel = new QLabel(tr("—"));
+    form->addRow(tr("State"), m_LocationStateLabel);
+    form->addRow(tr("Time interval (ms)"), m_LocationIntervalLabel);
     form->addRow(tr("Distance interval (m)"), m_LocationDistLabel);
 
     auto *spoofCheck = new QCheckBox(tr("Spoof values"));
     spoofCheck->setChecked(m_SpoofLocationEnabled);
 
-    auto makeSpin = [](double lo, double hi, double step,
-                       int decimals, double init) -> QDoubleSpinBox* {
+    auto makeSpin = [](double lo, double hi, double step, int decimals,
+                      double init) -> QDoubleSpinBox * {
       auto *s = new QDoubleSpinBox();
       s->setRange(lo, hi);
       s->setSingleStep(step);
@@ -1117,10 +1165,10 @@ void QRetroConfig::update()
       return s;
     };
 
-    auto *latSpin  = makeSpin(-90.0,   90.0,    0.000001, 6, m_SpoofLat);
-    auto *lonSpin  = makeSpin(-180.0,  180.0,   0.000001, 6, m_SpoofLon);
-    auto *hAccSpin = makeSpin(0.0,     100000.0, 1.0,     1, m_SpoofHAcc);
-    auto *vAccSpin = makeSpin(0.0,     100000.0, 1.0,     1, m_SpoofVAcc);
+    auto *latSpin = makeSpin(-90.0, 90.0, 0.000001, 6, m_SpoofLat);
+    auto *lonSpin = makeSpin(-180.0, 180.0, 0.000001, 6, m_SpoofLon);
+    auto *hAccSpin = makeSpin(0.0, 100000.0, 1.0, 1, m_SpoofHAcc);
+    auto *vAccSpin = makeSpin(0.0, 100000.0, 1.0, 1, m_SpoofVAcc);
 
     m_LocationSpoofWidgets[0] = latSpin;
     m_LocationSpoofWidgets[1] = lonSpin;
@@ -1131,8 +1179,8 @@ void QRetroConfig::update()
 
     auto emitLocation = [this, spoofCheck, latSpin, lonSpin, hAccSpin, vAccSpin]() {
       m_SpoofLocationEnabled = spoofCheck->isChecked();
-      m_SpoofLat  = latSpin->value();
-      m_SpoofLon  = lonSpin->value();
+      m_SpoofLat = latSpin->value();
+      m_SpoofLon = lonSpin->value();
       m_SpoofHAcc = hAccSpin->value();
       m_SpoofVAcc = vAccSpin->value();
       m_SaveTimer->start();
@@ -1144,24 +1192,23 @@ void QRetroConfig::update()
       loc->setSpoofVAcc(m_SpoofVAcc);
       for (auto *w : m_LocationSpoofWidgets)
         w->setEnabled(m_SpoofLocationEnabled);
-      emit spoofLocationChanged(m_SpoofLocationEnabled, m_SpoofLat, m_SpoofLon,
-                                m_SpoofHAcc, m_SpoofVAcc);
+      emit spoofLocationChanged(
+        m_SpoofLocationEnabled, m_SpoofLat, m_SpoofLon, m_SpoofHAcc, m_SpoofVAcc);
     };
 
-    connect(spoofCheck, &QCheckBox::stateChanged,
-            [emitLocation](int) { emitLocation(); });
-    connect(latSpin,  QOverload<double>::of(&QDoubleSpinBox::valueChanged),
-            [emitLocation](double) { emitLocation(); });
-    connect(lonSpin,  QOverload<double>::of(&QDoubleSpinBox::valueChanged),
-            [emitLocation](double) { emitLocation(); });
+    connect(spoofCheck, &QCheckBox::stateChanged, [emitLocation](int) { emitLocation(); });
+    connect(latSpin, QOverload<double>::of(&QDoubleSpinBox::valueChanged),
+      [emitLocation](double) { emitLocation(); });
+    connect(lonSpin, QOverload<double>::of(&QDoubleSpinBox::valueChanged),
+      [emitLocation](double) { emitLocation(); });
     connect(hAccSpin, QOverload<double>::of(&QDoubleSpinBox::valueChanged),
-            [emitLocation](double) { emitLocation(); });
+      [emitLocation](double) { emitLocation(); });
     connect(vAccSpin, QOverload<double>::of(&QDoubleSpinBox::valueChanged),
-            [emitLocation](double) { emitLocation(); });
+      [emitLocation](double) { emitLocation(); });
 
-    form->addRow(tr("Spoof"),        spoofCheck);
-    form->addRow(tr("Latitude"),     latSpin);
-    form->addRow(tr("Longitude"),    lonSpin);
+    form->addRow(tr("Spoof"), spoofCheck);
+    form->addRow(tr("Latitude"), latSpin);
+    form->addRow(tr("Longitude"), lonSpin);
     form->addRow(tr("H. Accuracy"), hAccSpin);
     form->addRow(tr("V. Accuracy"), vAccSpin);
 
@@ -1180,8 +1227,7 @@ void QRetroConfig::update()
     m_LedForm = new QFormLayout(group);
     m_LedForm->setVerticalSpacing(8);
 
-    m_LedEmptyLabel = new QLabel(
-      tr("LED states will appear here when the core modifies an LED."));
+    m_LedEmptyLabel = new QLabel(tr("LED states will appear here when the core modifies an LED."));
     m_LedEmptyLabel->setWordWrap(true);
     {
       QFont f = m_LedEmptyLabel->font();
@@ -1212,7 +1258,7 @@ void QRetroConfig::update()
     pageLayout->setSpacing(12);
 
     auto *group = new QGroupBox(tr("Microphone"));
-    auto *form  = new QFormLayout(group);
+    auto *form = new QFormLayout(group);
     form->setVerticalSpacing(8);
 
     auto *deviceLabel = new QLabel(m_Owner->microphone()->deviceName());
@@ -1239,11 +1285,11 @@ void QRetroConfig::update()
       rate = params.rate;
 
       auto *stateLabel = new QLabel(active ? tr("Recording") : tr("Stopped"));
-      auto *rateLabel  = new QLabel(rate ? QString::number(rate) + tr(" Hz") : QStringLiteral("—"));
+      auto *rateLabel = new QLabel(rate ? QString::number(rate) + tr(" Hz") : QStringLiteral("—"));
       m_MicStateLabels[handle] = stateLabel;
-      m_MicRateLabels[handle]  = rateLabel;
+      m_MicRateLabels[handle] = rateLabel;
       form->addRow(tr("Instance %1 State").arg(idx + 1), stateLabel);
-      form->addRow(tr("Instance %1 Rate").arg(idx + 1),  rateLabel);
+      form->addRow(tr("Instance %1 Rate").arg(idx + 1), rateLabel);
       ++idx;
     }
     m_MicEmptyLabel->setVisible(m_MicStateLabels.isEmpty());
@@ -1261,10 +1307,10 @@ void QRetroConfig::update()
     pageLayout->setSpacing(12);
 
     auto *group = new QGroupBox(tr("Core Constants"));
-    auto *form  = new QFormLayout(group);
+    auto *form = new QFormLayout(group);
     form->setVerticalSpacing(4);
 
-    auto yesNo = [](bool set, bool v) -> QLabel* {
+    auto yesNo = [](bool set, bool v) -> QLabel * {
       return new QLabel(set ? (v ? tr("Yes") : tr("No")) : tr("Unset"));
     };
 
@@ -1280,20 +1326,24 @@ void QRetroConfig::update()
     };
 
     m_CorePerfLevelLabel = new QLabel(
-      m_Owner->performanceLevelSet()
-        ? QString::number(m_Owner->performanceLevel())
-        : tr("Unset"));
+      m_Owner->performanceLevelSet() ? QString::number(m_Owner->performanceLevel()) : tr("Unset"));
     form->addRow(tr("Performance Level"), m_CorePerfLevelLabel);
     makeDesc("The relative performance level of the core.\n"
              "RETRO_ENVIRONMENT_SET_PERFORMANCE_LEVEL (8)");
 
     auto fmtPixel = [this]() -> QString {
-      if (!m_Owner->pixelFormatSet()) return tr("Unset");
-      switch (m_Owner->retroPixelFormat()) {
-        case RETRO_PIXEL_FORMAT_0RGB1555: return QStringLiteral("0RGB1555");
-        case RETRO_PIXEL_FORMAT_XRGB8888: return QStringLiteral("XRGB8888");
-        case RETRO_PIXEL_FORMAT_RGB565:   return QStringLiteral("RGB565");
-        default:                          return QStringLiteral("Invalid (0x%1)").arg(m_Owner->retroPixelFormat(), 0, 16).toUpper();
+      if (!m_Owner->pixelFormatSet())
+        return tr("Unset");
+      switch (m_Owner->retroPixelFormat())
+      {
+      case RETRO_PIXEL_FORMAT_0RGB1555:
+        return QStringLiteral("0RGB1555");
+      case RETRO_PIXEL_FORMAT_XRGB8888:
+        return QStringLiteral("XRGB8888");
+      case RETRO_PIXEL_FORMAT_RGB565:
+        return QStringLiteral("RGB565");
+      default:
+        return QStringLiteral("Invalid (0x%1)").arg(m_Owner->retroPixelFormat(), 0, 16).toUpper();
       }
     };
     m_CorePixelFormatLabel = new QLabel(fmtPixel());
@@ -1301,14 +1351,13 @@ void QRetroConfig::update()
     makeDesc("Pixel format used by the core's framebuffer.\n"
              "RETRO_ENVIRONMENT_SET_PIXEL_FORMAT (10)");
 
-    m_CoreSupportsNoGameLabel = yesNo(m_Owner->supportsNoGameSet(),
-                                      m_Owner->supportsNoGame());
+    m_CoreSupportsNoGameLabel = yesNo(m_Owner->supportsNoGameSet(), m_Owner->supportsNoGame());
     form->addRow(tr("Supports No Game"), m_CoreSupportsNoGameLabel);
     makeDesc("Whether this core reports to support running without any loaded content.\n"
              "RETRO_ENVIRONMENT_SET_SUPPORT_NO_GAME (18)");
 
-    m_CoreAchievementsLabel = yesNo(m_Owner->supportsAchievementsSet(),
-                                    m_Owner->supportsAchievements());
+    m_CoreAchievementsLabel =
+      yesNo(m_Owner->supportsAchievementsSet(), m_Owner->supportsAchievements());
     form->addRow(tr("Supports Achievements"), m_CoreAchievementsLabel);
     makeDesc("Whether or not this core reports to support achievements.\n"
              "RETRO_ENVIRONMENT_SET_SUPPORT_ACHIEVEMENTS (42)");
@@ -1333,7 +1382,7 @@ void QRetroConfig::update()
     pageLayout->setSpacing(12);
 
     auto *group = new QGroupBox(tr("Memory Data"));
-    auto *form  = new QFormLayout(group);
+    auto *form = new QFormLayout(group);
     form->setVerticalSpacing(8);
 
     for (int i = 0; i < 4; i++)
@@ -1343,7 +1392,7 @@ void QRetroConfig::update()
         header->setContentsMargins(0, 8, 0, 0);
       form->addRow(header);
 
-      m_MemDataPtrLabel[i]  = new QLabel(tr("—"));
+      m_MemDataPtrLabel[i] = new QLabel(tr("—"));
       m_MemDataSizeLabel[i] = new QLabel(tr("—"));
       makeSmallGray(m_MemDataPtrLabel[i]);
       makeSmallGray(m_MemDataSizeLabel[i]);
@@ -1372,7 +1421,7 @@ void QRetroConfig::update()
 
     /* Symbol query row */
     auto *inputWidget = new QWidget();
-    auto *inputHbox   = new QHBoxLayout(inputWidget);
+    auto *inputHbox = new QHBoxLayout(inputWidget);
     inputHbox->setContentsMargins(0, 0, 0, 0);
     inputHbox->setSpacing(6);
     auto *symbolInput = new QLineEdit();
@@ -1383,7 +1432,7 @@ void QRetroConfig::update()
     pageLayout->addWidget(inputWidget);
 
     /* Button area for resolved functions */
-    auto *funcGroup    = new QGroupBox(tr("Found Functions"));
+    auto *funcGroup = new QGroupBox(tr("Found Functions"));
     auto *buttonLayout = new QVBoxLayout(funcGroup);
     buttonLayout->setSpacing(6);
 
@@ -1391,9 +1440,8 @@ void QRetroConfig::update()
     for (const QString &sym : m_ProcSymbols)
     {
       auto *btn = new QPushButton(sym);
-      connect(btn, &QPushButton::clicked, this, [this, sym]() {
-        m_Owner->procAddress()->call(sym.toLocal8Bit().constData());
-      });
+      connect(btn, &QPushButton::clicked, this,
+        [this, sym]() { m_Owner->procAddress()->call(sym.toLocal8Bit().constData()); });
       buttonLayout->addWidget(btn);
     }
     buttonLayout->addStretch();
@@ -1415,9 +1463,8 @@ void QRetroConfig::update()
         notFoundLabel->hide();
         m_ProcSymbols.append(sym);
         auto *btn = new QPushButton(sym);
-        connect(btn, &QPushButton::clicked, this, [this, sym]() {
-          m_Owner->procAddress()->call(sym.toLocal8Bit().constData());
-        });
+        connect(btn, &QPushButton::clicked, this,
+          [this, sym]() { m_Owner->procAddress()->call(sym.toLocal8Bit().constData()); });
         /* Insert before the trailing stretch */
         QLayoutItem *stretch = buttonLayout->takeAt(buttonLayout->count() - 1);
         buttonLayout->addWidget(btn);
@@ -1431,8 +1478,8 @@ void QRetroConfig::update()
       }
     };
 
-    connect(queryBtn,    &QPushButton::clicked,     this, [doQuery]() { doQuery(); });
-    connect(symbolInput, &QLineEdit::returnPressed,  this, [doQuery]() { doQuery(); });
+    connect(queryBtn, &QPushButton::clicked, this, [doQuery]() { doQuery(); });
+    connect(symbolInput, &QLineEdit::returnPressed, this, [doQuery]() { doQuery(); });
   }
 
   /* ── Logging ────────────────────────────────────────────────── */
@@ -1443,20 +1490,31 @@ void QRetroConfig::update()
   logEdit->setWordWrapMode(QTextOption::WrapAtWordBoundaryOrAnywhere);
   {
     auto levelPrefix = [](int level) -> QString {
-      switch (level) {
-      case RETRO_LOG_DEBUG: return "[D] ";
-      case RETRO_LOG_INFO:  return "[I] ";
-      case RETRO_LOG_WARN:  return "[W] ";
-      case RETRO_LOG_ERROR: return "[E] ";
-      default:              return "    ";
+      switch (level)
+      {
+      case RETRO_LOG_DEBUG:
+        return "[D] ";
+      case RETRO_LOG_INFO:
+        return "[I] ";
+      case RETRO_LOG_WARN:
+        return "[W] ";
+      case RETRO_LOG_ERROR:
+        return "[E] ";
+      default:
+        return "    ";
       }
     };
     auto levelColor = [](int level) -> QString {
-      switch (level) {
-      case RETRO_LOG_DEBUG: return "#808080";
-      case RETRO_LOG_WARN:  return "#c87800";
-      case RETRO_LOG_ERROR: return "#b40000";
-      default:              return "";
+      switch (level)
+      {
+      case RETRO_LOG_DEBUG:
+        return "#808080";
+      case RETRO_LOG_WARN:
+        return "#c87800";
+      case RETRO_LOG_ERROR:
+        return "#b40000";
+      default:
+        return "";
       }
     };
     auto addEntry = [logEdit, levelPrefix, levelColor](int level, const QString &msg) {
@@ -1472,26 +1530,21 @@ void QRetroConfig::update()
       addEntry(static_cast<int>(entry.level), entry.message);
 
     connect(m_Owner, &QRetro::onCoreLog, logEdit,
-            [addEntry](int level, const QString msg) {
-      addEntry(level, msg);
-    });
+      [addEntry](int level, const QString msg) { addEntry(level, msg); });
   }
 
   /* ── Messages ───────────────────────────────────────────────── */
-  auto *msgPage   = new QWidget();
+  auto *msgPage = new QWidget();
   auto *msgLayout = new QVBoxLayout(msgPage);
   msgLayout->setContentsMargins(0, 0, 0, 0);
   msgLayout->setSpacing(0);
 
   auto *msgVersionCombo = new QComboBox();
-  msgVersionCombo->addItem(tr("0 – SET_MESSAGE only"),     QVariant(0u));
-  msgVersionCombo->addItem(tr("1 – SET_MESSAGE_EXT"),      QVariant(1u));
-  msgVersionCombo->setCurrentIndex(
-    static_cast<int>(m_Owner->message()->interfaceVersion()));
+  msgVersionCombo->addItem(tr("0 – SET_MESSAGE only"), QVariant(0u));
+  msgVersionCombo->addItem(tr("1 – SET_MESSAGE_EXT"), QVariant(1u));
+  msgVersionCombo->setCurrentIndex(static_cast<int>(m_Owner->message()->interfaceVersion()));
   connect(msgVersionCombo, QOverload<int>::of(&QComboBox::currentIndexChanged),
-          [this](int index) {
-    m_Owner->message()->setInterfaceVersion(static_cast<unsigned>(index));
-  });
+    [this](int index) { m_Owner->message()->setInterfaceVersion(static_cast<unsigned>(index)); });
 
   auto *msgEdit = new QTextEdit();
   msgEdit->setReadOnly(true);
@@ -1504,16 +1557,21 @@ void QRetroConfig::update()
 
   {
     auto levelColor = [](retro_log_level level) -> QString {
-      switch (level) {
-      case RETRO_LOG_DEBUG: return "#808080";
-      case RETRO_LOG_WARN:  return "#c87800";
-      case RETRO_LOG_ERROR: return "#b40000";
-      default:              return "";
+      switch (level)
+      {
+      case RETRO_LOG_DEBUG:
+        return "#808080";
+      case RETRO_LOG_WARN:
+        return "#c87800";
+      case RETRO_LOG_ERROR:
+        return "#b40000";
+      default:
+        return "";
       }
     };
     auto addEntry = [msgEdit, levelColor](const QRetroMessageEntry &entry) {
       QString color = levelColor(entry.level);
-      QString text  = entry.message.toHtmlEscaped();
+      QString text = entry.message.toHtmlEscaped();
       if (!color.isEmpty())
         msgEdit->append(QString("<span style=\"color:%1\">%2</span>").arg(color, text));
       else
@@ -1524,9 +1582,7 @@ void QRetroConfig::update()
       addEntry(entry);
 
     connect(m_Owner->message(), &QRetroMessage::onMessage, msgEdit,
-            [addEntry](const QRetroMessageEntry entry) {
-      addEntry(entry);
-    });
+      [addEntry](const QRetroMessageEntry entry) { addEntry(entry); });
   }
 
   /* ── Core Options ───────────────────────────────────────────── */
@@ -1534,35 +1590,45 @@ void QRetroConfig::update()
   optionsWidget->update();
 
   /* ── Search index ────────────────────────────────────────────── */
-  struct SearchRow {
-    QString   text;     // label text
-    QString   group;    // group box title (empty if none)
+  struct SearchRow
+  {
+    QString text; // label text
+    QString group; // group box title (empty if none)
     QGroupBox *groupBox = nullptr;
-    QWidget   *lw = nullptr;
-    QWidget   *fw = nullptr;
+    QWidget *lw = nullptr;
+    QWidget *fw = nullptr;
   };
 
-  std::function<void(QLayout*, QList<SearchRow>&, QGroupBox*)> collectFormRows;
+  std::function<void(QLayout *, QList<SearchRow> &, QGroupBox *)> collectFormRows;
   collectFormRows = [&collectFormRows](QLayout *layout, QList<SearchRow> &rows, QGroupBox *gb) {
-    if (!layout) return;
-    if (auto *form = qobject_cast<QFormLayout*>(layout)) {
-      for (int i = 0; i < form->rowCount(); ++i) {
+    if (!layout)
+      return;
+    if (auto *form = qobject_cast<QFormLayout *>(layout))
+    {
+      for (int i = 0; i < form->rowCount(); ++i)
+      {
         auto *li = form->itemAt(i, QFormLayout::LabelRole);
         auto *fi = form->itemAt(i, QFormLayout::FieldRole);
         QWidget *lw = li ? li->widget() : nullptr;
         QWidget *fw = fi ? fi->widget() : nullptr;
         QString text;
-        if (auto *lbl = qobject_cast<QLabel*>(lw))
+        if (auto *lbl = qobject_cast<QLabel *>(lw))
           text = lbl->text();
-        rows.append(SearchRow{text, gb ? gb->title() : QString(), gb, lw, fw});
+        rows.append(SearchRow{ text, gb ? gb->title() : QString(), gb, lw, fw });
       }
-    } else {
-      for (int i = 0; i < layout->count(); ++i) {
+    }
+    else
+    {
+      for (int i = 0; i < layout->count(); ++i)
+      {
         auto *item = layout->itemAt(i);
-        if (item->layout()) {
+        if (item->layout())
+        {
           collectFormRows(item->layout(), rows, gb);
-        } else if (auto *w = item->widget()) {
-          auto *child = qobject_cast<QGroupBox*>(w);
+        }
+        else if (auto *w = item->widget())
+        {
+          auto *child = qobject_cast<QGroupBox *>(w);
           collectFormRows(w->layout(), rows, child ? child : gb);
         }
       }
@@ -1571,31 +1637,31 @@ void QRetroConfig::update()
 
   // Pages in stack order; non-form pages get an empty row list
   QVector<QList<SearchRow>> pageRows;
-  pageRows.append(QList<SearchRow>());  // 0: optionsWidget — dynamic, skip
+  pageRows.append(QList<SearchRow>()); // 0: optionsWidget — dynamic, skip
   auto indexPage = [&](QWidget *page) {
     QList<SearchRow> rows;
     collectFormRows(page->layout(), rows, nullptr);
     pageRows.append(rows);
   };
-  indexPage(videoPage);     //  1
-  indexPage(audioPage);     //  2
-  indexPage(inputPage);     //  3
-  indexPage(envPage);       //  4
-  indexPage(dirsPage);      //  5
-  indexPage(diskPage);      //  6
-  indexPage(sensorsPage);   //  7
-  indexPage(locationPage);  //  8
-  indexPage(ledPage);       //  9
+  indexPage(videoPage); //  1
+  indexPage(audioPage); //  2
+  indexPage(inputPage); //  3
+  indexPage(envPage); //  4
+  indexPage(dirsPage); //  5
+  indexPage(diskPage); //  6
+  indexPage(sensorsPage); //  7
+  indexPage(locationPage); //  8
+  indexPage(ledPage); //  9
   indexPage(coreConstPage); // 10
-  indexPage(memPage);       // 11
-  indexPage(procPage);      // 12
-  pageRows.append(QList<SearchRow>());      // 13: logEdit
-  pageRows.append(QList<SearchRow>());      // 14: msgPage
+  indexPage(memPage); // 11
+  indexPage(procPage); // 12
+  pageRows.append(QList<SearchRow>()); // 13: logEdit
+  pageRows.append(QList<SearchRow>()); // 14: msgPage
 
   /* ── Sidebar ────────────────────────────────────────────────── */
-  const QString coreName  = m_Owner->options()->coreName();
-  const QString coreLabel = coreName.isEmpty() ? tr("Core Options")
-                                               : tr("%1 Options").arg(coreName);
+  const QString coreName = m_Owner->options()->coreName();
+  const QString coreLabel =
+    coreName.isEmpty() ? tr("Core Options") : tr("%1 Options").arg(coreName);
 
   auto *sidebar = new QListWidget();
   sidebar->setFrameShape(QFrame::NoFrame);
@@ -1618,7 +1684,8 @@ void QRetroConfig::update()
     auto *item = new QListWidgetItem(text);
     item->setData(Qt::UserRole, stackIdx++);
     sidebar->addItem(item);
-    if (!firstItem) firstItem = item;
+    if (!firstItem)
+      firstItem = item;
   };
 
   addDivider("GENERAL");
@@ -1665,12 +1732,13 @@ void QRetroConfig::update()
   stack->addWidget(msgPage);
 
   connect(sidebar, &QListWidget::currentItemChanged,
-          [stack](QListWidgetItem *current, QListWidgetItem *) {
-    if (!current) return;
-    QVariant v = current->data(Qt::UserRole);
-    if (v.isValid())
-      stack->setCurrentIndex(v.toInt());
-  });
+    [stack](QListWidgetItem *current, QListWidgetItem *) {
+      if (!current)
+        return;
+      QVariant v = current->data(Qt::UserRole);
+      if (v.isValid())
+        stack->setCurrentIndex(v.toInt());
+    });
 
   /* ── Search bar ─────────────────────────────────────────────── */
   auto *searchBar = new QLineEdit();
@@ -1678,88 +1746,110 @@ void QRetroConfig::update()
   searchBar->setClearButtonEnabled(true);
   searchBar->setContentsMargins(6, 4, 6, 4);
 
-  connect(searchBar, &QLineEdit::textChanged, sidebar,
-          [sidebar, stack, pageRows](const QString &text) {
-    const QString q = text.trimmed().toLower();
-    const bool empty = q.isEmpty();
+  connect(
+    searchBar, &QLineEdit::textChanged, sidebar, [sidebar, stack, pageRows](const QString &text) {
+      const QString q = text.trimmed().toLower();
+      const bool empty = q.isEmpty();
 
-    // Show/hide form rows and determine page visibility
-    QVector<bool> pageVisible(pageRows.size(), false);
-    for (int idx = 0; idx < pageRows.size(); ++idx) {
-      const auto &rows = pageRows[idx];
-      if (rows.isEmpty()) {
-        // Non-form page: visible when search is empty
-        pageVisible[idx] = empty;
-      } else {
-        // First pass: determine which group boxes have a title match
-        QSet<QGroupBox*> groupMatches;
-        if (!empty) {
-          for (const auto &row : rows) {
-            if (row.groupBox && row.group.toLower().contains(q))
-              groupMatches.insert(row.groupBox);
+      // Show/hide form rows and determine page visibility
+      QVector<bool> pageVisible(pageRows.size(), false);
+      for (int idx = 0; idx < pageRows.size(); ++idx)
+      {
+        const auto &rows = pageRows[idx];
+        if (rows.isEmpty())
+        {
+          // Non-form page: visible when search is empty
+          pageVisible[idx] = empty;
+        }
+        else
+        {
+          // First pass: determine which group boxes have a title match
+          QSet<QGroupBox *> groupMatches;
+          if (!empty)
+          {
+            for (const auto &row : rows)
+            {
+              if (row.groupBox && row.group.toLower().contains(q))
+                groupMatches.insert(row.groupBox);
+            }
+          }
+
+          // Second pass: show/hide rows; a row is visible if it, its group
+          // title, or (when empty) anything matches
+          QMap<QGroupBox *, bool> groupHasVisible;
+          bool anyVisible = false;
+          for (const auto &row : rows)
+          {
+            bool match = empty || row.text.toLower().contains(q) ||
+                         (row.groupBox && groupMatches.contains(row.groupBox));
+            if (row.lw)
+              row.lw->setVisible(match);
+            if (row.fw)
+              row.fw->setVisible(match);
+            if (match)
+              anyVisible = true;
+            if (row.groupBox)
+              groupHasVisible[row.groupBox] = groupHasVisible.value(row.groupBox, false) || match;
+          }
+
+          // Show/hide group box widgets themselves
+          for (auto it = groupHasVisible.begin(); it != groupHasVisible.end(); ++it)
+            it.key()->setVisible(it.value());
+
+          pageVisible[idx] = anyVisible;
+        }
+      }
+
+      // Update sidebar page item visibility; non-form pages also match on label
+      for (int i = 0; i < sidebar->count(); ++i)
+      {
+        auto *item = sidebar->item(i);
+        QVariant v = item->data(Qt::UserRole);
+        if (!v.isValid())
+          continue;
+        int idx = v.toInt();
+        bool visible = (idx < pageVisible.size()) && pageVisible[idx];
+        if (!visible && idx < pageRows.size() && pageRows[idx].isEmpty())
+          visible = empty || item->text().toLower().contains(q);
+        item->setHidden(!visible);
+      }
+
+      // Hide dividers whose entire section is hidden
+      for (int i = 0; i < sidebar->count(); ++i)
+      {
+        auto *item = sidebar->item(i);
+        if (item->data(Qt::UserRole).isValid())
+          continue;
+        bool anyVisible = false;
+        for (int j = i + 1; j < sidebar->count(); ++j)
+        {
+          auto *next = sidebar->item(j);
+          if (!next->data(Qt::UserRole).isValid())
+            break;
+          if (!next->isHidden())
+          {
+            anyVisible = true;
+            break;
           }
         }
-
-        // Second pass: show/hide rows; a row is visible if it, its group
-        // title, or (when empty) anything matches
-        QMap<QGroupBox*, bool> groupHasVisible;
-        bool anyVisible = false;
-        for (const auto &row : rows) {
-          bool match = empty
-                       || row.text.toLower().contains(q)
-                       || (row.groupBox && groupMatches.contains(row.groupBox));
-          if (row.lw) row.lw->setVisible(match);
-          if (row.fw) row.fw->setVisible(match);
-          if (match) anyVisible = true;
-          if (row.groupBox)
-            groupHasVisible[row.groupBox] = groupHasVisible.value(row.groupBox, false) || match;
-        }
-
-        // Show/hide group box widgets themselves
-        for (auto it = groupHasVisible.begin(); it != groupHasVisible.end(); ++it)
-          it.key()->setVisible(it.value());
-
-        pageVisible[idx] = anyVisible;
+        item->setHidden(!anyVisible);
       }
-    }
 
-    // Update sidebar page item visibility; non-form pages also match on label
-    for (int i = 0; i < sidebar->count(); ++i) {
-      auto *item = sidebar->item(i);
-      QVariant v = item->data(Qt::UserRole);
-      if (!v.isValid()) continue;
-      int idx = v.toInt();
-      bool visible = (idx < pageVisible.size()) && pageVisible[idx];
-      if (!visible && idx < pageRows.size() && pageRows[idx].isEmpty())
-        visible = empty || item->text().toLower().contains(q);
-      item->setHidden(!visible);
-    }
-
-    // Hide dividers whose entire section is hidden
-    for (int i = 0; i < sidebar->count(); ++i) {
-      auto *item = sidebar->item(i);
-      if (item->data(Qt::UserRole).isValid()) continue;
-      bool anyVisible = false;
-      for (int j = i + 1; j < sidebar->count(); ++j) {
-        auto *next = sidebar->item(j);
-        if (!next->data(Qt::UserRole).isValid()) break;
-        if (!next->isHidden()) { anyVisible = true; break; }
-      }
-      item->setHidden(!anyVisible);
-    }
-
-    // If the current selection was hidden, move to first visible item
-    auto *current = sidebar->currentItem();
-    if (current && current->isHidden()) {
-      for (int i = 0; i < sidebar->count(); ++i) {
-        auto *item = sidebar->item(i);
-        if (!item->isHidden() && item->data(Qt::UserRole).isValid()) {
-          sidebar->setCurrentItem(item);
-          break;
+      // If the current selection was hidden, move to first visible item
+      auto *current = sidebar->currentItem();
+      if (current && current->isHidden())
+      {
+        for (int i = 0; i < sidebar->count(); ++i)
+        {
+          auto *item = sidebar->item(i);
+          if (!item->isHidden() && item->data(Qt::UserRole).isValid())
+          {
+            sidebar->setCurrentItem(item);
+            break;
+          }
         }
       }
-    }
-  });
+    });
 
   /* ── Splitter (25 % / 75 %) ─────────────────────────────────── */
   auto *splitter = new QSplitter(Qt::Horizontal);
@@ -1767,7 +1857,7 @@ void QRetroConfig::update()
   splitter->addWidget(stack);
   splitter->setStretchFactor(0, 1);
   splitter->setStretchFactor(1, 3);
-  splitter->setSizes({160, 480});
+  splitter->setSizes({ 160, 480 });
 
   /* ── Description strip ──────────────────────────────────────── */
   auto *sep = new QFrame();

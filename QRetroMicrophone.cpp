@@ -13,7 +13,7 @@ typedef int16_t qretro_mic_sample_t;
 
 #define QRETRO_MIC_BUFFER_FRAMES 10
 
-retro_microphone_t* QRetroMicrophone::open(const retro_microphone_params_t *params)
+retro_microphone_t *QRetroMicrophone::open(const retro_microphone_params_t *params)
 {
   auto mic = new qretro_microphone_t;
   QAudioFormat format;
@@ -36,7 +36,7 @@ retro_microphone_t* QRetroMicrophone::open(const retro_microphone_params_t *para
     return nullptr;
   }
 
-  auto *handle = reinterpret_cast<retro_microphone_t*>(mic);
+  auto *handle = reinterpret_cast<retro_microphone_t *>(mic);
   m_OpenMics.append(handle);
   return handle;
 }
@@ -49,7 +49,7 @@ QString QRetroMicrophone::deviceName() const
 void QRetroMicrophone::close(retro_microphone_t *microphone)
 {
   m_OpenMics.removeOne(microphone);
-  auto mic = reinterpret_cast<qretro_microphone_t*>(microphone);
+  auto mic = reinterpret_cast<qretro_microphone_t *>(microphone);
 
   if (mic)
   {
@@ -60,10 +60,10 @@ void QRetroMicrophone::close(retro_microphone_t *microphone)
   }
 }
 
-bool QRetroMicrophone::getParams(const retro_microphone_t *microphone,
-                                 retro_microphone_params_t *params)
+bool QRetroMicrophone::getParams(
+  const retro_microphone_t *microphone, retro_microphone_params_t *params)
 {
-  auto mic = reinterpret_cast<const qretro_microphone_t*>(microphone);
+  auto mic = reinterpret_cast<const qretro_microphone_t *>(microphone);
 
   if (!mic || !mic->input)
     return false;
@@ -76,7 +76,7 @@ bool QRetroMicrophone::getParams(const retro_microphone_t *microphone,
 
 bool QRetroMicrophone::setState(retro_microphone_t *microphone, bool state)
 {
-  auto mic = reinterpret_cast<qretro_microphone_t*>(microphone);
+  auto mic = reinterpret_cast<qretro_microphone_t *>(microphone);
 
   if (!mic || !mic->input)
     return false;
@@ -93,28 +93,24 @@ bool QRetroMicrophone::setState(retro_microphone_t *microphone, bool state)
 
 bool QRetroMicrophone::getState(const retro_microphone_t *microphone)
 {
-  auto mic = reinterpret_cast<const qretro_microphone_t*>(microphone);
+  auto mic = reinterpret_cast<const qretro_microphone_t *>(microphone);
 
-  return mic &&
-         mic->input &&
-         (mic->input->state() == QAudio::ActiveState ||
-          mic->input->state() == QAudio::IdleState);
+  return mic && mic->input &&
+         (mic->input->state() == QAudio::ActiveState || mic->input->state() == QAudio::IdleState);
 }
 
-int QRetroMicrophone::read(retro_microphone_t *microphone, int16_t *samples,
-                           size_t num_samples)
+int QRetroMicrophone::read(retro_microphone_t *microphone, int16_t *samples, size_t num_samples)
 {
-  auto mic = reinterpret_cast<qretro_microphone_t*>(microphone);
+  auto mic = reinterpret_cast<qretro_microphone_t *>(microphone);
 
-  if (!(mic->input->state() == QAudio::ActiveState ||
-        mic->input->state() == QAudio::IdleState))
+  if (!(mic->input->state() == QAudio::ActiveState || mic->input->state() == QAudio::IdleState))
     return -1;
 
   /* Clean the buffer with empty samples */
   memset(samples, 0, num_samples * sizeof(qretro_mic_sample_t));
 
-  auto read = static_cast<unsigned>(mic->device->read(reinterpret_cast<char*>(samples),
-                                    static_cast<qint64>(num_samples * sizeof(qretro_mic_sample_t))));
+  auto read = static_cast<unsigned>(mic->device->read(reinterpret_cast<char *>(samples),
+    static_cast<qint64>(num_samples * sizeof(qretro_mic_sample_t))));
 
   /* Return number of samples, not number of bytes */
   return read / sizeof(qretro_mic_sample_t);

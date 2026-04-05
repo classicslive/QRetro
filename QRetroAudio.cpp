@@ -42,9 +42,7 @@ QRetroAudio::QRetroAudio(double frequency, double core_fps, double emu_fps)
          "  Frequency: %f\n"
          "  Core FPS: %f, Emulator FPS: %f\n"
          "  Speed Adjustment: %f",
-         frequency,
-         core_fps, emu_fps,
-         mult);
+    frequency, core_fps, emu_fps, mult);
 }
 
 QRetroAudio::~QRetroAudio(void)
@@ -72,9 +70,7 @@ int QRetroAudio::excessFramesInBuffer(void)
 
 void QRetroAudio::playFrame(void)
 {
-  if (m_AudioOutput &&
-      m_AudioDevice &&
-      m_AudioBuffer.size() >= m_SampleRateBytesPerFrame &&
+  if (m_AudioOutput && m_AudioDevice && m_AudioBuffer.size() >= m_SampleRateBytesPerFrame &&
       m_AudioOutput->bytesFree() >= m_SampleRateBytesPerFrame)
   {
     m_AudioDevice->write(m_AudioBuffer.data(), m_SampleRateBytesPerFrame);
@@ -84,8 +80,7 @@ void QRetroAudio::playFrame(void)
 
 void QRetroAudio::pushSamples(const sample_t *data, size_t frames)
 {
-  m_AudioBuffer.append(
-    reinterpret_cast<const char*>(data),
+  m_AudioBuffer.append(reinterpret_cast<const char *>(data),
     static_cast<int>(frames * QRETRO_AUDIO_CHANNELS * sizeof(sample_t)));
 }
 
@@ -104,8 +99,10 @@ void QRetroAudio::setVolume(float v)
 void QRetroAudio::setTimingMultiplier(double mult)
 {
   m_SampleRateCurrent = m_SampleRateBase * mult;
-  m_SampleRateBytesPerFrame = static_cast<unsigned>(m_SampleRateBase / m_FramesPerSecond) * sizeof(sample_t) * QRETRO_AUDIO_CHANNELS;
-  m_SampleRateBytesPerFrame &= static_cast<unsigned>(~1); // ensure amount is even (dolphin goes wacky without this)
+  m_SampleRateBytesPerFrame = static_cast<unsigned>(m_SampleRateBase / m_FramesPerSecond) *
+                              sizeof(sample_t) * QRETRO_AUDIO_CHANNELS;
+  /** @todo check - ensure amount is even (dolphin goes wacky without this) */
+  m_SampleRateBytesPerFrame &= static_cast<unsigned>(~1);
   m_SampleRateMultiplier = mult;
 }
 
@@ -137,9 +134,7 @@ bool QRetroAudio::start(void)
 
     /* Fill the buffer with dummy data */
     m_AudioBuffer.clear();
-    m_AudioBuffer.resize(m_BufferFrames *
-                         QRETRO_AUDIO_CHANNELS *
-                         sizeof(sample_t));
+    m_AudioBuffer.resize(m_BufferFrames * QRETRO_AUDIO_CHANNELS * sizeof(sample_t));
     m_AudioBuffer.fill(0);
 
     /* Start the new audio output */

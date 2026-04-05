@@ -2,7 +2,7 @@
 
 #include "QRetroCommon.h"
 
-std::map<std::thread::id, QRetro*> _qr_thread_map;
+std::map<std::thread::id, QRetro *> _qr_thread_map;
 
 bool _qrdelete(QRetro *retro)
 {
@@ -22,12 +22,10 @@ bool _qrdelete(QRetro *retro)
 
 QString _qrerror(const char *file, int line, QString msg)
 {
-  return QString("Error in %1, line %2:\n\n%3").arg(QString(file),
-                                                    QString::number(line),
-                                                    msg);
+  return QString("Error in %1, line %2:\n\n%3").arg(QString(file), QString::number(line), msg);
 }
 
-bool _qrnew(std::thread::id id, QRetro* retro)
+bool _qrnew(std::thread::id id, QRetro *retro)
 {
   if (!retro)
     return false;
@@ -46,7 +44,7 @@ bool _qrnew(std::thread::id id, QRetro* retro)
  *
  * @internal This function is meant for internal use and not for user code.
  */
-QRetro* _qrthis()
+QRetro *_qrthis()
 {
   auto it = _qr_thread_map.find(std::this_thread::get_id());
 
@@ -68,8 +66,7 @@ QRetro* _qrthis()
     if (live)
       _qr_thread_map[std::this_thread::get_id()] = live;
     else
-      _qrerror(__FILE__, __LINE__,
-               "_qrthis called with no live QRetro instances!");
+      _qrerror(__FILE__, __LINE__, "_qrthis called with no live QRetro instances!");
 
     return live;
   }
@@ -684,23 +681,22 @@ uint16_t qt2lr_keymod(Qt::KeyboardModifiers qt)
 {
   uint16_t lr = 0;
 
-  lr |= qt.testFlag(Qt::ShiftModifier)   ? RETROKMOD_SHIFT : 0;
-  lr |= qt.testFlag(Qt::ControlModifier) ? RETROKMOD_CTRL  : 0;
-  lr |= qt.testFlag(Qt::AltModifier)     ? RETROKMOD_ALT   : 0;
-  lr |= qt.testFlag(Qt::MetaModifier)    ? RETROKMOD_META  : 0;
+  lr |= qt.testFlag(Qt::ShiftModifier) ? RETROKMOD_SHIFT : 0;
+  lr |= qt.testFlag(Qt::ControlModifier) ? RETROKMOD_CTRL : 0;
+  lr |= qt.testFlag(Qt::AltModifier) ? RETROKMOD_ALT : 0;
+  lr |= qt.testFlag(Qt::MetaModifier) ? RETROKMOD_META : 0;
 
   return lr;
 }
 
-static_assert(RETRO_LANGUAGE_LAST == RETRO_LANGUAGE_IRISH + 1,
-              "Update libretro language values!");
+static_assert(RETRO_LANGUAGE_LAST == RETRO_LANGUAGE_IRISH + 1, "Update libretro language values!");
 retro_language qt2lr_language(const QLocale &qt)
 {
   switch (qt.language())
   {
   case QLocale::English:
-    return qt.country() == QLocale::UnitedKingdom ?
-      RETRO_LANGUAGE_BRITISH_ENGLISH : RETRO_LANGUAGE_ENGLISH;
+    return qt.country() == QLocale::UnitedKingdom ? RETRO_LANGUAGE_BRITISH_ENGLISH
+                                                  : RETRO_LANGUAGE_ENGLISH;
   case QLocale::Japanese:
     return RETRO_LANGUAGE_JAPANESE;
   case QLocale::French:
@@ -714,15 +710,15 @@ retro_language qt2lr_language(const QLocale &qt)
   case QLocale::Dutch:
     return RETRO_LANGUAGE_DUTCH;
   case QLocale::Portuguese:
-    return qt.country() == QLocale::Brazil ?
-      RETRO_LANGUAGE_PORTUGUESE_BRAZIL : RETRO_LANGUAGE_PORTUGUESE_PORTUGAL;
+    return qt.country() == QLocale::Brazil ? RETRO_LANGUAGE_PORTUGUESE_BRAZIL
+                                           : RETRO_LANGUAGE_PORTUGUESE_PORTUGAL;
   case QLocale::Russian:
     return RETRO_LANGUAGE_RUSSIAN;
   case QLocale::Korean:
     return RETRO_LANGUAGE_KOREAN;
   case QLocale::Chinese:
-    return qt.script() == QLocale::TraditionalChineseScript ?
-      RETRO_LANGUAGE_CHINESE_TRADITIONAL : RETRO_LANGUAGE_CHINESE_SIMPLIFIED;
+    return qt.script() == QLocale::TraditionalChineseScript ? RETRO_LANGUAGE_CHINESE_TRADITIONAL
+                                                            : RETRO_LANGUAGE_CHINESE_SIMPLIFIED;
   case QLocale::Esperanto:
     return RETRO_LANGUAGE_ESPERANTO;
   case QLocale::Polish:

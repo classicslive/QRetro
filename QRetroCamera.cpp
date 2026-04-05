@@ -7,15 +7,33 @@
 #include "QRetroCamera.h"
 
 #if QRETRO_HAVE_CAMERA
+QRetroCameraSurface::QRetroCameraSurface(QObject *parent)
+  : QAbstractVideoSurface{ parent }
+{
+}
+
+QImage *QRetroCameraSurface::image(void)
+{
+  return &m_Image;
+}
+
+bool QRetroCameraSurface::start(const QVideoSurfaceFormat &format)
+{
+  return QAbstractVideoSurface::start(format);
+}
+
+void QRetroCameraSurface::stop()
+{
+  QAbstractVideoSurface::stop();
+}
+
 bool QRetroCameraSurface::present(const QVideoFrame &frame)
 {
   auto copy = QVideoFrame(frame);
 
   if (m_RawCb)
-    m_RawCb(reinterpret_cast<const uint32_t*>(copy.bits()),
-            static_cast<unsigned>(copy.width()),
-            static_cast<unsigned>(copy.height()),
-            static_cast<unsigned>(copy.bytesPerLine()));
+    m_RawCb(reinterpret_cast<const uint32_t *>(copy.bits()), static_cast<unsigned>(copy.width()),
+      static_cast<unsigned>(copy.height()), static_cast<unsigned>(copy.bytesPerLine()));
 
   return true;
 }
@@ -38,7 +56,7 @@ QRetroCamera::~QRetroCamera()
 #endif
 }
 
-void QRetroCamera::init(const retro_camera_callback* cb)
+void QRetroCamera::init(const retro_camera_callback *cb)
 {
   if (cb)
   {
@@ -59,14 +77,15 @@ bool QRetroCamera::start(void)
 #if QRETRO_HAVE_CAMERA
   if (m_Camera && !m_Surface)
   {
-    QVideoSurfaceFormat format(QSize(static_cast<int>(m_Callback.width), static_cast<int>(m_Callback.height)),
-                               QVideoFrame::Format_RGB32,
-                               /**
+    QVideoSurfaceFormat format(
+      QSize(static_cast<int>(m_Callback.width), static_cast<int>(m_Callback.height)),
+      QVideoFrame::Format_RGB32,
+      /**
                                 * @todo Support OpenGL texture
                                 * m_Callback.frame_opengl_texture ? QAbstractVideoBuffer::GLTextureHandle :
                                 *                                   QAbstractVideoBuffer::NoHandle);
                                 */
-                               QAbstractVideoBuffer::NoHandle);
+      QAbstractVideoBuffer::NoHandle);
 
     m_Surface = new QRetroCameraSurface(nullptr);
     m_Surface->start(format);
@@ -87,8 +106,8 @@ bool QRetroCamera::setImage(const QImage &image, bool quiet)
 {
   if (!image.isNull())
   {
-    m_SpoofImage = image.scaled(static_cast<int>(m_Callback.width),
-                                static_cast<int>(m_Callback.height));
+    m_SpoofImage =
+      image.scaled(static_cast<int>(m_Callback.width), static_cast<int>(m_Callback.height));
     if (!quiet)
       m_Spoofing = true;
 
@@ -108,12 +127,8 @@ void QRetroCamera::stop(void)
 
 void QRetroCamera::update(void)
 {
-  if (m_Initted &&
-      !m_SpoofImage.isNull() &&
-      m_Spoofing &&
-      m_Callback.frame_raw_framebuffer)
-    m_Callback.frame_raw_framebuffer(reinterpret_cast<uint32_t*>(m_SpoofImage.bits()),
-                                     static_cast<unsigned>(m_SpoofImage.width()),
-                                     static_cast<unsigned>(m_SpoofImage.height()),
-                                     static_cast<unsigned>(m_SpoofImage.bytesPerLine()));
+  if (m_Initted && !m_SpoofImage.isNull() && m_Spoofing && m_Callback.frame_raw_framebuffer)
+    m_Callback.frame_raw_framebuffer(reinterpret_cast<uint32_t *>(m_SpoofImage.bits()),
+      static_cast<unsigned>(m_SpoofImage.width()), static_cast<unsigned>(m_SpoofImage.height()),
+      static_cast<unsigned>(m_SpoofImage.bytesPerLine()));
 }

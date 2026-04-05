@@ -58,7 +58,7 @@ public:
 
   QRetroDirectories();
 
-  const char* get(QRetroDirectories::Type);
+  const char *get(QRetroDirectories::Type);
 
   bool set(QRetroDirectories::Type type, const char *path, bool force = false);
   bool set(QRetroDirectories::Type type, const std::string &path, bool force = false);

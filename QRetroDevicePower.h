@@ -19,9 +19,7 @@ public:
 
 private:
   bool m_Spoofing = false;
-  retro_device_power m_SpoofPower = { RETRO_POWERSTATE_UNKNOWN,
-                                      RETRO_POWERSTATE_NO_ESTIMATE,
-                                      0 };
+  retro_device_power m_SpoofPower = { RETRO_POWERSTATE_UNKNOWN, RETRO_POWERSTATE_NO_ESTIMATE, 0 };
 };
 
 #endif

@@ -22,18 +22,18 @@ public:
     m_OpenGlCb = cb.frame_opengl_texture;
   }*/
 
-  QRetroCameraSurface(QObject *parent) : QAbstractVideoSurface{parent} {}
+  QRetroCameraSurface(QObject *parent);
 
   bool present(const QVideoFrame &frame) override;
 
   QList<QVideoFrame::PixelFormat> supportedPixelFormats(
     QAbstractVideoBuffer::HandleType type) const override;
 
-  QImage *image(void) { return &m_Image; }
+  QImage *image(void);
 
-  bool start(const QVideoSurfaceFormat& format) override { return QAbstractVideoSurface::start(format); }
+  bool start(const QVideoSurfaceFormat &format) override;
 
-  void stop() override { QAbstractVideoSurface::stop(); }
+  void stop() override;
 
 private:
   retro_camera_frame_raw_framebuffer_t m_RawCb = nullptr;
@@ -47,7 +47,7 @@ class QRetroCamera
 public:
   ~QRetroCamera();
 
-  void init(const retro_camera_callback* cb);
+  void init(const retro_camera_callback *cb);
   bool start(void);
   void stop(void);
 
@@ -65,8 +65,8 @@ public:
   bool spoofing(void) { return m_Spoofing; }
 
 private:
-  retro_camera_callback m_Callback = { 0, 0, 0, nullptr, nullptr, nullptr,
-                                       nullptr, nullptr, nullptr };
+  retro_camera_callback m_Callback = { 0, 0, 0, nullptr, nullptr, nullptr, nullptr, nullptr,
+    nullptr };
   bool m_Initted = false;
   bool m_Spoofing = false;
   QImage m_SpoofImage;

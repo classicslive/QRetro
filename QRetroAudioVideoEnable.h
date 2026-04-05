@@ -1,6 +1,8 @@
 #ifndef QRETRO_AUDIOVIDEOENABLE_H
 #define QRETRO_AUDIOVIDEOENABLE_H
 
+#include "libretro.h"
+
 /**
  * A class used for callback RETRO_ENVIRONMENT_GET_AUDIO_VIDEO_ENABLE that
  * reports to the core whether or not the frontend wants certain data.
@@ -10,41 +12,42 @@ class QRetroAudioVideoEnable
 public:
   QRetroAudioVideoEnable(bool audio = true, bool video = true, bool ufss = false, bool hda = false)
   {
-    m_Flags.fields.enableAudio = audio;
-    m_Flags.fields.enableVideo = video;
-    m_Flags.fields.useFastSavestates = ufss;
-    m_Flags.fields.hardDisableAudio = hda;
+    setEnableAudio(audio);
+    setEnableVideo(video);
+    setUseFastSavestates(ufss);
+    setHardDisableAudio(hda);
   }
 
-  void setEnableAudio(bool enabled) { m_Flags.fields.enableAudio = enabled; }
-  bool enableAudio(void) { return m_Flags.fields.enableAudio; }
+  void setEnableAudio(bool e)
+  {
+    e ? m_flags |= RETRO_AV_ENABLE_AUDIO : m_flags &= ~RETRO_AV_ENABLE_AUDIO;
+  }
+  bool enableAudio(void) { return m_flags & RETRO_AV_ENABLE_AUDIO; }
 
-  void setEnableVideo(bool enabled) { m_Flags.fields.enableVideo = enabled; }
-  bool enableVideo(void) { return m_Flags.fields.enableVideo; }
+  void setEnableVideo(bool e)
+  {
+    e ? m_flags |= RETRO_AV_ENABLE_VIDEO : m_flags &= ~RETRO_AV_ENABLE_VIDEO;
+  }
+  bool enableVideo(void) { return m_flags & RETRO_AV_ENABLE_VIDEO; }
 
-  void setUseFastSavestates(bool enabled) { m_Flags.fields.useFastSavestates = enabled; }
-  bool useFastSavestates(void) { return m_Flags.fields.useFastSavestates; }
+  void setUseFastSavestates(bool e)
+  {
+    e ? m_flags |= RETRO_AV_ENABLE_FAST_SAVESTATES : m_flags &= ~RETRO_AV_ENABLE_FAST_SAVESTATES;
+  }
+  bool useFastSavestates(void) { return m_flags & RETRO_AV_ENABLE_FAST_SAVESTATES; }
 
-  void setHardDisableAudio(bool enabled) { m_Flags.fields.hardDisableAudio = enabled; }
-  bool hardDisableAudio(void) { return m_Flags.fields.hardDisableAudio; }
+  void setHardDisableAudio(bool e)
+  {
+    e ? m_flags |= RETRO_AV_ENABLE_HARD_DISABLE_AUDIO
+      : m_flags &= ~RETRO_AV_ENABLE_HARD_DISABLE_AUDIO;
+  }
+  bool hardDisableAudio(void) { return m_flags & RETRO_AV_ENABLE_HARD_DISABLE_AUDIO; }
 
-  int getFlags(void) { return m_Flags.bits; }
-  void setFlags(int flags) { m_Flags.bits = flags; }
+  int getFlags(void) { return m_flags; }
+  void setFlags(int flags) { m_flags = flags; }
 
 private:
-  union m_Flags
-  {
-    struct
-    {
-      int enableAudio : 1;
-      int enableVideo : 1;
-      int useFastSavestates : 1;
-      int hardDisableAudio : 1;
-      int unused : 28;
-    } fields;
-    int bits;
-  } m_Flags;
-  static_assert(sizeof(m_Flags) == sizeof(int), "QRetroAudioVideoEnable size does not match API!");
+  int m_flags = 0;
 };
 
 #endif

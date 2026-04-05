@@ -14,7 +14,7 @@
 
 #include "QRetroOptions.h"
 
-static const char* type_name(uint8_t type)
+static const char *type_name(uint8_t type)
 {
   switch (type)
   {
@@ -31,27 +31,27 @@ static const char* type_name(uint8_t type)
   }
 }
 
-QRetroOptionCategory::QRetroOptionCategory(retro_core_option_v2_category* us,
-  retro_core_option_v2_category* local)
+QRetroOptionCategory::QRetroOptionCategory(
+  retro_core_option_v2_category *us, retro_core_option_v2_category *local)
 {
-  m_Title[Language::Default]       = us->desc ? us->desc : "";
+  m_Title[Language::Default] = us->desc ? us->desc : "";
   m_Description[Language::Default] = us->info ? us->info : "";
 
   if (local)
   {
-    m_Title[Language::Local]       = local->desc ? local->desc : "";
+    m_Title[Language::Local] = local->desc ? local->desc : "";
     m_Description[Language::Local] = local->info ? local->info : "";
   }
 }
 
-const char* QRetroOptionCategory::title(Language lang)
+const char *QRetroOptionCategory::title(Language lang)
 {
   if (lang == Language::Local && !m_Title[lang].empty())
     return m_Title[Language::Local].c_str();
   return m_Title[Language::Default].c_str();
 }
 
-const char* QRetroOptionCategory::description(Language lang)
+const char *QRetroOptionCategory::description(Language lang)
 {
   if (lang == Language::Local && !m_Description[lang].empty())
     return m_Description[Language::Local].c_str();
@@ -64,8 +64,7 @@ QRetroOption::QRetroOption(retro_variable *var)
     The friendly name of the option comes before the first ';' in the string
       var->value.
   */
-  m_Title[Default] =
-    QString(var->value).section(';', 0, 0).toStdString();
+  m_Title[Default] = QString(var->value).section(';', 0, 0).toStdString();
 
   /*
     The possible values specified by the core come after the first ';' and
@@ -91,23 +90,19 @@ QRetroOption::QRetroOption(retro_variable *var)
          "    Possible (%u): [%s]\n"
          "    Default: %s\n"
          "    Type = %s",
-         m_Title[Default].c_str(),
-         var->key,
-         m_PossibleValues[Default].count(),
-         m_PossibleValues[Default].join(", ").toStdString().c_str(),
-         m_DefaultValue.c_str(),
-         type_name(m_Type));
+    m_Title[Default].c_str(), var->key, m_PossibleValues[Default].count(),
+    m_PossibleValues[Default].join(", ").toStdString().c_str(), m_DefaultValue.c_str(),
+    type_name(m_Type));
 }
 
 /* TODO: Support option titles and multilanguage choices */
-QRetroOption::QRetroOption(retro_core_option_definition* us,
-  retro_core_option_definition* local)
+QRetroOption::QRetroOption(retro_core_option_definition *us, retro_core_option_definition *local)
 {
-  m_Title[Default]       = us->desc ? us->desc : "";
+  m_Title[Default] = us->desc ? us->desc : "";
   m_Description[Default] = us->info ? us->info : "";
   if (local)
   {
-    m_Title[Local]       = local->desc ? local->desc : "";
+    m_Title[Local] = local->desc ? local->desc : "";
     m_Description[Local] = local->info ? local->info : "";
   }
 
@@ -121,8 +116,8 @@ QRetroOption::QRetroOption(retro_core_option_definition* us,
   }
 
   /* If default value is not set, default to the first value */
-  m_DefaultValue = us->default_value ? std::string(us->default_value) :
-                                       std::string(us->values[0].value);
+  m_DefaultValue =
+    us->default_value ? std::string(us->default_value) : std::string(us->values[0].value);
 
   determineType();
 
@@ -130,26 +125,23 @@ QRetroOption::QRetroOption(retro_core_option_definition* us,
          "    Possible (%u): [%s]\n"
          "    Default: %s\n"
          "    Type = %s",
-         m_Title[local ? Language::Local : Language::Default].c_str(),
-         us->key,
-         m_PossibleValues[Default].count(),
-         m_PossibleValues[Default].join(", ").toStdString().c_str(),
-         m_DefaultValue.c_str(),
-         type_name(m_Type));
+    m_Title[local ? Language::Local : Language::Default].c_str(), us->key,
+    m_PossibleValues[Default].count(), m_PossibleValues[Default].join(", ").toStdString().c_str(),
+    m_DefaultValue.c_str(), type_name(m_Type));
 }
 
-QRetroOption::QRetroOption(retro_core_option_v2_definition* us,
-  retro_core_option_v2_definition* local)
+QRetroOption::QRetroOption(
+  retro_core_option_v2_definition *us, retro_core_option_v2_definition *local)
 {
-  m_Title[Language::Default]           = us->desc              ? us->desc              : "";
-  m_TitleCategorized[Language::Default] = us->desc_categorized  ? us->desc_categorized  : "";
-  m_Description[Language::Default]      = us->info              ? us->info              : "";
-  m_CategoryKey                         = us->category_key      ? us->category_key      : "";
+  m_Title[Language::Default] = us->desc ? us->desc : "";
+  m_TitleCategorized[Language::Default] = us->desc_categorized ? us->desc_categorized : "";
+  m_Description[Language::Default] = us->info ? us->info : "";
+  m_CategoryKey = us->category_key ? us->category_key : "";
   if (local)
   {
-    m_Title[Language::Local]           = local->desc             ? local->desc             : "";
+    m_Title[Language::Local] = local->desc ? local->desc : "";
     m_TitleCategorized[Language::Local] = local->desc_categorized ? local->desc_categorized : "";
-    m_Description[Language::Local]      = local->info             ? local->info             : "";
+    m_Description[Language::Local] = local->info ? local->info : "";
   }
 
   auto *choice = us->values;
@@ -176,12 +168,9 @@ QRetroOption::QRetroOption(retro_core_option_v2_definition* us,
          "    Possible (%u): [%s]\n"
          "    Default: %s\n"
          "    Type = %s",
-         m_Title[local ? Language::Local : Language::Default].c_str(),
-         us->key,
-         m_PossibleValues[Default].count(),
-         m_PossibleValues[Default].join(", ").toStdString().c_str(),
-         m_DefaultValue.c_str(),
-         type_name(m_Type));
+    m_Title[local ? Language::Local : Language::Default].c_str(), us->key,
+    m_PossibleValues[Default].count(), m_PossibleValues[Default].join(", ").toStdString().c_str(),
+    m_DefaultValue.c_str(), type_name(m_Type));
 }
 
 bool QRetroOption::determineType()
@@ -197,10 +186,10 @@ bool QRetroOption::determineType()
    * capitalisation), treat it as boolean and remember the exact strings. */
   else if (values.count() == 2)
   {
-    static const char* const pairs[][2] = {
-      {"enabled", "disabled"},
-      {"on",      "off"},
-      {"true",    "false"},
+    static const char *const pairs[][2] = {
+      { "enabled", "disabled" },
+      { "on", "off" },
+      { "true", "false" },
     };
     for (auto &pair : pairs)
     {
@@ -208,12 +197,14 @@ bool QRetroOption::determineType()
       QString foundTrue, foundFalse;
       for (auto &v : values)
       {
-        if (!v.compare(t, Qt::CaseInsensitive)) foundTrue  = v;
-        if (!v.compare(f, Qt::CaseInsensitive)) foundFalse = v;
+        if (!v.compare(t, Qt::CaseInsensitive))
+          foundTrue = v;
+        if (!v.compare(f, Qt::CaseInsensitive))
+          foundFalse = v;
       }
       if (!foundTrue.isEmpty() && !foundFalse.isEmpty())
       {
-        m_BoolTrueValue  = foundTrue.toStdString();
+        m_BoolTrueValue = foundTrue.toStdString();
         m_BoolFalseValue = foundFalse.toStdString();
         m_Type = QRetroOption::Bool;
         return true;
@@ -259,7 +250,7 @@ bool QRetroOption::determineType()
   return false;
 }
 
-const char* QRetroOption::title(Language lang)
+const char *QRetroOption::title(Language lang)
 {
   if (lang == Language::Local && !m_Title[lang].empty())
     return m_Title[Language::Local].c_str();
@@ -267,7 +258,7 @@ const char* QRetroOption::title(Language lang)
     return m_Title[Language::Default].c_str();
 }
 
-const char* QRetroOption::description(Language lang)
+const char *QRetroOption::description(Language lang)
 {
   if (lang == Language::Local && !m_Description[lang].empty())
     return m_Description[Language::Local].c_str();
@@ -308,18 +299,18 @@ QRetroOptions::~QRetroOptions()
   settings.sync();
 }
 
-QRetroOption* QRetroOptions::getOption(const char *key)
+QRetroOption *QRetroOptions::getOption(const char *key)
 {
   return m_Variables[key];
 }
 
-const char* QRetroOptions::getOptionValue(const char *key)
+const char *QRetroOptions::getOptionValue(const char *key)
 {
   auto var = getOption(key);
   return var ? var->getValue() : nullptr;
 }
 
-void QRetroOptions::setOptionValue(const char* key, const char* value)
+void QRetroOptions::setOptionValue(const char *key, const char *value)
 {
   auto var = getOption(key);
 
@@ -362,7 +353,7 @@ void QRetroOptions::setOptions(retro_variable *vars)
   m_Version = v0;
 }
 
-void QRetroOptions::setOptions(retro_core_option_definition** vars)
+void QRetroOptions::setOptions(retro_core_option_definition **vars)
 {
   QSettings settings(m_Filename, QSettings::IniFormat);
   auto var = *vars;
@@ -391,7 +382,7 @@ void QRetroOptions::setOptions(retro_core_option_definition** vars)
   m_Version = v1;
 }
 
-void QRetroOptions::setOptions(retro_core_options_intl* vars)
+void QRetroOptions::setOptions(retro_core_options_intl *vars)
 {
   QSettings settings(m_Filename, QSettings::IniFormat);
   unsigned i = 0;
@@ -443,8 +434,7 @@ void QRetroOptions::setOptions(retro_core_options_intl* vars)
   m_Version = v1;
 }
 
-void QRetroOptions::setOptions(retro_core_options_v2* vars,
-                               retro_core_options_v2* local)
+void QRetroOptions::setOptions(retro_core_options_v2 *vars, retro_core_options_v2 *local)
 {
   QSettings settings(m_Filename, QSettings::IniFormat);
 
@@ -464,15 +454,19 @@ void QRetroOptions::setOptions(retro_core_options_v2* vars,
       if (lcat)
       {
         for (auto *lc = lcat; lc->key; lc++)
-          if (!strcmp(lc->key, cat->key)) { match = lc; break; }
+          if (!strcmp(lc->key, cat->key))
+          {
+            match = lc;
+            break;
+          }
       }
-      m_Categories.push_back({cat->key, new QRetroOptionCategory(cat, match)});
+      m_Categories.push_back({ cat->key, new QRetroOptionCategory(cat, match) });
       cat++;
     }
   }
 
   /* Build option map */
-  auto *var  = vars->definitions;
+  auto *var = vars->definitions;
   auto *lvar = local ? local->definitions : nullptr;
 
   settings.beginGroup(m_CoreName);
@@ -483,7 +477,11 @@ void QRetroOptions::setOptions(retro_core_options_v2* vars,
     if (lvar)
     {
       for (auto *lv = lvar; lv->key; lv++)
-        if (!strcmp(lv->key, var->key)) { lmatch = lv; break; }
+        if (!strcmp(lv->key, var->key))
+        {
+          lmatch = lv;
+          break;
+        }
     }
 
     auto entry = new QRetroOption(var, lmatch);
@@ -505,14 +503,13 @@ void QRetroOptions::setOptions(retro_core_options_v2* vars,
   m_Version = v2;
 }
 
-void QRetroOptions::setOptions(retro_core_options_v2_intl* vars)
+void QRetroOptions::setOptions(retro_core_options_v2_intl *vars)
 {
   if (!vars || !vars->us)
     return;
 
   /* Use localized definitions when available, fall back to US otherwise */
-  retro_core_options_v2 *local = (vars->local && vars->local != vars->us)
-                                 ? vars->local : nullptr;
+  retro_core_options_v2 *local = (vars->local && vars->local != vars->us) ? vars->local : nullptr;
   setOptions(vars->us, local);
 }
 
@@ -526,14 +523,13 @@ void QRetroOptions::setVisibility(const char *key, bool enabled)
 
 void QRetroOptions::onOptionBoolChanged(int state)
 {
-  setOptionValue(sender()->objectName().toStdString().c_str(),
-                 state == Qt::Unchecked ? "disabled" : "enabled");
+  setOptionValue(
+    sender()->objectName().toStdString().c_str(), state == Qt::Unchecked ? "disabled" : "enabled");
 }
 
-void QRetroOptions::onOptionChoiceChanged(const QString& choice)
+void QRetroOptions::onOptionChoiceChanged(const QString &choice)
 {
-  setOptionValue(sender()->objectName().toStdString().c_str(),
-                 choice.toStdString().c_str());
+  setOptionValue(sender()->objectName().toStdString().c_str(), choice.toStdString().c_str());
 }
 
 void QRetroOptions::update()
@@ -546,7 +542,7 @@ void QRetroOptions::update()
   /* Delete everything if the layout has already been initialized before. */
   if (this->layout())
   {
-    QLayoutItem* item;
+    QLayoutItem *item;
     while ((item = this->layout()->takeAt(0)) != nullptr)
     {
       delete item->widget();
@@ -557,34 +553,31 @@ void QRetroOptions::update()
 
   /* Content widget lives inside the scroll area */
   auto *content = new QWidget();
-  auto *vbox    = new QVBoxLayout(content);
+  auto *vbox = new QVBoxLayout(content);
 
-  using OptionList = std::vector<std::pair<std::string, QRetroOption*>>;
-  std::vector<QGroupBox*> allSections;
+  using OptionList = std::vector<std::pair<std::string, QRetroOption *>>;
+  std::vector<QGroupBox *> allSections;
 
   /* Adds a single option row (label + control, plus optional description).
    * Returns the number of grid rows consumed (1 or 2). */
-  auto addRow = [this](QWidget *parent, QGridLayout *grid, int row,
-                        const std::string &key, QRetroOption *var) -> int
-  {
+  auto addRow = [this](QWidget *parent, QGridLayout *grid, int row, const std::string &key,
+                  QRetroOption *var) -> int {
     switch (var->type())
     {
     case QRetroOption::Bool:
     {
-      std::string trueVal  = var->boolTrueValue();
+      std::string trueVal = var->boolTrueValue();
       std::string falseVal = var->boolFalseValue();
       auto *elem = new QCheckBox(parent);
       elem->setChecked(strcmp(var->getValue(), falseVal.c_str()) != 0);
-      connect(elem, &QCheckBox::stateChanged,
-              [this, key, trueVal, falseVal](int state) {
-        setOptionValue(key.c_str(),
-                       state == Qt::Unchecked ? falseVal.c_str() : trueVal.c_str());
+      connect(elem, &QCheckBox::stateChanged, [this, key, trueVal, falseVal](int state) {
+        setOptionValue(key.c_str(), state == Qt::Unchecked ? falseVal.c_str() : trueVal.c_str());
       });
       auto *label = new QLabel(var->title(), parent);
       label->setEnabled(var->getVisibility());
       label->setBuddy(elem);
       grid->addWidget(label, row, 0);
-      grid->addWidget(elem,  row, 1);
+      grid->addWidget(elem, row, 1);
       break;
     }
     default:
@@ -593,13 +586,13 @@ void QRetroOptions::update()
       elem->addItems(var->possibleValues());
       elem->setCurrentText(var->getValue());
       elem->setObjectName(QString::fromStdString(key));
-      connect(elem, SIGNAL(currentTextChanged(const QString&)),
-              this, SLOT(onOptionChoiceChanged(const QString&)));
+      connect(elem, SIGNAL(currentTextChanged(const QString &)), this,
+        SLOT(onOptionChoiceChanged(const QString &)));
       auto *label = new QLabel(var->title(), parent);
       label->setEnabled(var->getVisibility());
       label->setBuddy(elem);
       grid->addWidget(label, row, 0);
-      grid->addWidget(elem,  row, 1);
+      grid->addWidget(elem, row, 1);
       break;
     }
     }
@@ -623,20 +616,24 @@ void QRetroOptions::update()
   /* Returns true if m_Categories contains a category with the given key. */
   auto hasCategory = [&](const std::string &key) {
     for (auto &p : m_Categories)
-      if (p.first == key) return true;
+      if (p.first == key)
+        return true;
     return false;
   };
 
   /* Builds a collapsible section from a list of options. */
-  auto makeSection = [&](const QString &title, const OptionList &opts)
-  {
+  auto makeSection = [&](const QString &title, const OptionList &opts) {
     if (opts.empty())
       return;
 
     /* Gray the header when every option in the section is invisible. */
     bool anyVisible = false;
     for (auto &p : opts)
-      if (p.second && p.second->getVisibility()) { anyVisible = true; break; }
+      if (p.second && p.second->getVisibility())
+      {
+        anyVisible = true;
+        break;
+      }
 
     auto *btn = new QPushButton("\342\226\266 " + title, content);
     btn->setCheckable(true);
@@ -656,7 +653,7 @@ void QRetroOptions::update()
     auto *section = new QGroupBox(content);
     allSections.push_back(section);
     section->setVisible(false);
-    auto *grid    = new QGridLayout(section);
+    auto *grid = new QGridLayout(section);
     grid->setColumnStretch(0, 1);
     grid->setColumnStretch(1, 0);
     int row = 0;
@@ -693,8 +690,7 @@ void QRetroOptions::update()
 
     /* Emit categories in the order they appear in m_Categories. */
     for (auto &catPair : m_Categories)
-      makeSection(QString(catPair.second->title(Language::Local)),
-                  byCategory[catPair.first]);
+      makeSection(QString(catPair.second->title(Language::Local)), byCategory[catPair.first]);
 
     makeSection(tr("Other"), uncategorized);
   }
@@ -702,7 +698,7 @@ void QRetroOptions::update()
   {
     /* No categories — flat list. */
     auto *section = new QWidget(content);
-    auto *grid    = new QGridLayout(section);
+    auto *grid = new QGridLayout(section);
     grid->setColumnStretch(0, 1);
     grid->setColumnStretch(1, 0);
     int row = 0;
@@ -732,11 +728,12 @@ void QRetroOptions::update()
   /* Temporarily expand all sections so the layout can compute the natural
    * content width (sections start collapsed, so their width would otherwise
    * be excluded from the size hint). */
-  for (auto *s : allSections) s->setVisible(true);
+  for (auto *s : allSections)
+    s->setVisible(true);
   content->layout()->activate();
-  int fitWidth = content->sizeHint().width()
-               + style()->pixelMetric(QStyle::PM_ScrollBarExtent);
-  for (auto *s : allSections) s->setVisible(false);
+  int fitWidth = content->sizeHint().width() + style()->pixelMetric(QStyle::PM_ScrollBarExtent);
+  for (auto *s : allSections)
+    s->setVisible(false);
 
   resize(fitWidth, 480);
 }

@@ -36,17 +36,17 @@ bool QRetroInputJoypad::digitalButton(unsigned id)
     switch (id)
     {
     case RETRO_DEVICE_ID_JOYPAD_UP:
-      return m_Sticks[RETRO_DEVICE_INDEX_ANALOG_LEFT][RETRO_DEVICE_ID_ANALOG_Y]
-        > m_AnalogStickDeadzone;
+      return m_Sticks[RETRO_DEVICE_INDEX_ANALOG_LEFT][RETRO_DEVICE_ID_ANALOG_Y] >
+             m_AnalogStickDeadzone;
     case RETRO_DEVICE_ID_JOYPAD_DOWN:
-      return m_Sticks[RETRO_DEVICE_INDEX_ANALOG_LEFT][RETRO_DEVICE_ID_ANALOG_Y]
-        < -m_AnalogStickDeadzone;
+      return m_Sticks[RETRO_DEVICE_INDEX_ANALOG_LEFT][RETRO_DEVICE_ID_ANALOG_Y] <
+             -m_AnalogStickDeadzone;
     case RETRO_DEVICE_ID_JOYPAD_LEFT:
-      return m_Sticks[RETRO_DEVICE_INDEX_ANALOG_LEFT][RETRO_DEVICE_ID_ANALOG_X]
-        > m_AnalogStickDeadzone;
+      return m_Sticks[RETRO_DEVICE_INDEX_ANALOG_LEFT][RETRO_DEVICE_ID_ANALOG_X] >
+             m_AnalogStickDeadzone;
     case RETRO_DEVICE_ID_JOYPAD_RIGHT:
-      return m_Sticks[RETRO_DEVICE_INDEX_ANALOG_LEFT][RETRO_DEVICE_ID_ANALOG_X]
-        < -m_AnalogStickDeadzone;
+      return m_Sticks[RETRO_DEVICE_INDEX_ANALOG_LEFT][RETRO_DEVICE_ID_ANALOG_X] <
+             -m_AnalogStickDeadzone;
     }
   }
 
@@ -69,8 +69,7 @@ int16_t QRetroInputJoypad::analogStick(unsigned index, unsigned id)
     return m_Sticks[index][id];
 }
 
-void QRetroInputJoypad::setAnalogStick(unsigned index, unsigned id,
-                                       int16_t value)
+void QRetroInputJoypad::setAnalogStick(unsigned index, unsigned id, int16_t value)
 {
   if (index > RETRO_DEVICE_INDEX_ANALOG_RIGHT || id > RETRO_DEVICE_ID_ANALOG_Y)
     return;
@@ -83,25 +82,13 @@ void QRetroInputJoypad::setInputMethods(unsigned method)
   m_InputMethods = method;
 }
 
-#define QRETRO_DEFAULT_MAP_JOYPAD(a, b) \
-  m_KeyboardMaps.push_back( \
-  { \
-    { a, -1 }, \
-    { \
-      { 0, RETRO_DEVICE_JOYPAD, 0, b, true }, \
-      { -1, 0, 0, 0, 0 } \
-    } \
-  })
+#define QRETRO_DEFAULT_MAP_JOYPAD(a, b)                                                            \
+  m_KeyboardMaps.push_back(                                                                        \
+    { { a, -1 }, { { 0, RETRO_DEVICE_JOYPAD, 0, b, true }, { -1, 0, 0, 0, 0 } } })
 
-#define QRETRO_DEFAULT_MAP_ANALOG(a, b, c, d) \
-  m_KeyboardMaps.push_back( \
-  { \
-    { a, -1 }, \
-    { \
-      { 0, RETRO_DEVICE_ANALOG, b, c, d }, \
-      { -1, 0, 0, 0, 0 } \
-    } \
-  })
+#define QRETRO_DEFAULT_MAP_ANALOG(a, b, c, d)                                                      \
+  m_KeyboardMaps.push_back(                                                                        \
+    { { a, -1 }, { { 0, RETRO_DEVICE_ANALOG, b, c, d }, { -1, 0, 0, 0, 0 } } })
 
 QRetroInput::QRetroInput(QObject *parent)
 {
@@ -140,8 +127,8 @@ QRetroInput::QRetroInput(QObject *parent)
   /* Analog triggers; full and half press */
   QRETRO_DEFAULT_MAP_ANALOG(RETROK_e, 2, RETRO_DEVICE_ID_JOYPAD_L2, 32767);
   QRETRO_DEFAULT_MAP_ANALOG(RETROK_r, 2, RETRO_DEVICE_ID_JOYPAD_R2, 32767);
-  QRETRO_DEFAULT_MAP_ANALOG(RETROK_e, 2, RETRO_DEVICE_ID_JOYPAD_L2, 32767/2);
-  QRETRO_DEFAULT_MAP_ANALOG(RETROK_r, 2, RETRO_DEVICE_ID_JOYPAD_R2, 32767/2);
+  QRETRO_DEFAULT_MAP_ANALOG(RETROK_e, 2, RETRO_DEVICE_ID_JOYPAD_L2, 32767 / 2);
+  QRETRO_DEFAULT_MAP_ANALOG(RETROK_r, 2, RETRO_DEVICE_ID_JOYPAD_R2, 32767 / 2);
 }
 
 void QRetroInput::poll(void)
@@ -151,46 +138,48 @@ void QRetroInput::poll(void)
     m_Backend->poll();
 
   /* Check keyboard macros, which may also update m_Buttons. */
-  if (m_UseMaps) for (const auto& map : m_KeyboardMaps)
-  {
-    auto button = &map.buttons[0];
-    auto key = &map.keys[0];
-    bool pressed = true;
-
-    for (unsigned i = 0; i < QRETRO_INPUT_MAPPING_MAX; i++)
+  if (m_UseMaps)
+    for (const auto &map : m_KeyboardMaps)
     {
-      if (*key <= RETROK_UNKNOWN)
-        break;
-      pressed &= m_Keys[*key];
-      key++;
-    }
+      auto button = &map.buttons[0];
+      auto key = &map.keys[0];
+      bool pressed = true;
 
-    for (unsigned i = 0; i < QRETRO_INPUT_MAPPING_MAX; i++)
-    {
-      if (button->port < 0)
-        break;
-      switch (button->device)
+      for (unsigned i = 0; i < QRETRO_INPUT_MAPPING_MAX; i++)
       {
-      case RETRO_DEVICE_JOYPAD:
-        m_Joypads[button->port].setDigitalButton(button->id,
-                                                 pressed ? button->value : !button->value);
-        break;
-      case RETRO_DEVICE_ANALOG:
-        if (button->index != RETRO_DEVICE_INDEX_ANALOG_BUTTON)
-        {
-          if (pressed)
-            m_Joypads[button->port].setAnalogStick(button->index, button->id, static_cast<int16_t>(button->value));
-          else if (m_Joypads[button->port].analogStick(button->index, button->id) == button->value)
-            m_Joypads[button->port].setAnalogStick(button->index, button->id, 0);
-        }
-        else
-          m_Joypads[button->port].setAnalogButton(button->id,
-                                                  pressed ? button->value : 0);
-        break;
+        if (*key <= RETROK_UNKNOWN)
+          break;
+        pressed &= m_Keys[*key];
+        key++;
       }
-      button++;
+
+      for (unsigned i = 0; i < QRETRO_INPUT_MAPPING_MAX; i++)
+      {
+        if (button->port < 0)
+          break;
+        switch (button->device)
+        {
+        case RETRO_DEVICE_JOYPAD:
+          m_Joypads[button->port].setDigitalButton(
+            button->id, pressed ? button->value : !button->value);
+          break;
+        case RETRO_DEVICE_ANALOG:
+          if (button->index != RETRO_DEVICE_INDEX_ANALOG_BUTTON)
+          {
+            if (pressed)
+              m_Joypads[button->port].setAnalogStick(
+                button->index, button->id, static_cast<int16_t>(button->value));
+            else if (m_Joypads[button->port].analogStick(button->index, button->id) ==
+                     button->value)
+              m_Joypads[button->port].setAnalogStick(button->index, button->id, 0);
+          }
+          else
+            m_Joypads[button->port].setAnalogButton(button->id, pressed ? button->value : 0);
+          break;
+        }
+        button++;
+      }
     }
-  }
 
   /* Snapshot all button state into the bitmask now that every input source
    * (hardware backend + keyboard macros) has had a chance to update m_Buttons. */
@@ -198,8 +187,7 @@ void QRetroInput::poll(void)
     m_Joypads[i].poll();
 }
 
-int16_t QRetroInput::state(unsigned port, unsigned device, unsigned index,
-                           unsigned id)
+int16_t QRetroInput::state(unsigned port, unsigned device, unsigned index, unsigned id)
 {
   if (port < m_MaxUsers)
   {

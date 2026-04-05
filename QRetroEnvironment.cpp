@@ -14,7 +14,7 @@ void core_audio_sample(int16_t left, int16_t right)
 
   if (_this && _this->audio())
   {
-    sample_t samples[2] = {left, right};
+    sample_t samples[2] = { left, right };
     _this->audio()->pushSamples(samples, 1);
   }
 }
@@ -57,7 +57,7 @@ static long long unsigned core_hw_get_current_framebuffer()
   return 0;
 }
 
-static void* core_hw_get_proc_address(const char *sym)
+static void *core_hw_get_proc_address(const char *sym)
 {
   auto _this = _qrthis();
 
@@ -88,8 +88,7 @@ void core_input_poll(void)
   _this->updateMouse();
 }
 
-int16_t core_input_state(unsigned port, unsigned device, unsigned index,
-  unsigned id)
+int16_t core_input_state(unsigned port, unsigned device, unsigned index, unsigned id)
 {
   auto _this = _qrthis();
 
@@ -178,8 +177,8 @@ static void core_location_stop(void)
     _this->location()->stopUpdates();
 }
 
-static bool core_location_get_position(double *lat, double *lon,
-  double *horiz_accuracy, double *vert_accuracy)
+static bool core_location_get_position(
+  double *lat, double *lon, double *horiz_accuracy, double *vert_accuracy)
 {
   auto _this = _qrthis();
 
@@ -190,13 +189,9 @@ static bool core_location_get_position(double *lat, double *lon,
 }
 
 /* TODO: Stubbed. Do we need these? */
-static void core_location_initialized(void)
-{
-}
+static void core_location_initialized(void) {}
 
-static void core_location_deinitialized(void)
-{
-}
+static void core_location_deinitialized(void) {}
 
 static void core_log(enum retro_log_level level, const char *fmt, ...)
 {
@@ -217,8 +212,7 @@ static void core_log(enum retro_log_level level, const char *fmt, ...)
   _this->log()->push(level, final_string);
 }
 
-static bool core_rumble(unsigned int port, retro_rumble_effect effect,
-  unsigned short strength)
+static bool core_rumble(unsigned int port, retro_rumble_effect effect, unsigned short strength)
 {
   auto _this = _qrthis();
 
@@ -228,8 +222,7 @@ static bool core_rumble(unsigned int port, retro_rumble_effect effect,
   return _this->input()->setRumble(port, effect, strength);
 }
 
-static bool core_sensor_set_state(unsigned port, retro_sensor_action action,
-  unsigned rate)
+static bool core_sensor_set_state(unsigned port, retro_sensor_action action, unsigned rate)
 {
   bool input_ok, system_ok;
   auto _this = _qrthis();
@@ -293,8 +286,8 @@ static bool core_microphone_set_mic_state(retro_microphone_t *microphone, bool s
     return _this->microphone()->setState(microphone, state);
 }
 
-static bool core_microphone_get_params(const retro_microphone_t *microphone,
-                                       retro_microphone_params_t *params)
+static bool core_microphone_get_params(
+  const retro_microphone_t *microphone, retro_microphone_params_t *params)
 {
   auto _this = _qrthis();
 
@@ -304,7 +297,7 @@ static bool core_microphone_get_params(const retro_microphone_t *microphone,
     return _this->microphone()->getParams(microphone, params);
 }
 
-static retro_microphone_t* core_microphone_open_mic(const retro_microphone_params_t *params)
+static retro_microphone_t *core_microphone_open_mic(const retro_microphone_params_t *params)
 {
   auto _this = _qrthis();
 
@@ -314,8 +307,8 @@ static retro_microphone_t* core_microphone_open_mic(const retro_microphone_param
     return _this->microphone()->open(params);
 }
 
-static int core_microphone_read_mic(retro_microphone_t *microphone,
-                                    int16_t *samples, size_t num_samples)
+static int core_microphone_read_mic(
+  retro_microphone_t *microphone, int16_t *samples, size_t num_samples)
 {
   auto _this = _qrthis();
 
@@ -360,8 +353,7 @@ static bool core_midi_flush()
   return _this && _this->midi()->flush();
 }
 
-void core_video_refresh(const void *data, unsigned width,
-  unsigned height, size_t pitch)
+void core_video_refresh(const void *data, unsigned width, unsigned height, size_t pitch)
 {
   auto _this = _qrthis();
 
@@ -399,7 +391,7 @@ bool core_environment(unsigned cmd, void *data)
   /// Returns true if the screen rotation was set successfully
   case RETRO_ENVIRONMENT_SET_ROTATION:
     if (data)
-      _this->setRotation(*(reinterpret_cast<const unsigned*>(data)) * 90);
+      _this->setRotation(*(reinterpret_cast<const unsigned *>(data)) * 90);
     else
       return false;
     break;
@@ -411,7 +403,7 @@ bool core_environment(unsigned cmd, void *data)
   case RETRO_ENVIRONMENT_GET_OVERSCAN:
     core_log(RETRO_LOG_WARN, "RETRO_ENVIRONMENT_GET_OVERSCAN is deprecated!");
     if (data)
-      *(reinterpret_cast<bool*>(data)) = _this->getOverscan();
+      *(reinterpret_cast<bool *>(data)) = _this->getOverscan();
     break;
 
   /// 03
@@ -420,7 +412,7 @@ bool core_environment(unsigned cmd, void *data)
   /// Returns true if the environment call is available
   case RETRO_ENVIRONMENT_GET_CAN_DUPE:
     if (data)
-      *(reinterpret_cast<bool*>(data)) = _this->supportsDuping();
+      *(reinterpret_cast<bool *>(data)) = _this->supportsDuping();
     break;
 
   /// 04 (deprecated/reserved)
@@ -445,7 +437,7 @@ bool core_environment(unsigned cmd, void *data)
   /// Returns true if the environment call is available
   case RETRO_ENVIRONMENT_SET_MESSAGE:
   {
-    auto *msg = reinterpret_cast<const struct retro_message*>(data);
+    auto *msg = reinterpret_cast<const struct retro_message *>(data);
     if (msg)
       _this->message()->push(QString::fromUtf8(msg->msg));
     break;
@@ -465,7 +457,7 @@ bool core_environment(unsigned cmd, void *data)
   /// Return value is undefined
   case RETRO_ENVIRONMENT_SET_PERFORMANCE_LEVEL:
     if (data)
-      _this->setPerformanceLevel(*reinterpret_cast<const unsigned*>(data));
+      _this->setPerformanceLevel(*reinterpret_cast<const unsigned *>(data));
     break;
 
   /// 09
@@ -474,8 +466,7 @@ bool core_environment(unsigned cmd, void *data)
   /// Returns true if available, even if the directory path is NULL
   case RETRO_ENVIRONMENT_GET_SYSTEM_DIRECTORY:
     if (data)
-      *reinterpret_cast<const char**>(data) =
-        _this->directories()->get(QRetroDirectories::System);
+      *reinterpret_cast<const char **>(data) = _this->directories()->get(QRetroDirectories::System);
     break;
 
   /// 10
@@ -484,7 +475,7 @@ bool core_environment(unsigned cmd, void *data)
   /// Returns false if the requested format is not supported by the frontend
   case RETRO_ENVIRONMENT_SET_PIXEL_FORMAT:
     if (data)
-      _this->setPixelFormat(*reinterpret_cast<enum retro_pixel_format*>(data));
+      _this->setPixelFormat(*reinterpret_cast<enum retro_pixel_format *>(data));
     break;
 
   /// 11
@@ -492,8 +483,7 @@ bool core_environment(unsigned cmd, void *data)
   /// The core provides human-readable labels for its input bindings to the frontend
   /// Returns true if the environment call is recognized
   case RETRO_ENVIRONMENT_SET_INPUT_DESCRIPTORS:
-    _this->input()->setInputDescriptors(
-      reinterpret_cast<const retro_input_descriptor*>(data));
+    _this->input()->setInputDescriptors(reinterpret_cast<const retro_input_descriptor *>(data));
     break;
 
   /// 12
@@ -502,8 +492,7 @@ bool core_environment(unsigned cmd, void *data)
   /// Returns true if keyboard callback is supported
   case RETRO_ENVIRONMENT_SET_KEYBOARD_CALLBACK:
     if (data)
-      _this->core()->keyboard =
-        *reinterpret_cast<retro_keyboard_callback*>(data);
+      _this->core()->keyboard = *reinterpret_cast<retro_keyboard_callback *>(data);
     break;
 
   /// 13
@@ -513,7 +502,7 @@ bool core_environment(unsigned cmd, void *data)
   case RETRO_ENVIRONMENT_SET_DISK_CONTROL_INTERFACE:
     if (data)
       _this->diskControl()->setInterface(
-        reinterpret_cast<const retro_disk_control_callback*>(data));
+        reinterpret_cast<const retro_disk_control_callback *>(data));
     return true;
 
   /// 14
@@ -522,7 +511,7 @@ bool core_environment(unsigned cmd, void *data)
   /// Returns false if data is NULL or the requested rendering API is not supported
   case RETRO_ENVIRONMENT_SET_HW_RENDER:
   {
-    auto hw = reinterpret_cast<retro_hw_render_callback*>(data);
+    auto hw = reinterpret_cast<retro_hw_render_callback *>(data);
 
     if (!hw)
       return false;
@@ -540,18 +529,15 @@ bool core_environment(unsigned cmd, void *data)
       _this->initVideo(hw->context_type);
 
       hw->get_proc_address =
-        reinterpret_cast<retro_hw_get_proc_address_t>(
-        core_hw_get_proc_address);
+        reinterpret_cast<retro_hw_get_proc_address_t>(core_hw_get_proc_address);
 
       hw->get_current_framebuffer =
-        reinterpret_cast<retro_hw_get_current_framebuffer_t>(
-        core_hw_get_current_framebuffer);
+        reinterpret_cast<retro_hw_get_current_framebuffer_t>(core_hw_get_current_framebuffer);
 
       _this->core()->hw_render = *hw;
       break;
     default:
-      core_log(RETRO_LOG_ERROR, "Requested unsupported renderer %u",
-        hw->context_type);
+      core_log(RETRO_LOG_ERROR, "Requested unsupported renderer %u", hw->context_type);
       return false;
     }
 
@@ -564,7 +550,7 @@ bool core_environment(unsigned cmd, void *data)
   /// Returns true if the environment call is available, even if the data is invalid
   case RETRO_ENVIRONMENT_GET_VARIABLE:
   {
-    auto var = reinterpret_cast<retro_variable*>(data);
+    auto var = reinterpret_cast<retro_variable *>(data);
 
     if (!var || !var->key)
       break;
@@ -585,7 +571,7 @@ bool core_environment(unsigned cmd, void *data)
   /// Returns true if the environment call is available, even if data is NULL
   case RETRO_ENVIRONMENT_SET_VARIABLES:
     if (data)
-      _this->options()->setOptions(reinterpret_cast<retro_variable*>(data));
+      _this->options()->setOptions(reinterpret_cast<retro_variable *>(data));
     break;
 
   /// 17
@@ -594,7 +580,7 @@ bool core_environment(unsigned cmd, void *data)
   /// Returns true if the environment call is available
   case RETRO_ENVIRONMENT_GET_VARIABLE_UPDATE:
     if (data)
-      *reinterpret_cast<bool*>(data) = _this->options()->variablesUpdated();
+      *reinterpret_cast<bool *>(data) = _this->options()->variablesUpdated();
     break;
 
   /// 18
@@ -603,7 +589,7 @@ bool core_environment(unsigned cmd, void *data)
   /// Returns true if the environment call is available
   case RETRO_ENVIRONMENT_SET_SUPPORT_NO_GAME:
     if (data)
-      _this->setSupportsNoGame(*(reinterpret_cast<bool*>(data)));
+      _this->setSupportsNoGame(*(reinterpret_cast<bool *>(data)));
     break;
 
   /// 19
@@ -612,7 +598,7 @@ bool core_environment(unsigned cmd, void *data)
   /// Returns true if the environment call is available; value may still be NULL
   case RETRO_ENVIRONMENT_GET_LIBRETRO_PATH:
     if (data)
-      *reinterpret_cast<const char**>(data) = _this->corePath();
+      *reinterpret_cast<const char **>(data) = _this->corePath();
     break;
 
   /// 20 (deprecated/unused)
@@ -629,7 +615,7 @@ bool core_environment(unsigned cmd, void *data)
   /// Returns true if the environment call is available
   case RETRO_ENVIRONMENT_SET_FRAME_TIME_CALLBACK:
   {
-    auto cb = reinterpret_cast<retro_frame_time_callback*>(data);
+    auto cb = reinterpret_cast<retro_frame_time_callback *>(data);
 
     if (cb && cb->callback)
       _this->core()->frame_time_callback = *cb;
@@ -643,7 +629,7 @@ bool core_environment(unsigned cmd, void *data)
   /// Returns true if this environment call is available, even if data is NULL
   case RETRO_ENVIRONMENT_SET_AUDIO_CALLBACK:
   {
-    auto cb = reinterpret_cast<retro_audio_callback*>(data);
+    auto cb = reinterpret_cast<retro_audio_callback *>(data);
 
     if (cb && cb->callback && cb->set_state)
       _this->core()->audio_callback = *cb;
@@ -657,7 +643,7 @@ bool core_environment(unsigned cmd, void *data)
   /// Returns true if the environment call is available, even if the device doesn't support vibration
   case RETRO_ENVIRONMENT_GET_RUMBLE_INTERFACE:
     if (data)
-      reinterpret_cast<retro_rumble_interface*>(data)->set_rumble_state = core_rumble;
+      reinterpret_cast<retro_rumble_interface *>(data)->set_rumble_state = core_rumble;
     break;
 
   /// 24
@@ -666,7 +652,7 @@ bool core_environment(unsigned cmd, void *data)
   /// Returns true if the environment call is available
   case RETRO_ENVIRONMENT_GET_INPUT_DEVICE_CAPABILITIES:
     if (data)
-      *reinterpret_cast<uint64_t*>(data) = _this->input()->deviceCapabilities();
+      *reinterpret_cast<uint64_t *>(data) = _this->input()->deviceCapabilities();
     break;
 
   /// 25
@@ -675,7 +661,7 @@ bool core_environment(unsigned cmd, void *data)
   /// Returns true if the environment call is available, even if the device has no supported sensors
   case RETRO_ENVIRONMENT_GET_SENSOR_INTERFACE:
   {
-    auto cb = reinterpret_cast<retro_sensor_interface*>(data);
+    auto cb = reinterpret_cast<retro_sensor_interface *>(data);
 
     if (!cb)
       return false;
@@ -692,7 +678,7 @@ bool core_environment(unsigned cmd, void *data)
   /// Returns true if this environment call is available, even if an actual camera isn't
   case RETRO_ENVIRONMENT_GET_CAMERA_INTERFACE:
   {
-    auto cb = reinterpret_cast<retro_camera_callback*>(data);
+    auto cb = reinterpret_cast<retro_camera_callback *>(data);
 
     if (cb)
     {
@@ -710,7 +696,7 @@ bool core_environment(unsigned cmd, void *data)
   /// Returns true if the environment call is available
   case RETRO_ENVIRONMENT_GET_LOG_INTERFACE:
   {
-    auto cb = reinterpret_cast<retro_log_callback*>(data);
+    auto cb = reinterpret_cast<retro_log_callback *>(data);
 
     if (!cb)
       return false;
@@ -731,7 +717,7 @@ bool core_environment(unsigned cmd, void *data)
   /// Returns true if the environment call is available, even if there's no location information available
   case RETRO_ENVIRONMENT_GET_LOCATION_INTERFACE:
   {
-    auto location = reinterpret_cast<retro_location_callback*>(data);
+    auto location = reinterpret_cast<retro_location_callback *>(data);
 
     if (!location)
       return false;
@@ -752,7 +738,7 @@ bool core_environment(unsigned cmd, void *data)
   /// Returns true if the environment call is available, even if the value returned is NULL
   case RETRO_ENVIRONMENT_GET_CORE_ASSETS_DIRECTORY:
     if (data)
-      *reinterpret_cast<const char**>(data) =
+      *reinterpret_cast<const char **>(data) =
         _this->directories()->get(QRetroDirectories::CoreAssets);
     break;
 
@@ -762,8 +748,7 @@ bool core_environment(unsigned cmd, void *data)
   /// Returns true if the environment call is available, even if the value returned is NULL
   case RETRO_ENVIRONMENT_GET_SAVE_DIRECTORY:
     if (data)
-      *reinterpret_cast<const char**>(data) =
-        _this->directories()->get(QRetroDirectories::Save);
+      *reinterpret_cast<const char **>(data) = _this->directories()->get(QRetroDirectories::Save);
     break;
 
   /// 32
@@ -772,7 +757,7 @@ bool core_environment(unsigned cmd, void *data)
   /// Returns true if the environment call is available and the new av_info struct was accepted
   case RETRO_ENVIRONMENT_SET_SYSTEM_AV_INFO:
   {
-    auto info = reinterpret_cast<const retro_system_av_info*>(data);
+    auto info = reinterpret_cast<const retro_system_av_info *>(data);
 
     if (info)
       _this->setAvInfo(info);
@@ -786,7 +771,7 @@ bool core_environment(unsigned cmd, void *data)
   case RETRO_ENVIRONMENT_SET_PROC_ADDRESS_CALLBACK:
     if (data)
       _this->procAddress()->init(
-        reinterpret_cast<const struct retro_get_proc_address_interface*>(data));
+        reinterpret_cast<const struct retro_get_proc_address_interface *>(data));
     break;
 
   /// 34 @todo
@@ -802,8 +787,7 @@ bool core_environment(unsigned cmd, void *data)
   /// Returns true if this environment call is available
   case RETRO_ENVIRONMENT_SET_CONTROLLER_INFO:
     if (data)
-      _this->input()->setControllerInfo(
-        reinterpret_cast<const retro_controller_info*>(data));
+      _this->input()->setControllerInfo(reinterpret_cast<const retro_controller_info *>(data));
     break;
 
   /// 36
@@ -811,7 +795,7 @@ bool core_environment(unsigned cmd, void *data)
   /// The core provides a description of the address spaces used by the emulated hardware
   /// Returns true if this environment call is available
   case RETRO_ENVIRONMENT_SET_MEMORY_MAPS:
-    _this->memory().setMemoryMaps(reinterpret_cast<const retro_memory_map*>(data));
+    _this->memory().setMemoryMaps(reinterpret_cast<const retro_memory_map *>(data));
     break;
 
   /// 37
@@ -820,7 +804,7 @@ bool core_environment(unsigned cmd, void *data)
   /// Returns true if the environment call is available
   case RETRO_ENVIRONMENT_SET_GEOMETRY:
   {
-    auto geo = reinterpret_cast<const retro_game_geometry*>(data);
+    auto geo = reinterpret_cast<const retro_game_geometry *>(data);
 
     if (geo)
       _this->setGeometry(geo->base_width, geo->base_height);
@@ -833,7 +817,7 @@ bool core_environment(unsigned cmd, void *data)
   /// Returns true if the environment call is available, even if the frontend couldn't provide a name
   case RETRO_ENVIRONMENT_GET_USERNAME:
     if (data)
-      *reinterpret_cast<const char**>(data) = _this->username()->get();
+      *reinterpret_cast<const char **>(data) = _this->username()->get();
     break;
 
   /// 39
@@ -842,7 +826,7 @@ bool core_environment(unsigned cmd, void *data)
   /// Returns true if the environment call is available
   case RETRO_ENVIRONMENT_GET_LANGUAGE:
     if (data)
-      *reinterpret_cast<unsigned*>(data) = _this->getLanguage();
+      *reinterpret_cast<unsigned *>(data) = _this->getLanguage();
     break;
 
   /// 40
@@ -850,8 +834,7 @@ bool core_environment(unsigned cmd, void *data)
   /// The frontend provides a frontend-managed framebuffer for the core to render into directly
   /// Returns true if the environment call was recognized and the framebuffer was successfully returned
   case RETRO_ENVIRONMENT_GET_CURRENT_SOFTWARE_FRAMEBUFFER:
-    return _this->getCurrentSoftwareFramebuffer(
-      reinterpret_cast<retro_framebuffer*>(data));
+    return _this->getCurrentSoftwareFramebuffer(reinterpret_cast<retro_framebuffer *>(data));
 
   /// 41 @todo
   /// const struct retro_hw_render_interface*
@@ -865,7 +848,7 @@ bool core_environment(unsigned cmd, void *data)
   /// Returns true if the environment call is available
   case RETRO_ENVIRONMENT_SET_SUPPORT_ACHIEVEMENTS:
     if (data)
-      _this->setSupportsAchievements(*reinterpret_cast<bool*>(data));
+      _this->setSupportsAchievements(*reinterpret_cast<bool *>(data));
     break;
 
   /// 43 @todo
@@ -876,7 +859,7 @@ bool core_environment(unsigned cmd, void *data)
   //{
   //  auto hw = reinterpret_cast<const struct retro_hw_render_context_negotiation_interface_vulkan*>(data);
   //  Q_UNUSED(hw)
-    //if (hw->interface_type != RETRO_HW_RENDER_CONTEXT_NEGOTIATION_INTERFACE_VULKAN)
+  //if (hw->interface_type != RETRO_HW_RENDER_CONTEXT_NEGOTIATION_INTERFACE_VULKAN)
   //    return false;
   //}
 
@@ -887,7 +870,7 @@ bool core_environment(unsigned cmd, void *data)
   case RETRO_ENVIRONMENT_SET_SERIALIZATION_QUIRKS:
   case RETRO_ENVIRONMENT_SET_HW_SHARED_CONTEXT:
     if (!experimental)
-      _this->setSerializationQuirks(reinterpret_cast<uint64_t*>(data));
+      _this->setSerializationQuirks(reinterpret_cast<uint64_t *>(data));
     else
       return false;
     break;
@@ -904,7 +887,7 @@ bool core_environment(unsigned cmd, void *data)
   /// Returns true if the environment call is available, even if data is NULL or no LEDs are accessible
   case RETRO_ENVIRONMENT_GET_LED_INTERFACE:
     if (data)
-      reinterpret_cast<retro_led_interface*>(data)->set_led_state = core_led_set_state;
+      reinterpret_cast<retro_led_interface *>(data)->set_led_state = core_led_set_state;
     break;
 
   /// 47
@@ -913,7 +896,7 @@ bool core_environment(unsigned cmd, void *data)
   /// Returns true if the environment call is available, regardless of the value output to data
   case RETRO_ENVIRONMENT_GET_AUDIO_VIDEO_ENABLE:
     if (data)
-      *(reinterpret_cast<int*>(data)) = _this->audioVideoEnable()->getFlags();
+      *(reinterpret_cast<int *>(data)) = _this->audioVideoEnable()->getFlags();
     break;
 
   /// 48
@@ -922,7 +905,7 @@ bool core_environment(unsigned cmd, void *data)
   /// Returns true if the environment call is available, even if data is NULL
   case RETRO_ENVIRONMENT_GET_MIDI_INTERFACE:
   {
-    auto midi = reinterpret_cast<retro_midi_interface*>(data);
+    auto midi = reinterpret_cast<retro_midi_interface *>(data);
 
     if (midi)
     {
@@ -942,7 +925,7 @@ bool core_environment(unsigned cmd, void *data)
   /// Returns true if this environment call is available, regardless of the value returned in data
   case RETRO_ENVIRONMENT_GET_FASTFORWARDING:
     if (data)
-      *(reinterpret_cast<bool*>(data)) = _this->fastForwarding();
+      *(reinterpret_cast<bool *>(data)) = _this->fastForwarding();
     break;
 
   /// 50
@@ -951,8 +934,7 @@ bool core_environment(unsigned cmd, void *data)
   /// Returns true if this environment call is available, regardless of the value returned in data
   case RETRO_ENVIRONMENT_GET_TARGET_REFRESH_RATE:
     if (data)
-      *(reinterpret_cast<float*>(data)) =
-        static_cast<float>(_this->targetRefreshRate());
+      *(reinterpret_cast<float *>(data)) = static_cast<float>(_this->targetRefreshRate());
     break;
 
   /// 51
@@ -961,7 +943,7 @@ bool core_environment(unsigned cmd, void *data)
   /// Returns true if the frontend can report the complete digital joypad state as a bitmask
   case RETRO_ENVIRONMENT_GET_INPUT_BITMASKS:
     if (data)
-      *(reinterpret_cast<bool*>(data)) = _this->input()->supportsBitmasks();
+      *(reinterpret_cast<bool *>(data)) = _this->input()->supportsBitmasks();
     return _this->input()->supportsBitmasks();
 
   /// 52
@@ -970,7 +952,7 @@ bool core_environment(unsigned cmd, void *data)
   /// Returns true if the environment call is available; false otherwise
   case RETRO_ENVIRONMENT_GET_CORE_OPTIONS_VERSION:
     if (data)
-      *(reinterpret_cast<unsigned*>(data)) = _this->options()->maxVersion();
+      *(reinterpret_cast<unsigned *>(data)) = _this->options()->maxVersion();
     break;
 
   /// 53
@@ -978,8 +960,7 @@ bool core_environment(unsigned cmd, void *data)
   /// The core provides its option definitions using the v1 interface
   /// Returns true if this environment call is available
   case RETRO_ENVIRONMENT_SET_CORE_OPTIONS:
-    _this->options()->setOptions(
-      reinterpret_cast<retro_core_option_definition**>(&data));
+    _this->options()->setOptions(reinterpret_cast<retro_core_option_definition **>(&data));
     break;
 
   /// 54
@@ -987,8 +968,7 @@ bool core_environment(unsigned cmd, void *data)
   /// The core provides its option definitions with internationalization support (v1 intl interface)
   /// Return value is undefined
   case RETRO_ENVIRONMENT_SET_CORE_OPTIONS_INTL:
-    _this->options()->setOptions(
-      reinterpret_cast<retro_core_options_intl*>(data));
+    _this->options()->setOptions(reinterpret_cast<retro_core_options_intl *>(data));
     break;
 
   /// 55
@@ -997,7 +977,7 @@ bool core_environment(unsigned cmd, void *data)
   /// Returns true if this environment call is available, even if data is NULL or the option doesn't exist
   case RETRO_ENVIRONMENT_SET_CORE_OPTIONS_DISPLAY:
   {
-    auto var = reinterpret_cast<retro_core_option_display*>(data);
+    auto var = reinterpret_cast<retro_core_option_display *>(data);
 
     if (var)
       _this->options()->setVisibility(var->key, var->visible);
@@ -1010,7 +990,7 @@ bool core_environment(unsigned cmd, void *data)
   /// Returns true if the environment call is available and the frontend can use a hardware rendering API
   case RETRO_ENVIRONMENT_GET_PREFERRED_HW_RENDER:
     if (data)
-      *reinterpret_cast<unsigned*>(data) = _this->getPreferredRenderer();
+      *reinterpret_cast<unsigned *>(data) = _this->getPreferredRenderer();
     break;
 
   /// 57
@@ -1019,7 +999,7 @@ bool core_environment(unsigned cmd, void *data)
   /// Returns true if this environment call is available
   case RETRO_ENVIRONMENT_GET_DISK_CONTROL_INTERFACE_VERSION:
     if (data)
-      *reinterpret_cast<unsigned*>(data) =
+      *reinterpret_cast<unsigned *>(data) =
         static_cast<unsigned>(_this->diskControl()->maxVersion());
     return true;
 
@@ -1030,7 +1010,7 @@ bool core_environment(unsigned cmd, void *data)
   case RETRO_ENVIRONMENT_SET_DISK_CONTROL_EXT_INTERFACE:
     if (data)
       _this->diskControl()->setExtInterface(
-        reinterpret_cast<const retro_disk_control_ext_callback*>(data));
+        reinterpret_cast<const retro_disk_control_ext_callback *>(data));
     return true;
 
   /// 59
@@ -1039,7 +1019,7 @@ bool core_environment(unsigned cmd, void *data)
   /// Returns true if this environment call is available
   case RETRO_ENVIRONMENT_GET_MESSAGE_INTERFACE_VERSION:
     if (data)
-      *reinterpret_cast<unsigned*>(data) = _this->message()->interfaceVersion();
+      *reinterpret_cast<unsigned *>(data) = _this->message()->interfaceVersion();
     break;
 
   /// 60
@@ -1048,7 +1028,7 @@ bool core_environment(unsigned cmd, void *data)
   /// Returns true if this environment call is available
   case RETRO_ENVIRONMENT_SET_MESSAGE_EXT:
     if (data)
-      _this->message()->push(reinterpret_cast<const struct retro_message_ext*>(data));
+      _this->message()->push(reinterpret_cast<const struct retro_message_ext *>(data));
     break;
 
   /// 61
@@ -1057,7 +1037,7 @@ bool core_environment(unsigned cmd, void *data)
   /// Returns true if this environment call is available
   case RETRO_ENVIRONMENT_GET_INPUT_MAX_USERS:
     if (data)
-      *reinterpret_cast<unsigned*>(data) = _this->input()->maxUsers();
+      *reinterpret_cast<unsigned *>(data) = _this->input()->maxUsers();
     break;
 
   /// 62 @todo
@@ -1078,8 +1058,7 @@ bool core_environment(unsigned cmd, void *data)
   /// Returns true if this environment call is available, even if data is NULL
   case RETRO_ENVIRONMENT_SET_FASTFORWARDING_OVERRIDE:
     if (data)
-      _this->setFastForwardingOverride(
-        reinterpret_cast<retro_fastforwarding_override*>(data));
+      _this->setFastForwardingOverride(reinterpret_cast<retro_fastforwarding_override *>(data));
     break;
 
   /// 65 @todo
@@ -1100,8 +1079,7 @@ bool core_environment(unsigned cmd, void *data)
   /// Returns true if this environment call is available and the frontend supports categories
   case RETRO_ENVIRONMENT_SET_CORE_OPTIONS_V2:
     if (data)
-      _this->options()->setOptions(
-        reinterpret_cast<retro_core_options_v2*>(data));
+      _this->options()->setOptions(reinterpret_cast<retro_core_options_v2 *>(data));
     break;
 
   /// 68
@@ -1110,8 +1088,7 @@ bool core_environment(unsigned cmd, void *data)
   /// Return value is undefined
   case RETRO_ENVIRONMENT_SET_CORE_OPTIONS_V2_INTL:
     if (data)
-      _this->options()->setOptions(
-        reinterpret_cast<retro_core_options_v2_intl*>(data));
+      _this->options()->setOptions(reinterpret_cast<retro_core_options_v2_intl *>(data));
     break;
 
   /// 69
@@ -1120,7 +1097,7 @@ bool core_environment(unsigned cmd, void *data)
   /// Returns true if this environment call is available, even if data is NULL
   case RETRO_ENVIRONMENT_SET_CORE_OPTIONS_UPDATE_DISPLAY_CALLBACK:
   {
-    auto cb = reinterpret_cast<retro_core_options_update_display_callback*>(data);
+    auto cb = reinterpret_cast<retro_core_options_update_display_callback *>(data);
     if (cb)
       _this->options()->setUpdateDisplayCallback(cb->callback);
     break;
@@ -1134,7 +1111,7 @@ bool core_environment(unsigned cmd, void *data)
   {
     if (data)
     {
-      auto var = reinterpret_cast<retro_variable*>(data);
+      auto var = reinterpret_cast<retro_variable *>(data);
       _this->options()->setOptionValue(var->key, var->value);
     }
     break;
@@ -1158,7 +1135,7 @@ bool core_environment(unsigned cmd, void *data)
   /// Returns whether or not the environment call is available
   case RETRO_ENVIRONMENT_GET_JIT_CAPABLE:
     if (data)
-      *reinterpret_cast<bool*>(data) = _this->jitCapable();
+      *reinterpret_cast<bool *>(data) = _this->jitCapable();
     break;
 
   /// 75
@@ -1171,7 +1148,7 @@ bool core_environment(unsigned cmd, void *data)
       return false;
     else
     {
-      auto cb = reinterpret_cast<retro_microphone_interface*>(data);
+      auto cb = reinterpret_cast<retro_microphone_interface *>(data);
 
       cb->interface_version = _this->microphone()->interfaceVersion();
       cb->close_mic = core_microphone_close_mic;
@@ -1198,8 +1175,7 @@ bool core_environment(unsigned cmd, void *data)
   /// Returns true if the environment call is available, even if data is NULL
   case RETRO_ENVIRONMENT_GET_DEVICE_POWER:
     if (data)
-      return _this->devicePower()->get(
-        reinterpret_cast<retro_device_power*>(data));
+      return _this->devicePower()->get(reinterpret_cast<retro_device_power *>(data));
     break;
 
   /// 78 @todo
@@ -1214,17 +1190,17 @@ bool core_environment(unsigned cmd, void *data)
   /// Returns true if the environment call is available
   case RETRO_ENVIRONMENT_GET_PLAYLIST_DIRECTORY:
     if (data)
-      *reinterpret_cast<const char**>(data) =
+      *reinterpret_cast<const char **>(data) =
         _this->directories()->get(QRetroDirectories::Playlist);
     break;
-  
+
   /// 80
   /// const char**
   /// The frontend provides the starting directory path for its file browser
   /// Returns true if the environment call is available
   case RETRO_ENVIRONMENT_GET_FILE_BROWSER_START_DIRECTORY:
     if (data)
-      *reinterpret_cast<const char**>(data) =
+      *reinterpret_cast<const char **>(data) =
         _this->directories()->get(QRetroDirectories::FileBrowserStart);
     break;
 
@@ -1234,10 +1210,10 @@ bool core_environment(unsigned cmd, void *data)
   /// Returns true if the environment call is available
   case RETRO_ENVIRONMENT_GET_TARGET_SAMPLE_RATE:
     if (data)
-      *reinterpret_cast<unsigned*>(data) =
-        _this->audio()->targetSampleRate();
+      *reinterpret_cast<unsigned *>(data) = _this->audio()->targetSampleRate();
     break;
 
+    // clang-format off
   /// 82
   /// unsigned*
   /// The frontend provides the client index for the current netplay session
@@ -1255,13 +1231,12 @@ bool core_environment(unsigned cmd, void *data)
 
   /// RA 5
   /// case RETRO_ENVIRONMENT_SET_SAVE_STATE_DISABLE_UNDO:
+    // clang-format on
 
   default:
-    qWarning("Unimplemented environment callback %u (%08X)%s%s%s%s.",
-      cmd_noflags, cmd,
+    qWarning("Unimplemented environment callback %u (%08X)%s%s%s%s.", cmd_noflags, cmd,
       cmd_noflags >= RETRO_ENVIRONMENT_SIZE ? " (above maximum)" : "",
-      experimental ? " (experimental)" : "",
-      privated ? " (private)" : "",
+      experimental ? " (experimental)" : "", privated ? " (private)" : "",
       retroarch ? " (RetroArch)" : "");
     return false;
   }

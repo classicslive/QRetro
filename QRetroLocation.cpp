@@ -1,6 +1,6 @@
 #include "QRetroLocation.h"
 
-QRetroLocation::QRetroLocation(QObject* parent)
+QRetroLocation::QRetroLocation(QObject *parent)
 {
   setParent(parent);
 
@@ -9,8 +9,8 @@ QRetroLocation::QRetroLocation(QObject* parent)
 
   if (m_InfoSource)
   {
-    connect(m_InfoSource, SIGNAL(positionUpdated(QGeoPositionInfo)),
-            this, SLOT(positionUpdated(QGeoPositionInfo)));
+    connect(m_InfoSource, SIGNAL(positionUpdated(QGeoPositionInfo)), this,
+      SLOT(positionUpdated(QGeoPositionInfo)));
   }
 #endif
 }
@@ -22,8 +22,8 @@ QRetroLocation::~QRetroLocation()
 #endif
 }
 
-bool QRetroLocation::getPosition(double *lat, double *lon,
-  double *horiz_accuracy, double *vert_accuracy, bool quiet)
+bool QRetroLocation::getPosition(
+  double *lat, double *lon, double *horiz_accuracy, double *vert_accuracy, bool quiet)
 {
   if (!m_Updated)
     *lat = *lon = *horiz_accuracy = *vert_accuracy = 0;
@@ -52,8 +52,8 @@ void QRetroLocation::positionUpdated(QGeoPositionInfo update)
 }
 #endif
 
-void QRetroLocation::setPosition(double lat, double lon, double horiz_accuracy,
-  double vert_accuracy)
+void QRetroLocation::setPosition(
+  double lat, double lon, double horiz_accuracy, double vert_accuracy)
 {
   m_Latitude = lat;
   m_Longitude = lon;

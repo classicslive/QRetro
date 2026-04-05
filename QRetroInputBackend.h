@@ -12,7 +12,9 @@ class QRetroInputBackend : public QObject
 
 public:
   explicit QRetroInputBackend(QObject *parent = nullptr)
-    : QObject(parent) {}
+    : QObject(parent)
+  {
+  }
 
   virtual ~QRetroInputBackend() = default;
 
@@ -34,21 +36,36 @@ public:
    * (high-frequency). strength ranges from 0 (off) to 0xFFFF (full).
    * Returns true if rumble was applied, false if unsupported.
    */
-  virtual bool setRumble(unsigned port, retro_rumble_effect effect,
-                         uint16_t strength) { Q_UNUSED(port) Q_UNUSED(effect) Q_UNUSED(strength) return false; }
+  virtual bool setRumble(unsigned port, retro_rumble_effect effect, uint16_t strength)
+  {
+    Q_UNUSED(port)
+    Q_UNUSED(effect)
+    Q_UNUSED(strength)
+    return false;
+  }
 
   /**
    * Enables or disables a sensor (accelerometer, gyroscope, illuminance).
    * Returns true if the sensor was handled, false if unsupported.
    */
-  virtual bool setSensorState(unsigned port, retro_sensor_action action,
-                              unsigned rate) { Q_UNUSED(port) Q_UNUSED(action) Q_UNUSED(rate) return false; }
+  virtual bool setSensorState(unsigned port, retro_sensor_action action, unsigned rate)
+  {
+    Q_UNUSED(port)
+    Q_UNUSED(action)
+    Q_UNUSED(rate)
+    return false;
+  }
 
   /**
    * Returns the current value of a sensor axis for a given port.
    * id is one of the RETRO_SENSOR_* constants.
    */
-  virtual float getSensorInput(unsigned port, unsigned id) { Q_UNUSED(port) Q_UNUSED(id) return 0.0f; }
+  virtual float getSensorInput(unsigned port, unsigned id)
+  {
+    Q_UNUSED(port)
+    Q_UNUSED(id)
+    return 0.0f;
+  }
 
   /**
    * Returns true if the backend currently has a live sensor feed for the
@@ -56,7 +73,12 @@ public:
    * state — e.g. returns false if the gamepad is not connected, even if
    * the core previously called setSensorState(ENABLE).
    */
-  virtual bool sensorActive(unsigned port, unsigned id) { Q_UNUSED(port) Q_UNUSED(id) return false; }
+  virtual bool sensorActive(unsigned port, unsigned id)
+  {
+    Q_UNUSED(port)
+    Q_UNUSED(id)
+    return false;
+  }
 
 signals:
   void gamepadConnected(unsigned port);

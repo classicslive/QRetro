@@ -53,7 +53,6 @@ class QRETRO_EXPORT QRetro : public QWindow
   Q_OBJECT
 
 public:
-
   /* Initializers and deconstructors */
 
 #if QRETRO_HAVE_OPENGL
@@ -65,27 +64,27 @@ public:
 
   /* Functions that return pointers to subclasses */
 
-  QRetroAudio* audio(void) { return m_Audio; }
-  QRetroAudioVideoEnable* audioVideoEnable(void) { return &m_AudioVideoEnable; }
-  QRetroCamera* camera(void) { return &m_Camera; }
-  retro_core_t* core(void) { return &m_Core; }
-  QRetroDevicePower* devicePower(void) { return &m_DevicePower; }
-  QRetroDiskControl* diskControl(void) { return &m_DiskControl; }
-  QRetroInput* input(void) { return &m_Input; }
-  QRetroLed* led(void) { return &m_Led; }
-  QRetroLog* log(void) { return &m_Log; }
-  QRetroMessage* message(void) { return m_Message; }
-  QRetroLocation* location(void) { return m_Location; }
-  QRetroMicrophone* microphone(void) { return &m_Microphone; }
-  QRetroMidi* midi(void) { return &m_Midi; }
-  QRetroConfig* config(void);
-  QRetroOptions* options(void) { return &m_Options; }
-  QRetroDirectories* directories(void) { return &m_Directories; }
-  QRetroProcAddress* procAddress(void) { return &m_ProcAddress; }
-  QRetroSensors* sensors(void) { return &m_Sensors; }
-  QRetroUsername* username(void) { return &m_Username; }
+  QRetroAudio *audio(void) { return m_Audio; }
+  QRetroAudioVideoEnable *audioVideoEnable(void) { return &m_AudioVideoEnable; }
+  QRetroCamera *camera(void) { return &m_Camera; }
+  retro_core_t *core(void) { return &m_Core; }
+  QRetroDevicePower *devicePower(void) { return &m_DevicePower; }
+  QRetroDiskControl *diskControl(void) { return m_DiskControl; }
+  QRetroInput *input(void) { return &m_Input; }
+  QRetroLed *led(void) { return &m_Led; }
+  QRetroLog *log(void) { return &m_Log; }
+  QRetroMessage *message(void) { return m_Message; }
+  QRetroLocation *location(void) { return m_Location; }
+  QRetroMicrophone *microphone(void) { return &m_Microphone; }
+  QRetroMidi *midi(void) { return &m_Midi; }
+  QRetroConfig *config(void);
+  QRetroOptions *options(void) { return &m_Options; }
+  QRetroDirectories *directories(void) { return &m_Directories; }
+  QRetroProcAddress *procAddress(void) { return &m_ProcAddress; }
+  QRetroSensors *sensors(void) { return &m_Sensors; }
+  QRetroUsername *username(void) { return &m_Username; }
 
-/*
+  /*
 ================================================================================
     Public functions (libretro)
 ================================================================================
@@ -104,12 +103,16 @@ public:
   void updateMouse(void);
   bool initVideo(retro_hw_context_type format);
 
-  const char* contentPath() { return m_ContentPath.c_str(); }
-  const char* corePath() { return m_CorePath.c_str(); }
+  const char *contentPath() { return m_ContentPath.c_str(); }
+  const char *corePath() { return m_CorePath.c_str(); }
 
   void setGeometry(const unsigned width, const unsigned height);
   void setAvInfo(const retro_system_av_info *info);
-  void setVideoSize(unsigned width, unsigned height) { m_VideoWidth = width; m_VideoHeight = height; }
+  void setVideoSize(unsigned width, unsigned height)
+  {
+    m_VideoWidth = width;
+    m_VideoHeight = height;
+  }
 
   /**
    * Returns the FBO for the core to write to.
@@ -119,7 +122,7 @@ public:
   /**
    * Returns the function pointer for a given OpenGL symbol.
    */
-  void* glGetProcAddress(QThread *caller, const char *sym);
+  void *glGetProcAddress(QThread *caller, const char *sym);
 
   /**
    * Returns the libretro pixel format last reported by the core via
@@ -169,7 +172,7 @@ public:
    */
   void setSupportsNoGame(bool supports)
   {
-    m_SupportsNoGame    = supports;
+    m_SupportsNoGame = supports;
     m_SupportsNoGameSet = true;
   }
 
@@ -253,16 +256,16 @@ public:
    */
   void setSerializationQuirks(uint64_t *sq)
   {
-    m_SerializationQuirks    = *sq;
+    m_SerializationQuirks = *sq;
     m_SerializationQuirksSet = true;
     *sq = 0;
   }
 
-  QRetroMemory& memory() { return m_Memory; }
+  QRetroMemory &memory() { return m_Memory; }
 
   double targetRefreshRate() { return m_TargetRefreshRate; }
 
-  bool getCurrentSoftwareFramebuffer(retro_framebuffer*);
+  bool getCurrentSoftwareFramebuffer(retro_framebuffer *);
 
   /*
   ------------------------------------------------------------------------------
@@ -357,7 +360,7 @@ public:
   bool hasInputPollHandler() { return m_InputPollHandler != nullptr; }
 
   bool inputPrePolled(void) const { return m_InputPrePolled; }
-  void clearInputPrePolled(void)  { m_InputPrePolled = false; }
+  void clearInputPrePolled(void) { m_InputPrePolled = false; }
 
   /**
    * Installs a custom handler for polling inputs. The core will then call this
@@ -411,7 +414,7 @@ public:
   }
   bool uninstallInputStateHandler();
 
-  void setFastForwardingOverride(retro_fastforwarding_override*);
+  void setFastForwardingOverride(retro_fastforwarding_override *);
 
   void pause(void) { m_Paused = true; }
   void unpause(void) { m_Paused = false; }
@@ -428,6 +431,8 @@ public:
   bool stateLoad(void);
   bool stateSave(void);
   void reset(void);
+  void waitFrames(int count);
+  void execOnTimingThread(std::function<void()> action);
 
 signals:
   void onCoreLog(int level, const QString msg);
@@ -435,12 +440,10 @@ signals:
   void frameBegin(void);
   void frameEnd(void);
   void onSave(void);
-  void onVideoRefresh(const void *ptr, unsigned width, unsigned height,
-                      unsigned bytes_per_line);
+  void onVideoRefresh(const void *ptr, unsigned width, unsigned height, unsigned bytes_per_line);
 
 public slots:
-  void setImagePtr(const void *ptr, unsigned width, unsigned height,
-      unsigned bytes_per_line);
+  void setImagePtr(const void *ptr, unsigned width, unsigned height, unsigned bytes_per_line);
 
 protected:
   bool event(QEvent *event) override;
@@ -459,7 +462,7 @@ private:
   QRetroAudioVideoEnable m_AudioVideoEnable;
   QRetroCamera m_Camera;
   QRetroDevicePower m_DevicePower;
-  QRetroDiskControl m_DiskControl;
+  QRetroDiskControl *m_DiskControl;
   QRetroDirectories m_Directories;
   QRetroInput m_Input;
   QRetroInputBackend *m_InputBackend = nullptr;
@@ -470,7 +473,7 @@ private:
   QRetroLocation *m_Location = nullptr;
   QRetroMicrophone m_Microphone;
   QRetroMidi m_Midi;
-  QRetroConfig  *m_Config = nullptr;
+  QRetroConfig *m_Config = nullptr;
   QRetroOptions m_Options;
   QRetroProcAddress m_ProcAddress;
   QRetroSensors m_Sensors;
@@ -479,10 +482,10 @@ private:
   retro_core_t m_Core;
 
   bool m_JitCapable = true;
-  bool m_Overscan   = true;
+  bool m_Overscan = true;
 
   /// Whether or not the core is running
-  std::atomic<bool> m_Active{false};
+  std::atomic<bool> m_Active{ false };
 
   /// Number of seconds to wait before flushing save RAM to disk
   unsigned m_AutosaveInterval = 5;
@@ -503,11 +506,11 @@ private:
   float m_FastForwardRatio = 0.0;
 
   /// Number of calls to retro_run completed
-  std::atomic<unsigned long> m_Frames{0};
+  std::atomic<unsigned long> m_Frames{ 0 };
 
   /// Set by the timing thread after retro_load_game succeeds, before retro_run.
   /// The saving thread waits on this before touching core memory.
-  std::atomic<bool> m_SramReady{false};
+  std::atomic<bool> m_SramReady{ false };
 
   /// Whether or not input has been received between calls to retro_run
   bool m_InputReady = false;
@@ -566,10 +569,10 @@ private:
 
   /// The reported serialization quirk flags of the core
   /// @see RETRO_ENVIRONMENT_SET_SERIALIZATION_QUIRKS
-  uint64_t m_SerializationQuirks    = 0;
+  uint64_t m_SerializationQuirks = 0;
 
   /// Whether or not the core has set serialization quirks
-  bool     m_SerializationQuirksSet = false;
+  bool m_SerializationQuirksSet = false;
 
   /// A pointer to a framebuffer the frontend manages, rather than the core.
   /// @see RETRO_ENVIRONMENT_GET_CURRENT_SOFTWARE_FRAMEBUFFER
@@ -586,7 +589,7 @@ private:
 
   /// Whether or not the core reports to support starting with no content
   /// @see RETRO_ENVIRONMENT_SET_SUPPORT_NO_GAME
-  bool m_SupportsNoGame    = false;
+  bool m_SupportsNoGame = false;
 
   /// Whether or not the core has set the no-game support flag
   bool m_SupportsNoGameSet = false;
@@ -603,7 +606,7 @@ private:
   QImage m_Image;
   QRect m_BaseRect;
   QRect m_Rect;
-  unsigned m_VideoWidth  = 0;
+  unsigned m_VideoWidth = 0;
   unsigned m_VideoHeight = 0;
 
   /** @todo Configurable state size */
@@ -612,7 +615,7 @@ private:
 
   QImage::Format m_PixelFormat = QImage::Format_RGB555;
 
-  bool m_AudioEnabled   = true;
+  bool m_AudioEnabled = true;
   bool m_BilinearFilter = true;
   bool m_IntegerScaling = false;
   unsigned m_Rotation = 0;
@@ -644,7 +647,6 @@ private:
   bool (*m_InputPollHandler)(void) = nullptr;
   int16_t (*m_InputStateHandler)(unsigned, unsigned, unsigned, unsigned) = nullptr;
 
-  void execOnTimingThread(std::function<void()> action);
   bool inputReady() { return hasInputPollHandler() ? m_InputReady : true; }
   void setupPainter(QPainter *painter);
   void unloadCore(void);

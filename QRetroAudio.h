@@ -54,8 +54,8 @@ public:
 private:
   bool m_Enabled = true;
   QAudioOutput *m_AudioOutput = nullptr;
-  QByteArray    m_AudioBuffer;
-  QIODevice    *m_AudioDevice = nullptr;
+  QByteArray m_AudioBuffer;
+  QIODevice *m_AudioDevice = nullptr;
 
   double m_FramesPerSecond = 60.0;
   unsigned m_BufferFrames = 1;
