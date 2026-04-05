@@ -13,7 +13,7 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
-    - name: Install clang-format
-      run: sudo apt-get install -y clang-format
+    - name: Install clang-format-19
+      run: sudo apt-get install -y clang-format-19
     - name: Check style
       run: tools/check-style.sh

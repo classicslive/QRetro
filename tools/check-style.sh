@@ -8,6 +8,7 @@
 # Some existing files contain hand-aligned code that predates this style guide.
 
 SCRIPT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+CLANG_FORMAT="${CLANG_FORMAT:-$(command -v clang-format-19 || command -v clang-format)}"
 FIX=0
 FILES=()
 
@@ -28,10 +29,10 @@ FAIL=0
 
 for f in "${FILES[@]}"; do
   if [[ "$FIX" -eq 1 ]]; then
-    clang-format -i "$f"
+    "$CLANG_FORMAT" -i "$f"
     echo "formatted: $f"
   else
-    DIFF=$(diff --unified=2 <(clang-format "$f") "$f")
+    DIFF=$(diff --unified=2 <("$CLANG_FORMAT" "$f") "$f")
     if [[ -n "$DIFF" ]]; then
       echo "FAIL: $f"
       echo "$DIFF" | grep -E "^(@@|\+[^+]|-[^-])" | sed 's/^/  /'
