@@ -54,8 +54,8 @@ QCoreApplication::setAttribute(Qt::AA_ShareOpenGLContexts);
 
 See the following wiki pages for information on QRetro's compatibility with specific libretro cores and features:
 
-- https://github.com/classicslive/QRetro/docs/Cores.md
-- https://github.com/classicslive/QRetro/docs/Environment.md
+- https://github.com/classicslive/QRetro/blob/master/docs/Cores.md
+- https://github.com/classicslive/QRetro/blob/master/docs/Environment.md
 
 ## Building
 
