@@ -22,6 +22,8 @@ If you wish to instead link against a QRetro binary, build QRetro using the .pro
 
 ## Usage
 
+### QWindow
+
 To instantiate a QRetro object, set it up, and display it:
 
 ```c++
@@ -35,26 +37,24 @@ retro->startCore();
 retro->show();
 ```
 
+This will display the core in its own window:
+
+<img height="480" alt="image" src="https://github.com/user-attachments/assets/252a635f-2cb9-43c1-9479-ab299d4b5bc9" />
+
 ### QWidget
 
-QRetro can be wrapped in a QWidget for display in a Qt UI layout like so:
+QRetro can then be wrapped in a QWidget for display in a Qt UI layout like so:
 
 ```c++
 auto retrowidget = QWidget::createWindowContainer(retro);
 retrowidget->show();
 ```
 
-### OpenGL context
-
-If you plan to use hardware-accelerated cores using OpenGL, include the following line before initializing your QApplication:
-
-```c++
-QCoreApplication::setAttribute(Qt::AA_ShareOpenGLContexts);
-```
+<img height="480" alt="image" src="https://github.com/user-attachments/assets/1b4f0007-ef3e-4e5c-a383-44055fa683c3" />
 
 ## Compatibility
 
-See the following wiki pages for information on QRetro's compatibility with specific libretro cores and features:
+QRetro aims to support any libretro core and as many libretro extensions as possible. See the following pages for information on QRetro's compatibility with specific cores and features:
 
 - https://github.com/classicslive/QRetro/blob/master/docs/Cores.md
 - https://github.com/classicslive/QRetro/blob/master/docs/Environment.md
