@@ -1,6 +1,8 @@
 # QRetro
 
-QRetro is a libretro API frontend implemented within a Qt QWindow. It supports multi-instancing, allowing multiple instances of libretro cores to run simultaneously.
+<img width="640" height="480" alt="image" src="https://github.com/user-attachments/assets/752211c2-6b24-46b7-bbcf-d4238a8a837c" />
+
+**QRetro** is a [libretro API](https://www.libretro.com/) frontend implemented entirely within a Qt [QWindow](https://doc.qt.io/qt-6/qwindow.html). It supports multi-instancing, allowing multiple instances of libretro cores to run simultaneously.
 
 ## Getting started
 
