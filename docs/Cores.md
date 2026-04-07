@@ -25,6 +25,10 @@ Very good.
 
 Good. Relies on GPU hardware access, using OpenGL, DirectX, etc.
 
+Some features like savestates crash unless `"dolphin_main_cpu_thread"` is set to `"disabled"` because of libretro callbacks being buggy with the dual-core mode.
+
+Multi-instancing will break very quickly without `"dolphin_fastmem"` set to `"disabled"`, as this makes Dolphin allocate memory to a fixed location.
+
 # DOSBox Pure
 <img src="https://github.com/classicslive/QRetro/assets/33245078/1f81afec-9819-450e-9daf-51955f8f7c2e" height="256">
 
@@ -55,6 +59,8 @@ https://github.com/classicslive/QRetro/assets/33245078/da4c16e2-3e04-4b7d-afaf-7
 
 Very good. Uses microphone interface.
 
+Crashes when switching to the OpenGL renderer at runtime, but if it's already enabled it will boot into it fine.
+
 # Snes9X
 
 <img src="https://github.com/classicslive/QRetro/assets/33245078/b3c18e8c-ead4-4b3d-88b2-020a802000d1" height="256">
@@ -62,11 +68,15 @@ Very good. Uses microphone interface.
 Perfect.
 
 # PCSX2
-<img src="https://github.com/classicslive/QRetro/assets/33245078/caa0aa89-fe57-481b-936f-334a17c9ab29" height="256">
-<img src="https://github.com/classicslive/QRetro/assets/33245078/8c543893-a6e1-4fcf-b162-cf581ea9b236" height="256">
-<img src="https://github.com/classicslive/QRetro/assets/33245078/12a8fd24-7014-4d84-aef3-f07899a39db6" height="256">
 
-Bad. Variable-resolution games do not display correctly in all contexts
+<img height="256" alt="image" src="https://github.com/user-attachments/assets/ec655a80-10f5-4367-91b9-25b226712a18" />
+<img height="256" alt="image" src="https://github.com/user-attachments/assets/424899cc-2010-4592-8844-f5a5e6ee0203" />
+
+Good.
+
+<img height="256" alt="image" src="https://github.com/user-attachments/assets/0ec2c54d-2a6d-4e4b-91fb-925b95f994c0" />
+
+Some games need `"pcsx2_renderer"` set to `"Software"` to display correctly. Not sure if this is a core bug or QRetro.
 
 # Play!
 
@@ -84,14 +94,13 @@ Very good.
 
 # PPSSPP
 
-Crashes. Needs FBO to be setup in the correct context.
+<img width="613" height="429" alt="image" src="https://github.com/user-attachments/assets/6c94eac1-636e-41ae-83bc-8a5f83f1d1bb" />
 
-```
-(../GPU/GPU.cpp:GPU_Init:67): [draw || gpuCore == GPUCORE_SOFTWARE] (menu, 0.1s) Assert!
-```
+Seems good.
+
+Spams a context reset when changing internal resolution at runtime.
 
 # SwanStation
-<img src="https://github.com/classicslive/QRetro/assets/33245078/adba58bb-e612-4244-83f1-2c834e495c95" height="256">
-<img src="https://github.com/classicslive/QRetro/assets/33245078/f1f09953-ef9f-4fba-9649-a4834508e881" height="256">
+<img height="256" alt="image" src="https://github.com/user-attachments/assets/28083402-e0b2-4746-ad79-a9ae7c8f55e9" />
 
-Very good on older binaries, bad on current ones. Scaling was broken at some point.
+Seems good.
