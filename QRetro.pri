@@ -149,6 +149,7 @@ SOURCES += \
   $$PWD/QRetroDirectories.cpp \
   $$PWD/QRetroEnvironment.cpp \
   $$PWD/QRetroInput.cpp \
+  $$PWD/QRetroLed.cpp \
   $$PWD/QRetroLocation.cpp \
   $$PWD/QRetroMicrophone.cpp \
   $$PWD/QRetroMemory.cpp \

@@ -55,16 +55,16 @@ void QRetroInputBackendSDL3::poll()
     SDL_JoystickID id = event.gdevice.which;
 
     // Ignore stale add-events for gamepads already opened during init().
-    bool alreadyOpen = false;
+    bool already_open = false;
     for (unsigned port = 0; port < m_MaxUsers; port++)
     {
       if (m_InstanceIds[port] == id)
       {
-        alreadyOpen = true;
+        already_open = true;
         break;
       }
     }
-    if (alreadyOpen)
+    if (already_open)
       continue;
 
     for (unsigned port = 0; port < m_MaxUsers; port++)

@@ -71,3 +71,5 @@ Thumbs.db
 *.dll
 *.exe
 
+moc_predefs.h
+compile_commands.json

@@ -16,11 +16,7 @@ public:
    * @param index The index of the LED.
    * @return State of the LED. If not found, returns QRETRO_LED_DEFAULT_STATE.
    */
-  int state(int index)
-  {
-    auto led = m_Leds.find(index);
-    return led == m_Leds.end() ? QRETRO_LED_DEFAULT_STATE : led->second;
-  }
+  int state(int index);
 
   const std::map<int, int> &leds(void) const { return m_Leds; }
 
@@ -30,14 +26,7 @@ public:
    * @param state The new state to set for the LED.
    * @note If an LED with the index does not exist, it will be created.
    */
-  void setState(int index, int state)
-  {
-    if (m_Leds[index] != state)
-    {
-      m_Leds[index] = state;
-      emit changed(index, state);
-    }
-  }
+  void setState(int index, int state);
 
 signals:
   void changed(int index, int state);

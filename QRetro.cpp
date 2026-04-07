@@ -127,34 +127,34 @@ void QRetro::updateScaling()
     ar = static_cast<double>(bw) / bh;
 
   /* Grow the window if it is smaller than 1x scale */
-  int min1xW = swap ? bh : static_cast<int>(ceil(ar * bh));
-  int min1xH = swap ? static_cast<int>(ceil(ar * bh)) : bh;
-  if (size().width() < min1xW || size().height() < min1xH)
+  int min1x_w = swap ? bh : static_cast<int>(ceil(ar * bh));
+  int min1x_h = swap ? static_cast<int>(ceil(ar * bh)) : bh;
+  if (size().width() < min1x_w || size().height() < min1x_h)
   {
-    int newW = qMax(size().width(), min1xW);
-    int newH = qMax(size().height(), min1xH);
+    int new_w = qMax(size().width(), min1x_w);
+    int new_h = qMax(size().height(), min1x_h);
     QMetaObject::invokeMethod(
-      this, [this, newW, newH]() { resize(newW, newH); }, Qt::QueuedConnection);
+      this, [this, new_w, new_h]() { resize(new_w, new_h); }, Qt::QueuedConnection);
     return;
   }
 
-  double fitW = swap ? static_cast<double>(size().width()) / bh
-                     : static_cast<double>(size().width()) / (ar * bh);
-  double fitH = swap ? static_cast<double>(size().height()) / (ar * bh)
-                     : static_cast<double>(size().height()) / bh;
-  double mult = qMin(fitW, fitH);
+  double fit_w = swap ? static_cast<double>(size().width()) / bh
+                      : static_cast<double>(size().width()) / (ar * bh);
+  double fit_h = swap ? static_cast<double>(size().height()) / (ar * bh)
+                      : static_cast<double>(size().height()) / bh;
+  double mult = qMin(fit_w, fit_h);
 
   /* Use integer scaling if requested */
   if (m_IntegerScaling && mult > 0)
     mult = floor(mult);
 
-  int dispW = static_cast<int>(ar * bh * mult);
-  int dispH = static_cast<int>(bh * mult);
+  int disp_w = static_cast<int>(ar * bh * mult);
+  int disp_h = static_cast<int>(bh * mult);
 
   /* Center the rect in the available screenspace */
-  m_Rect.setSize(QSize(dispW, dispH));
-  m_Rect.moveLeft((size().width() - dispW) / 2);
-  m_Rect.moveTop((size().height() - dispH) / 2);
+  m_Rect.setSize(QSize(disp_w, disp_h));
+  m_Rect.moveLeft((size().width() - disp_w) / 2);
+  m_Rect.moveTop((size().height() - disp_h) / 2);
 
   m_ScalingFactor = mult;
 }
@@ -771,8 +771,8 @@ QRetro::~QRetro(void)
 
 void QRetro::timing()
 {
-  QElapsedTimer frameTimer;
-  frameTimer.start();
+  QElapsedTimer frame_timer;
+  frame_timer.start();
 
 #if QRETRO_HAVE_OPENGL
   m_pfnSwapInterval = nullptr;
@@ -863,7 +863,7 @@ void QRetro::timing()
 
   while (m_Active)
   {
-    frameTimer.restart();
+    frame_timer.restart();
 
     {
       QMutexLocker lock(&m_PendingMutex);
@@ -954,7 +954,7 @@ void QRetro::timing()
 
       if (surfaceType() == QSurface::RasterSurface)
       {
-        int remaining = ms - static_cast<int>(frameTimer.elapsed());
+        int remaining = ms - static_cast<int>(frame_timer.elapsed());
         if (remaining > 0)
           QThread::msleep(remaining);
       }
@@ -1109,7 +1109,7 @@ void QRetro::saving()
       .arg(
         m_Directories.get(QRetroDirectories::Save), QFileInfo(contentPath()).completeBaseName()));
 
-  QByteArray initialBuffer;
+  QByteArray initial_buffer;
 
   while (!m_Active)
     ;
@@ -1117,7 +1117,7 @@ void QRetro::saving()
   /* Read save file into buffer once */
   if (save_file.exists() && save_file.open(QIODevice::ReadOnly))
   {
-    initialBuffer = save_file.readAll();
+    initial_buffer = save_file.readAll();
     save_file.close();
   }
 
@@ -1132,13 +1132,13 @@ void QRetro::saving()
     void *data = m_Core.retro_get_memory_data(RETRO_MEMORY_SAVE_RAM);
     size_t size = m_Core.retro_get_memory_size(RETRO_MEMORY_SAVE_RAM);
 
-    if (data && size && !initialBuffer.isEmpty())
+    if (data && size && !initial_buffer.isEmpty())
     {
-      size_t copySize = std::min<size_t>(size, static_cast<size_t>(initialBuffer.size()));
-      memcpy(data, initialBuffer.constData(), copySize);
+      size_t copy_size = std::min<size_t>(size, static_cast<size_t>(initial_buffer.size()));
+      memcpy(data, initial_buffer.constData(), copy_size);
 
       hasher.reset();
-      hasher.addData(reinterpret_cast<const char *>(data), static_cast<int>(copySize));
+      hasher.addData(reinterpret_cast<const char *>(data), static_cast<int>(copy_size));
       hash = hasher.result();
     }
   }

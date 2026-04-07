@@ -194,18 +194,18 @@ bool QRetroOption::determineType()
     for (auto &pair : pairs)
     {
       QString t(pair[0]), f(pair[1]);
-      QString foundTrue, foundFalse;
+      QString found_true, found_false;
       for (auto &v : values)
       {
         if (!v.compare(t, Qt::CaseInsensitive))
-          foundTrue = v;
+          found_true = v;
         if (!v.compare(f, Qt::CaseInsensitive))
-          foundFalse = v;
+          found_false = v;
       }
-      if (!foundTrue.isEmpty() && !foundFalse.isEmpty())
+      if (!found_true.isEmpty() && !found_false.isEmpty())
       {
-        m_BoolTrueValue = foundTrue.toStdString();
-        m_BoolFalseValue = foundFalse.toStdString();
+        m_BoolTrueValue = found_true.toStdString();
+        m_BoolFalseValue = found_false.toStdString();
         m_Type = QRetroOption::Bool;
         return true;
       }
@@ -556,22 +556,22 @@ void QRetroOptions::update()
   auto *vbox = new QVBoxLayout(content);
 
   using OptionList = std::vector<std::pair<std::string, QRetroOption *>>;
-  std::vector<QGroupBox *> allSections;
+  std::vector<QGroupBox *> all_sections;
 
   /* Adds a single option row (label + control, plus optional description).
    * Returns the number of grid rows consumed (1 or 2). */
-  auto addRow = [this](QWidget *parent, QGridLayout *grid, int row, const std::string &key,
-                  QRetroOption *var) -> int {
+  auto add_row = [this](QWidget *parent, QGridLayout *grid, int row, const std::string &key,
+                   QRetroOption *var) -> int {
     switch (var->type())
     {
     case QRetroOption::Bool:
     {
-      std::string trueVal = var->boolTrueValue();
-      std::string falseVal = var->boolFalseValue();
+      std::string true_val = var->boolTrueValue();
+      std::string false_val = var->boolFalseValue();
       auto *elem = new QCheckBox(parent);
-      elem->setChecked(strcmp(var->getValue(), falseVal.c_str()) != 0);
-      connect(elem, &QCheckBox::stateChanged, [this, key, trueVal, falseVal](int state) {
-        setOptionValue(key.c_str(), state == Qt::Unchecked ? falseVal.c_str() : trueVal.c_str());
+      elem->setChecked(strcmp(var->getValue(), false_val.c_str()) != 0);
+      connect(elem, &QCheckBox::stateChanged, [this, key, true_val, false_val](int state) {
+        setOptionValue(key.c_str(), state == Qt::Unchecked ? false_val.c_str() : true_val.c_str());
       });
       auto *label = new QLabel(var->title(), parent);
       label->setEnabled(var->getVisibility());
@@ -600,21 +600,21 @@ void QRetroOptions::update()
     const char *desc = var->description();
     if (desc && *desc)
     {
-      auto *descLabel = new QLabel(desc, parent);
-      QFont f = descLabel->font();
+      auto *desc_label = new QLabel(desc, parent);
+      QFont f = desc_label->font();
       f.setPointSize(qMax(f.pointSize() - 2, 7));
-      descLabel->setFont(f);
-      descLabel->setEnabled(var->getVisibility());
-      descLabel->setWordWrap(true);
-      descLabel->setForegroundRole(QPalette::Dark);
-      grid->addWidget(descLabel, row + 1, 0, 1, 1);
+      desc_label->setFont(f);
+      desc_label->setEnabled(var->getVisibility());
+      desc_label->setWordWrap(true);
+      desc_label->setForegroundRole(QPalette::Dark);
+      grid->addWidget(desc_label, row + 1, 0, 1, 1);
       return 2;
     }
     return 1;
   };
 
   /* Returns true if m_Categories contains a category with the given key. */
-  auto hasCategory = [&](const std::string &key) {
+  auto has_category = [&](const std::string &key) {
     for (auto &p : m_Categories)
       if (p.first == key)
         return true;
@@ -622,16 +622,16 @@ void QRetroOptions::update()
   };
 
   /* Builds a collapsible section from a list of options. */
-  auto makeSection = [&](const QString &title, const OptionList &opts) {
+  auto make_section = [&](const QString &title, const OptionList &opts) {
     if (opts.empty())
       return;
 
     /* Gray the header when every option in the section is invisible. */
-    bool anyVisible = false;
+    bool any_visible = false;
     for (auto &p : opts)
       if (p.second && p.second->getVisibility())
       {
-        anyVisible = true;
+        any_visible = true;
         break;
       }
 
@@ -642,7 +642,7 @@ void QRetroOptions::update()
       "QPushButton { text-align: left; font-weight: bold; padding: 4px; border: none; }"
       "QPushButton:hover { background: palette(midlight); }");
 
-    if (!anyVisible)
+    if (!any_visible)
     {
       QPalette pal = btn->palette();
       pal.setColor(QPalette::ButtonText,
@@ -651,7 +651,7 @@ void QRetroOptions::update()
     }
 
     auto *section = new QGroupBox(content);
-    allSections.push_back(section);
+    all_sections.push_back(section);
     section->setVisible(false);
     auto *grid = new QGridLayout(section);
     grid->setColumnStretch(0, 1);
@@ -659,7 +659,7 @@ void QRetroOptions::update()
     int row = 0;
     for (auto &p : opts)
       if (p.second)
-        row += addRow(section, grid, row, p.first, p.second);
+        row += add_row(section, grid, row, p.first, p.second);
 
     connect(btn, &QPushButton::toggled, [btn, section, title](bool open) {
       section->setVisible(open);
@@ -673,7 +673,7 @@ void QRetroOptions::update()
   if (!m_Categories.empty())
   {
     /* Partition variables into per-category lists and an uncategorised list. */
-    std::map<std::string, OptionList> byCategory;
+    std::map<std::string, OptionList> by_category;
     OptionList uncategorized;
 
     for (const auto &key : m_VariableOrder)
@@ -681,18 +681,18 @@ void QRetroOptions::update()
       auto it = m_Variables.find(key);
       if (it == m_Variables.end() || !it->second)
         continue;
-      const std::string &catKey = it->second->categoryKey();
-      if (!catKey.empty() && hasCategory(catKey))
-        byCategory[catKey].push_back(*it);
+      const std::string &cat_key = it->second->categoryKey();
+      if (!cat_key.empty() && has_category(cat_key))
+        by_category[cat_key].push_back(*it);
       else
         uncategorized.push_back(*it);
     }
 
     /* Emit categories in the order they appear in m_Categories. */
-    for (auto &catPair : m_Categories)
-      makeSection(QString(catPair.second->title(Language::Local)), byCategory[catPair.first]);
+    for (auto &cat_pair : m_Categories)
+      make_section(QString(cat_pair.second->title(Language::Local)), by_category[cat_pair.first]);
 
-    makeSection(tr("Other"), uncategorized);
+    make_section(tr("Other"), uncategorized);
   }
   else
   {
@@ -706,21 +706,21 @@ void QRetroOptions::update()
     {
       auto it = m_Variables.find(key);
       if (it != m_Variables.end() && it->second)
-        row += addRow(section, grid, row, it->first, it->second);
+        row += add_row(section, grid, row, it->first, it->second);
     }
     vbox->addWidget(section);
   }
 
   vbox->addStretch();
 
-  auto *scrollArea = new QScrollArea();
-  scrollArea->setWidget(content);
-  scrollArea->setWidgetResizable(true);
-  scrollArea->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+  auto *scroll_area = new QScrollArea();
+  scroll_area->setWidget(content);
+  scroll_area->setWidgetResizable(true);
+  scroll_area->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
 
   auto *outer = new QVBoxLayout();
   outer->setContentsMargins(0, 0, 0, 0);
-  outer->addWidget(scrollArea);
+  outer->addWidget(scroll_area);
 
   setWindowTitle(QString("%1 Options (v%2)").arg(m_CoreName).arg(m_Version));
   setLayout(outer);
@@ -728,14 +728,14 @@ void QRetroOptions::update()
   /* Temporarily expand all sections so the layout can compute the natural
    * content width (sections start collapsed, so their width would otherwise
    * be excluded from the size hint). */
-  for (auto *s : allSections)
+  for (auto *s : all_sections)
     s->setVisible(true);
   content->layout()->activate();
-  int fitWidth = content->sizeHint().width() + style()->pixelMetric(QStyle::PM_ScrollBarExtent);
-  for (auto *s : allSections)
+  int fit_width = content->sizeHint().width() + style()->pixelMetric(QStyle::PM_ScrollBarExtent);
+  for (auto *s : all_sections)
     s->setVisible(false);
 
-  resize(fitWidth, 480);
+  resize(fit_width, 480);
 }
 
 bool QRetroOptions::variablesUpdated(bool quiet)
