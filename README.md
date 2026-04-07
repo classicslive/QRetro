@@ -2,31 +2,37 @@
 
 <img width="640" height="480" alt="image" src="https://github.com/user-attachments/assets/752211c2-6b24-46b7-bbcf-d4238a8a837c" />
 
-**QRetro** is a [libretro API](https://www.libretro.com/) frontend implemented entirely within a Qt [QWindow](https://doc.qt.io/qt-6/qwindow.html). It supports multi-instancing, allowing multiple instances of libretro cores to run simultaneously.
+**QRetro** is a [libretro API](https://www.libretro.com/) frontend implemented entirely within a Qt [QWindow](https://doc.qt.io/qt-6/qwindow.html). It supports multi-instancing, allowing multiple instances of libretro cores to run simultaneously and self-contained.
 
-## Getting started
+<img width="822" height="429" alt="image" src="https://github.com/user-attachments/assets/2dd856e7-1573-4f4d-856e-ddf4cdfb2c1a" />
 
-To use QRetro in your project, use one of the following options:
+An extensive configuration menu is available by pressing **Shift+F2**, providing access to nearly every libretro feature, useful for both end users and core creators/debuggers.
 
-### Static compilation
+---
 
-If you wish to statically compile QRetro into your project, clone this repo and include the .pri file in your qmake project:
+## Getting Started
+
+To use QRetro in your Qt-based project, choose one of the following approaches:
+
+### Static Compilation
+
+Clone this repository and include the `.pri` file in your qmake project:
 
 ```qmake
 include(QRetro/QRetro.pri)
 ```
 
-### Linking the QRetro binary
+### Linking the QRetro Binary
 
-If you wish to instead link against a QRetro binary, build QRetro using the .pro file instead. Pre-built binaries are not yet available.
+Alternatively (not recommended), you can build QRetro using the `.pro` file and link against the resulting binary.
 
 ## Usage
 
 ### QWindow
 
-To instantiate a QRetro object, set it up, and display it:
+To instantiate and display a QRetro instance:
 
-```c++
+```cpp
 #include <QRetro.h>
    
 auto retro = new QRetro();
@@ -43,41 +49,52 @@ This will display the core in its own window:
 
 ### QWidget
 
-QRetro can then be wrapped in a QWidget for display in a Qt UI layout like so:
+You can wrap QRetro inside a QWidget for integration into a Qt UI layout like so:
 
-```c++
+```cpp
 auto retrowidget = QWidget::createWindowContainer(retro);
 retrowidget->show();
 ```
 
 <img height="480" alt="image" src="https://github.com/user-attachments/assets/1b4f0007-ef3e-4e5c-a383-44055fa683c3" />
 
+## Demo
+
+An example program that initializes QRetro instances is available in `examples/minimal`. Simply open the `minimal.pro` file in Qt Creator or compile it manually.
+
 ## Compatibility
 
-QRetro aims to support any libretro core and as many libretro extensions as possible. See the following pages for information on QRetro's compatibility with specific cores and features:
+QRetro aims to support any libretro core and as many libretro extensions as possible.
 
-- https://github.com/classicslive/QRetro/blob/master/docs/Cores.md
-- https://github.com/classicslive/QRetro/blob/master/docs/Environment.md
+For detailed compatibility information:
+
+* [https://github.com/classicslive/QRetro/blob/master/docs/Cores.md](https://github.com/classicslive/QRetro/blob/master/docs/Cores.md)
+* [https://github.com/classicslive/QRetro/blob/master/docs/Environment.md](https://github.com/classicslive/QRetro/blob/master/docs/Environment.md)
 
 ## Building
 
-QRetro requires the following Qt modules:
-- `core`
-- `gui`
-- `multimedia`
+### Required Qt Modules
 
-The following modules and libraries are optional, and can be disabled by including the associated CONFIG define in your qmake project:
+* `core`
+* `gui`
 
-| Dependency | Configuration Flag |
-|---------------------------|------------------------------|
-| QCamera / Qt multimedia module | `QRETRO_CONFIG_NO_CAMERA` |
-| Qt gamepad module | `QRETRO_CONFIG_NO_GAMEPAD` |
-| Qt positioning module | `QRETRO_CONFIG_NO_LOCATION` |
-| [QMidi](https://github.com/waddlesplash/QMidi) submodule | `QRETRO_CONFIG_NO_MIDI` |
-| Qt multimedia module | `QRETRO_CONFIG_NO_MULTIMEDIA` |
-| Qt opengl module / OpenGL libraries | `QRETRO_CONFIG_NO_OPENGL` |
-| Qt sensors module | `QRETRO_CONFIG_NO_SENSORS` |
-| Qt Mobility systeminfo module | `QRETRO_CONFIG_NO_SYSTEMINFO` |
+### Optional Modules & Configuration Flags
+
+These dependencies can be disabled via `CONFIG` flags in your qmake project:
+
+| Dependency                                               | Configuration Flag            |
+| -------------------------------------------------------- | ----------------------------- |
+| QCamera / Qt multimedia module                           | `QRETRO_CONFIG_NO_CAMERA`     |
+| Qt gamepad module                                        | `QRETRO_CONFIG_NO_GAMEPAD`    |
+| Qt positioning module                                    | `QRETRO_CONFIG_NO_LOCATION`   |
+| [QMidi](https://github.com/waddlesplash/QMidi) submodule | `QRETRO_CONFIG_NO_MIDI`       |
+| Qt multimedia module                                     | `QRETRO_CONFIG_NO_MULTIMEDIA` |
+| Qt opengl module / OpenGL libraries                      | `QRETRO_CONFIG_NO_OPENGL`     |
+| SDL3 input module                                        | `QRETRO_CONFIG_NO_SDL3`       |
+| Qt sensors module                                        | `QRETRO_CONFIG_NO_SENSORS`    |
+| Qt Mobility systeminfo module                            | `QRETRO_CONFIG_NO_SYSTEMINFO` |
+
+Example:
 
 ```qmake
 CONFIG += QRETRO_CONFIG_NO_LOCATION
