@@ -33,7 +33,7 @@ int main(int argc, char *argv[])
 
     if (corePath.isEmpty())
       return;
- 
+
     auto *retro = new QRetro();
     if (!retro->loadCore(corePath.toUtf8().constData()))
     {
