@@ -507,6 +507,10 @@ private:
 
   QString stateFilePath(void);
 
+#if QRETRO_HAVE_OPENGL
+  void glInitCoreContext(QThread *thread);
+#endif
+
   QRetroAudio *m_Audio = nullptr;
   QRetroAudioVideoEnable m_AudioVideoEnable;
   QRetroCamera m_Camera;

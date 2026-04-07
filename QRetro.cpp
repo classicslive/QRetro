@@ -36,9 +36,33 @@
 using namespace std;
 using namespace std::chrono;
 
+#if QRETRO_HAVE_OPENGL
+void QRetro::glInitCoreContext(QThread *thread)
+{
+  if (m_OpenGlContextCore)
+    return;
+  m_OpenGlContextCore = new QOpenGLContext();
+  m_OpenGlContextCore->moveToThread(thread);
+  m_OpenGlContextCore->setFormat(requestedFormat());
+  m_OpenGlContextCore->create();
+  m_OpenGlContextCore->makeCurrent(this);
+  initializeOpenGLFunctions();
+}
+#endif
+
 long long unsigned QRetro::glGetCurrentFramebuffer(void)
 {
 #if QRETRO_HAVE_OPENGL
+  glInitCoreContext(QThread::currentThread());
+
+  if (QOpenGLContext::currentContext() != m_OpenGlContextCore)
+  {
+    if (m_OpenGlContextCore->thread() != QThread::currentThread())
+      return m_OpenGlFbo ? m_OpenGlFbo->handle() : 0;
+    if (!m_OpenGlContextCore->makeCurrent(this))
+      return 0;
+  }
+
   /**
    * Create framebuffer if it is invalid or null.
    * The FBO must be at least max_width x max_height so cores that render
@@ -84,15 +108,7 @@ long long unsigned QRetro::glGetCurrentFramebuffer(void)
 void *QRetro::glGetProcAddress(QThread *caller, const char *symbol)
 {
 #if QRETRO_HAVE_OPENGL
-  if (!m_OpenGlContextCore)
-  {
-    m_OpenGlContextCore = new QOpenGLContext();
-    m_OpenGlContextCore->moveToThread(caller);
-    m_OpenGlContextCore->setFormat(requestedFormat());
-    m_OpenGlContextCore->create();
-    m_OpenGlContextCore->makeCurrent(this);
-    initializeOpenGLFunctions();
-  }
+  glInitCoreContext(caller);
 
   if (m_OpenGlContextCore)
   {
