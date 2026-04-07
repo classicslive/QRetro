@@ -38,6 +38,7 @@ public:
 
   void pushSamples(const sample_t *data, size_t frames);
 
+  double baseSampleRate(void) { return m_SampleRateBase; }
   double sampleRate(void) { return m_SampleRateCurrent; }
 
   unsigned targetSampleRate(void) { return m_TargetSampleRate; }

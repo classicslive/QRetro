@@ -187,7 +187,7 @@ void QRetro::setAvInfo(const retro_system_av_info *info)
   m_Core.av_info = *info;
   setGeometry(info->geometry.base_width, info->geometry.base_height);
 
-  if (m_Audio)
+  if (m_Audio && m_Audio->baseSampleRate() != info->timing.sample_rate)
   {
     delete m_Audio;
     m_Audio = new QRetroAudio(info->timing.sample_rate, 60.0, m_TargetRefreshRate);
