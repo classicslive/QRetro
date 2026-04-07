@@ -93,18 +93,18 @@ public:
   bool loadContent(const char *path, const char *meta = nullptr);
   bool startCore(void);
 
-  QPoint mouseDelta() { return m_MouseDelta; }
-  QPoint mousePosition() { return m_MousePosition; }
-  int mousewheelV() { return m_Mousewheel[0]; }
-  int mousewheelH() { return m_Mousewheel[1]; }
-  QPoint pointerPosition() { return m_PointerPosition; }
-  bool pointerValid() { return m_PointerValid; }
-  bool isActive() { return m_Active; }
+  QPoint mouseDelta(void) { return m_MouseDelta; }
+  QPoint mousePosition(void) { return m_MousePosition; }
+  int mousewheelV(void) { return m_Mousewheel[0]; }
+  int mousewheelH(void) { return m_Mousewheel[1]; }
+  QPoint pointerPosition(void) { return m_PointerPosition; }
+  bool pointerValid(void) { return m_PointerValid; }
+  bool isActive(void) { return m_Active; }
   void updateMouse(void);
   bool initVideo(retro_hw_context_type format);
 
-  const char *contentPath() { return m_ContentPath.c_str(); }
-  const char *corePath() { return m_CorePath.c_str(); }
+  const char *contentPath(void) { return m_ContentPath.c_str(); }
+  const char *corePath(void) { return m_CorePath.c_str(); }
 
   void setGeometry(const unsigned width, const unsigned height);
   void setAvInfo(const retro_system_av_info *info);
@@ -176,11 +176,60 @@ public:
     m_SupportsNoGameSet = true;
   }
 
+  /// RetroArch: Returns the value of the save-state-in-background hint set by the core.
+  bool raSaveStateInBackground(void) { return m_RaSaveStateInBackground; }
+
+  /// RetroArch: Returns whether the core has set the save-state-in-background hint.
+  bool raSaveStateInBackgroundSet(void) { return m_RaSaveStateInBackgroundSet; }
+
+  /// RetroArch: Sets the save-state-in-background hint reported by the core via
+  /// RETRO_ENVIRONMENT_SET_SAVE_STATE_IN_BACKGROUND.
+  void setRaSaveStateInBackground(bool value)
+  {
+    m_RaSaveStateInBackground = value;
+    m_RaSaveStateInBackgroundSet = true;
+  }
+
+  /// RetroArch: Returns whether the core has requested the clear-all-thread-waits callback.
+  bool raClearAllThreadWaitsRequested(void) { return m_RaClearAllThreadWaitsRequested; }
+
+  /// RetroArch: Marks that the core has requested the clear-all-thread-waits callback via
+  /// RETRO_ENVIRONMENT_GET_CLEAR_ALL_THREAD_WAITS_CB.
+  void setRaClearAllThreadWaitsRequested(void) { m_RaClearAllThreadWaitsRequested = true; }
+
+  /// RetroArch: Returns the poll-type override hint set by the core.
+  unsigned raPollTypeOverride(void) { return m_RaPollTypeOverride; }
+
+  /// RetroArch: Returns whether the core has set the poll-type override hint.
+  bool raPollTypeOverrideSet(void) { return m_RaPollTypeOverrideSet; }
+
+  /// RetroArch: Sets the poll-type override hint reported by the core via
+  /// RETRO_ENVIRONMENT_POLL_TYPE_OVERRIDE.
+  void setRaPollTypeOverride(unsigned value)
+  {
+    m_RaPollTypeOverride = value;
+    m_RaPollTypeOverrideSet = true;
+  }
+
+  /// RetroArch: Returns the save-state-disable-undo hint set by the core.
+  bool raSaveStateDisableUndo(void) { return m_RaSaveStateDisableUndo; }
+
+  /// RetroArch: Returns whether the core has set the save-state-disable-undo hint.
+  bool raSaveStateDisableUndoSet(void) { return m_RaSaveStateDisableUndoSet; }
+
+  /// RetroArch: Sets the save-state-disable-undo hint reported by the core via
+  /// RETRO_ENVIRONMENT_SET_SAVE_STATE_DISABLE_UNDO.
+  void setRaSaveStateDisableUndo(bool value)
+  {
+    m_RaSaveStateDisableUndo = value;
+    m_RaSaveStateDisableUndoSet = true;
+  }
+
   /**
    * Gets how many seconds the saving thread waits before autosaving SRAM
    * contents. If this value is 0, SRAM contents will not be autosaved.
    */
-  unsigned getAutosaveInterval() { return m_AutosaveInterval; }
+  unsigned getAutosaveInterval(void) { return m_AutosaveInterval; }
 
   /**
    * Sets the amount of time (in seconds) the "saving" thread waits before
@@ -189,13 +238,13 @@ public:
    */
   void setAutosaveInterval(unsigned secs) { m_AutosaveInterval = secs; }
 
-  bool supportsDuping() { return m_CanDupe; }
+  bool supportsDuping(void) { return m_CanDupe; }
   void setSupportsDuping(bool supports) { m_CanDupe = supports; }
 
-  bool fastForwarding() { return m_FastForwarding; }
+  bool fastForwarding(void) { return m_FastForwarding; }
   void setFastForwarding(bool enabled);
 
-  float fastForwardingRatio() { return m_FastForwardRatio; }
+  float fastForwardingRatio(void) { return m_FastForwardRatio; }
   void setFastForwardingRatio(float ratio) { m_FastForwardRatio = ratio; }
 
   unsigned frames(void) { return m_Frames; }
@@ -261,9 +310,9 @@ public:
     *sq = 0;
   }
 
-  QRetroMemory &memory() { return m_Memory; }
+  QRetroMemory &memory(void) { return m_Memory; }
 
-  double targetRefreshRate() { return m_TargetRefreshRate; }
+  double targetRefreshRate(void) { return m_TargetRefreshRate; }
 
   bool getCurrentSoftwareFramebuffer(retro_framebuffer *);
 
@@ -274,7 +323,7 @@ public:
     not set it.
   ------------------------------------------------------------------------------
   */
-  retro_language getLanguage() { return m_Language; }
+  retro_language getLanguage(void) { return m_Language; }
   bool setLanguage(retro_language lng)
   {
     if (lng >= RETRO_LANGUAGE_LAST)
@@ -317,7 +366,7 @@ public:
    * ignored. Accepted messages will be emitted through "onCoreLog".
    * By default, this is RETRO_LOG_ERROR.
    */
-  retro_log_level getLogLevel() { return m_LogLevel; }
+  retro_log_level getLogLevel(void) { return m_LogLevel; }
 
   /**
    * Sets the minimum log level required for a core log message to not be
@@ -357,7 +406,7 @@ public:
    * Returns whether or not a custom handler for polling inputs has been
    * installed.
    */
-  bool hasInputPollHandler() { return m_InputPollHandler != nullptr; }
+  bool hasInputPollHandler(void) { return m_InputPollHandler != nullptr; }
 
   bool inputPrePolled(void) const { return m_InputPrePolled; }
   void clearInputPrePolled(void) { m_InputPrePolled = false; }
@@ -382,7 +431,7 @@ public:
    * @return FALSE if a handler has not been installed. Otherwise, TRUE.
    * @todo This should be private.
    **/
-  bool runInputPollHandler()
+  bool runInputPollHandler(void)
   {
     if (!hasInputPollHandler())
       return false;
@@ -396,9 +445,9 @@ public:
    *
    * @return FALSE if a handler has not been installed. Otherwise, TRUE.
    */
-  bool uninstallInputPollHandler();
+  bool uninstallInputPollHandler(void);
 
-  bool hasInputStateHandler() { return m_InputStateHandler != nullptr; }
+  bool hasInputStateHandler(void) { return m_InputStateHandler != nullptr; }
   bool installInputStateHandler(int16_t handler(unsigned, unsigned, unsigned, unsigned))
   {
     if (!handler)
@@ -412,7 +461,7 @@ public:
       return false;
     return m_InputStateHandler(port, device, index, id);
   }
-  bool uninstallInputStateHandler();
+  bool uninstallInputStateHandler(void);
 
   void setFastForwardingOverride(retro_fastforwarding_override *);
 
@@ -567,6 +616,34 @@ private:
   /// Whether or not the core has set a pixel format
   bool m_PixelFormatSet = false;
 
+  /// RetroArch: Hint whether serialization should run in the background
+  /// @see `RETRO_ENVIRONMENT_SET_SAVE_STATE_IN_BACKGROUND`
+  bool m_RaSaveStateInBackground = false;
+
+  /// Whether or not the core has set `m_RaSaveStateInBackground`
+  /// @see `RETRO_ENVIRONMENT_SET_SAVE_STATE_IN_BACKGROUND`
+  bool m_RaSaveStateInBackgroundSet = false;
+
+  /// RetroArch: Whether or not the core has requested this callback
+  /// @see `RETRO_ENVIRONMENT_GET_CLEAR_ALL_THREAD_WAITS_CB`
+  bool m_RaClearAllThreadWaitsRequested = false;
+
+  /// RetroArch: Hint which input poll type to use
+  /// @see `RETRO_ENVIRONMENT_POLL_TYPE_OVERRIDE`
+  unsigned m_RaPollTypeOverride = 0;
+
+  /// Whether or not the core has set `m_RaPollTypeOverride`
+  /// @see `RETRO_ENVIRONMENT_POLL_TYPE_OVERRIDE`
+  bool m_RaPollTypeOverrideSet = false;
+
+  /// RetroArch: Hint that RetroArch should disable the save/load undo feature
+  /// @see `RETRO_ENVIRONMENT_SET_SAVE_STATE_DISABLE_UNDO`
+  bool m_RaSaveStateDisableUndo = false;
+
+  /// Whether or not the core has set `m_RaSaveStateDisableUndo`
+  /// @see `RETRO_ENVIRONMENT_SET_SAVE_STATE_DISABLE_UNDO`
+  bool m_RaSaveStateDisableUndoSet = false;
+
   /// The reported serialization quirk flags of the core
   /// @see RETRO_ENVIRONMENT_SET_SERIALIZATION_QUIRKS
   uint64_t m_SerializationQuirks = 0;
@@ -647,15 +724,15 @@ private:
   bool (*m_InputPollHandler)(void) = nullptr;
   int16_t (*m_InputStateHandler)(unsigned, unsigned, unsigned, unsigned) = nullptr;
 
-  bool inputReady() { return hasInputPollHandler() ? m_InputReady : true; }
+  bool inputReady(void) { return hasInputPollHandler() ? m_InputReady : true; }
   void setupPainter(QPainter *painter);
   void unloadCore(void);
-  void updateScaling();
+  void updateScaling(void);
 
   /* The functions that get spun off into their own threads, defined above */
 private slots:
-  void saving();
-  void timing();
+  void saving(void);
+  void timing(void);
 };
 
 #endif

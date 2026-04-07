@@ -212,7 +212,23 @@ static void core_log(enum retro_log_level level, const char *fmt, ...)
   _this->log()->push(level, final_string);
 }
 
-static bool core_rumble(unsigned int port, retro_rumble_effect effect, unsigned short strength)
+static bool core_ra_clear_all_thread_waits(unsigned a, void *b)
+{
+  /** @todo Stubbed. Will we ever want this? Not even sure what the arguments are. */
+  auto _this = _qrthis();
+
+  if (!_this)
+    return false;
+  else
+    _this->log()->push(
+      RETRO_LOG_WARN, QString("RetroArch: Clearing all thread waits; stubbed. a=%1 b=%2")
+                        .arg(a)
+                        .arg(QString::asprintf("%p", b)));
+
+  return true;
+}
+
+static bool core_rumble(unsigned port, retro_rumble_effect effect, unsigned short strength)
 {
   auto _this = _qrthis();
 
@@ -1213,7 +1229,6 @@ bool core_environment(unsigned cmd, void *data)
       *reinterpret_cast<unsigned *>(data) = _this->audio()->targetSampleRate();
     break;
 
-    // clang-format off
   /// 82
   /// unsigned*
   /// The frontend provides the client index for the current netplay session
@@ -1221,17 +1236,29 @@ bool core_environment(unsigned cmd, void *data)
   /// case RETRO_ENVIRONMENT_GET_NETPLAY_CLIENT_INDEX:
 
   /// RA 2
-  /// case RETRO_ENVIRONMENT_SET_SAVE_STATE_IN_BACKGROUND:
+  case RETRO_ENVIRONMENT_SET_SAVE_STATE_IN_BACKGROUND:
+    if (data)
+      _this->setRaSaveStateInBackground(*reinterpret_cast<bool *>(data));
+    break;
 
   /// RA 3
-  /// case RETRO_ENVIRONMENT_GET_CLEAR_ALL_THREAD_WAITS_CB:
+  case RETRO_ENVIRONMENT_GET_CLEAR_ALL_THREAD_WAITS_CB:
+    if (data)
+      *reinterpret_cast<retro_environment_t *>(data) = core_ra_clear_all_thread_waits;
+    _this->setRaClearAllThreadWaitsRequested();
+    break;
 
   /// RA 4
-  /// case RETRO_ENVIRONMENT_POLL_TYPE_OVERRIDE:
+  case RETRO_ENVIRONMENT_POLL_TYPE_OVERRIDE:
+    if (data)
+      _this->setRaPollTypeOverride(*reinterpret_cast<unsigned *>(data));
+    break;
 
   /// RA 5
-  /// case RETRO_ENVIRONMENT_SET_SAVE_STATE_DISABLE_UNDO:
-    // clang-format on
+  case RETRO_ENVIRONMENT_SET_SAVE_STATE_DISABLE_UNDO:
+    if (data)
+      _this->setRaSaveStateDisableUndo(*reinterpret_cast<bool *>(data));
+    break;
 
   default:
     qWarning("Unimplemented environment callback %u (%08X)%s%s%s%s.", cmd_noflags, cmd,

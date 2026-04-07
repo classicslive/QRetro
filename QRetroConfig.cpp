@@ -306,6 +306,23 @@ QRetroConfig::QRetroConfig(QRetro *owner)
       m_CoreSupportsNoGameLabel->setText(
         yes_no_str(m_Owner->supportsNoGameSet(), m_Owner->supportsNoGame()));
 
+    if (m_RaSaveStateInBackgroundLabel)
+      m_RaSaveStateInBackgroundLabel->setText(
+        yes_no_str(m_Owner->raSaveStateInBackgroundSet(), m_Owner->raSaveStateInBackground()));
+
+    if (m_RaPollTypeOverrideLabel)
+      m_RaPollTypeOverrideLabel->setText(m_Owner->raPollTypeOverrideSet()
+                                           ? QString::number(m_Owner->raPollTypeOverride())
+                                           : tr("Unset"));
+
+    if (m_RaSaveStateDisableUndoLabel)
+      m_RaSaveStateDisableUndoLabel->setText(
+        yes_no_str(m_Owner->raSaveStateDisableUndoSet(), m_Owner->raSaveStateDisableUndo()));
+
+    if (m_RaClearAllThreadWaitsLabel)
+      m_RaClearAllThreadWaitsLabel->setText(
+        m_Owner->raClearAllThreadWaitsRequested() ? tr("Yes") : tr("No"));
+
     if (m_MemoryReady && m_Owner->m_Core.retro_get_memory_data)
     {
       for (int i = 0; i < 4; i++)
@@ -486,6 +503,10 @@ void QRetroConfig::update()
   m_CorePixelFormatLabel = nullptr;
   m_CoreSerializationLabel = nullptr;
   m_CoreSupportsNoGameLabel = nullptr;
+  m_RaSaveStateInBackgroundLabel = nullptr;
+  m_RaPollTypeOverrideLabel = nullptr;
+  m_RaSaveStateDisableUndoLabel = nullptr;
+  m_RaClearAllThreadWaitsLabel = nullptr;
   for (int i = 0; i < 4; i++)
     m_MemDataPtrLabel[i] = m_MemDataSizeLabel[i] = nullptr;
   m_MemMapsForm = nullptr;
@@ -1371,6 +1392,48 @@ void QRetroConfig::update()
               "RETRO_ENVIRONMENT_SET_SERIALIZATION_QUIRKS (44)");
 
     page_layout->addWidget(group);
+
+    auto *ra_group = new QGroupBox(tr("RetroArch Hints"));
+    auto *ra_form = new QFormLayout(ra_group);
+    ra_form->setVerticalSpacing(4);
+
+    auto ra_desc = [ra_form](const char *text) {
+      auto *label = new QLabel(text);
+      label->setWordWrap(true);
+      QFont f = label->font();
+      f.setPointSize(qMax(f.pointSize() - 1, 7));
+      label->setFont(f);
+      label->setForegroundRole(QPalette::Dark);
+      label->setContentsMargins(0, 0, 0, 6);
+      ra_form->addRow(label);
+    };
+
+    m_RaSaveStateInBackgroundLabel =
+      yes_no(m_Owner->raSaveStateInBackgroundSet(), m_Owner->raSaveStateInBackground());
+    ra_form->addRow(tr("Save State in Background"), m_RaSaveStateInBackgroundLabel);
+    ra_desc("Hint whether serialization should be run in a background thread.\n"
+            "RETRO_ENVIRONMENT_SET_SAVE_STATE_IN_BACKGROUND (RA 2)");
+
+    m_RaClearAllThreadWaitsLabel =
+      new QLabel(m_Owner->raClearAllThreadWaitsRequested() ? tr("Yes") : tr("No"));
+    ra_form->addRow(tr("Clear All Thread Waits Requested"), m_RaClearAllThreadWaitsLabel);
+    ra_desc("Whether the core has requested the clear-all-thread-waits callback.\n"
+            "RETRO_ENVIRONMENT_GET_CLEAR_ALL_THREAD_WAITS_CB (RA 3)");
+
+    m_RaPollTypeOverrideLabel =
+      new QLabel(m_Owner->raPollTypeOverrideSet() ? QString::number(m_Owner->raPollTypeOverride())
+                                                  : tr("Unset"));
+    ra_form->addRow(tr("Poll Type Override"), m_RaPollTypeOverrideLabel);
+    ra_desc("Hint for which input poll type the frontend should prefer.\n"
+            "RETRO_ENVIRONMENT_POLL_TYPE_OVERRIDE (RA 4)");
+
+    m_RaSaveStateDisableUndoLabel =
+      yes_no(m_Owner->raSaveStateDisableUndoSet(), m_Owner->raSaveStateDisableUndo());
+    ra_form->addRow(tr("Disable Save State Undo"), m_RaSaveStateDisableUndoLabel);
+    ra_desc("Hint that the frontend should disable its save/load undo feature.\n"
+            "RETRO_ENVIRONMENT_SET_SAVE_STATE_DISABLE_UNDO (RA 5)");
+
+    page_layout->addWidget(ra_group);
     page_layout->addStretch();
   }
 

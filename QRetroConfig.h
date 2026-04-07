@@ -160,6 +160,10 @@ private:
   QLabel *m_CorePixelFormatLabel = nullptr;
   QLabel *m_CoreSerializationLabel = nullptr;
   QLabel *m_CoreSupportsNoGameLabel = nullptr;
+  QLabel *m_RaSaveStateInBackgroundLabel = nullptr;
+  QLabel *m_RaPollTypeOverrideLabel = nullptr;
+  QLabel *m_RaSaveStateDisableUndoLabel = nullptr;
+  QLabel *m_RaClearAllThreadWaitsLabel = nullptr;
 };
 
 #endif
