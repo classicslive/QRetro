@@ -2,7 +2,7 @@ message("QRetro: Start build")
 
 CONFIG += c++17
 
-QT += core gui multimedia
+QT += core gui
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
@@ -13,8 +13,13 @@ CONFIG(debug, debug|release) {
 }
 
 !QRETRO_CONFIG_NO_CAMERA {
-  DEFINES += QRETRO_HAVE_CAMERA=1
-  message("Camera module added.")
+  qtHaveModule(multimedia) {
+    DEFINES += QRETRO_HAVE_CAMERA=1
+    message("Camera module added.")
+  } else {
+    DEFINES += QRETRO_HAVE_CAMERA=0
+    warning("Camera module requested, but multimedia is not available.")
+  }
 } else {
   DEFINES += QRETRO_HAVE_CAMERA=0
   message("Camera module disabled.")

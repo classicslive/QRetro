@@ -2,10 +2,17 @@
 #define QRETRO_AUDIO_H
 
 #include <QWidget>
+#include <QtGlobal>
 
 typedef int16_t sample_t;
 
+#if QRETRO_HAVE_MULTIMEDIA
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+QT_FORWARD_DECLARE_CLASS(QAudioSink);
+#else
 QT_FORWARD_DECLARE_CLASS(QAudioOutput);
+#endif
+#endif
 
 class QRetroAudio
 {
@@ -53,9 +60,15 @@ public:
 
 private:
   bool m_Enabled = true;
+#if QRETRO_HAVE_MULTIMEDIA
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+  QAudioSink *m_AudioOutput = nullptr;
+#else
   QAudioOutput *m_AudioOutput = nullptr;
+#endif
   QByteArray m_AudioBuffer;
   QIODevice *m_AudioDevice = nullptr;
+#endif
 
   double m_FramesPerSecond = 60.0;
   unsigned m_BufferFrames = 1;

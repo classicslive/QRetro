@@ -1,12 +1,49 @@
 #if QRETRO_HAVE_CAMERA
-#include <QAbstractVideoSurface>
 #include <QCamera>
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+#include <QMediaCaptureSession>
+#include <QVideoFrame>
+#include <QVideoSink>
+#else
+#include <QAbstractVideoSurface>
 #include <QVideoSurfaceFormat>
+#endif
 #endif
 
 #include "QRetroCamera.h"
 
 #if QRETRO_HAVE_CAMERA
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+
+QRetroCameraSurface::QRetroCameraSurface(QObject *parent)
+  : QObject(parent)
+{
+  m_Sink = new QVideoSink(this);
+  connect(m_Sink, &QVideoSink::videoFrameChanged, this, &QRetroCameraSurface::onFrameChanged);
+}
+
+QImage *QRetroCameraSurface::image(void)
+{
+  return &m_Image;
+}
+
+void QRetroCameraSurface::onFrameChanged(const QVideoFrame &frame)
+{
+  if (!m_RawCb)
+    return;
+
+  QVideoFrame copy = frame;
+  if (!copy.map(QVideoFrame::ReadOnly))
+    return;
+
+  m_RawCb(reinterpret_cast<const uint32_t *>(copy.bits(0)), static_cast<unsigned>(copy.width()),
+    static_cast<unsigned>(copy.height()), static_cast<unsigned>(copy.bytesPerLine(0)));
+
+  copy.unmap();
+}
+
+#else
+
 QRetroCameraSurface::QRetroCameraSurface(QObject *parent)
   : QAbstractVideoSurface{ parent }
 {
@@ -44,6 +81,8 @@ QList<QVideoFrame::PixelFormat> QRetroCameraSurface::supportedPixelFormats(
   Q_UNUSED(type)
   return QList<QVideoFrame::PixelFormat>() << QVideoFrame::Format_RGB32;
 }
+
+#endif
 #endif
 
 QRetroCamera::~QRetroCamera()
@@ -53,6 +92,9 @@ QRetroCamera::~QRetroCamera()
 #if QRETRO_HAVE_CAMERA
   delete m_Camera;
   delete m_Surface;
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+  delete m_Session;
+#endif
 #endif
 }
 
@@ -77,24 +119,26 @@ bool QRetroCamera::start(void)
 #if QRETRO_HAVE_CAMERA
   if (m_Camera && !m_Surface)
   {
+    m_Surface = new QRetroCameraSurface(nullptr);
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+    m_Session = new QMediaCaptureSession();
+    m_Session->setCamera(m_Camera);
+    m_Session->setVideoSink(m_Surface->sink());
+#else
     QVideoSurfaceFormat format(
       QSize(static_cast<int>(m_Callback.width), static_cast<int>(m_Callback.height)),
-      QVideoFrame::Format_RGB32,
-      /**
-                                * @todo Support OpenGL texture
-                                * m_Callback.frame_opengl_texture ? QAbstractVideoBuffer::GLTextureHandle :
-                                *                                   QAbstractVideoBuffer::NoHandle);
-                                */
-      QAbstractVideoBuffer::NoHandle);
-
-    m_Surface = new QRetroCameraSurface(nullptr);
+      QVideoFrame::Format_RGB32, QAbstractVideoBuffer::NoHandle);
     m_Surface->start(format);
     m_Camera->setViewfinder(m_Surface);
+#endif
   }
   if (m_Surface)
   {
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
     m_Camera->start();
-
+#else
+    m_Camera->start();
+#endif
     return true;
   }
 #endif
