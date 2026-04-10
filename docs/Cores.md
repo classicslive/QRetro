@@ -61,6 +61,18 @@ Very good. Uses microphone interface.
 
 Crashes when switching to the OpenGL renderer at runtime, but if it's already enabled it will boot into it fine.
 
+# Mupen64Plus-Next
+
+<img height="256" alt="image" src="https://github.com/user-attachments/assets/f6316487-efe8-40ee-9bfc-9262a755a9e2" />
+
+<img height="256" alt="image" src="https://github.com/user-attachments/assets/3242f686-9755-4c4b-8439-e2786ca712af" />
+
+Good.
+
+Vulkan support is needed to support the paraLLEl renderer options.
+
+Mario Kart 64, and probably other games, have some unrendered graphics for reasons unknown to me.
+
 # Snes9X
 
 <img src="https://github.com/classicslive/QRetro/assets/33245078/b3c18e8c-ead4-4b3d-88b2-020a802000d1" height="256">
