@@ -194,8 +194,13 @@ public:
       QRetroControllerPort port;
       for (unsigned i = 0; i < ci->num_types; i++)
         port.types.push_back({ ci->types[i].desc ? ci->types[i].desc : "", ci->types[i].id });
+      if (!port.types.empty())
+        port.selectedId = port.types[0].id;
       m_ControllerPorts.push_back(std::move(port));
     }
+    if (m_SetControllerPortDevice)
+      for (unsigned p = 0; p < m_ControllerPorts.size(); p++)
+        m_SetControllerPortDevice(p, m_ControllerPorts[p].selectedId);
   }
 
   unsigned selectedControllerType(unsigned port) const
