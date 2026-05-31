@@ -483,6 +483,10 @@ public:
   void waitFrames(int count);
   void execOnTimingThread(std::function<void()> action);
 
+  void cheatReset(void) { m_Core.retro_cheat_reset(); }
+  void cheatSet(unsigned index, bool enabled, const char *code)
+    { m_Core.retro_cheat_set(index, enabled, code); }
+
 signals:
   void onCoreLog(int level, const QString msg);
   void onCoreStart(void);
