@@ -447,6 +447,11 @@ void QRetro::setRotation(const unsigned degrees)
 
 void QRetro::execOnTimingThread(std::function<void()> action)
 {
+  if (QThread::currentThread() == m_ThreadTiming)
+  {
+    action();
+    return;
+  }
   QMutexLocker lock(&m_PendingMutex);
   m_PendingAction = std::move(action);
   m_PendingDone.wait(&m_PendingMutex);
