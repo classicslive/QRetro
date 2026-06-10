@@ -146,7 +146,10 @@ QRetroConfig::QRetroConfig(QRetro *owner)
   {
     auto *input = m_Owner->input();
     for (unsigned p = 0; p < input->maxUsers(); p++)
+    {
       input->joypads()[p].setAnalogStickToDigitalPad(m_AnalogStickToDigitalPad);
+      input->joypads()[p].setAnalogStickDeadzone(static_cast<int16_t>(m_AnalogStickDeadzone));
+    }
   }
 
   /* Poll sensor read-tracking flags and enable/disable per-axis UI widgets. */
@@ -429,6 +432,8 @@ void QRetroConfig::load()
   m_AudioEnabled = settings.value("audioEnabled", true).toBool();
   m_AudioVolume = settings.value("audioVolume", 1.0f).toFloat();
   m_AnalogStickToDigitalPad = settings.value("analogStickToDigitalPad", false).toBool();
+  m_AnalogStickDeadzone =
+    settings.value("analogStickDeadzone", QRETRO_INPUT_DEFAULT_STICK_DEADZONE).toInt();
 
   m_SpoofLocationEnabled = settings.value("spoofLocationEnabled", false).toBool();
   m_SpoofLat = settings.value("spoofLat", 0.0).toDouble();
@@ -463,6 +468,7 @@ void QRetroConfig::save()
   settings.setValue("audioEnabled", m_AudioEnabled);
   settings.setValue("audioVolume", m_AudioVolume);
   settings.setValue("analogStickToDigitalPad", m_AnalogStickToDigitalPad);
+  settings.setValue("analogStickDeadzone", m_AnalogStickDeadzone);
 
   settings.setValue("spoofLocationEnabled", m_SpoofLocationEnabled);
   settings.setValue("spoofLat", m_SpoofLat);
@@ -683,6 +689,19 @@ void QRetroConfig::update()
       m_SaveTimer->start();
     });
     form->addRow(tr("Analog Stick as D-Pad"), analog_to_dpad);
+
+    auto *dz_spin = new QSpinBox();
+    dz_spin->setRange(0, 32767);
+    dz_spin->setValue(m_AnalogStickDeadzone);
+    dz_spin->setSingleStep(256);
+    connect(dz_spin, QOverload<int>::of(&QSpinBox::valueChanged), [this](int v) {
+      m_AnalogStickDeadzone = v;
+      auto *input = m_Owner->input();
+      for (unsigned p = 0; p < input->maxUsers(); p++)
+        input->joypads()[p].setAnalogStickDeadzone(static_cast<int16_t>(v));
+      m_SaveTimer->start();
+    });
+    form->addRow(tr("Analog Stick Deadzone"), dz_spin);
   }
 
   /* ── Environment ────────────────────────────────────────────── */

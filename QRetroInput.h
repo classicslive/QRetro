@@ -31,6 +31,7 @@ struct QRetroControllerPort
 
 #define QRETRO_INPUT_DEFAULT_MAX_JOYPADS 16
 #define QRETRO_INPUT_DEFAULT_BUTTON_DEADZONE 0
+#define QRETRO_INPUT_DEFAULT_STICK_DEADZONE 4096
 
 /// The maximum number of keys that can be combined in one mapping, and the
 /// number of buttons one macro can press
@@ -82,6 +83,9 @@ public:
   bool analogStickToDigitalPad(void) { return m_AnalogStickToDigitalPad; }
   void setAnalogStickToDigitalPad(bool on) { m_AnalogStickToDigitalPad = on; }
 
+  int16_t analogStickDeadzone(void) { return m_AnalogStickDeadzone; }
+  void setAnalogStickDeadzone(int16_t dz) { m_AnalogStickDeadzone = dz; }
+
   int16_t bitmask(void) { return m_Bitmask; }
 
   bool digitalButton(unsigned id);
@@ -127,7 +131,7 @@ public:
 
 private:
   int16_t m_AnalogButtonDeadzone = QRETRO_INPUT_DEFAULT_BUTTON_DEADZONE;
-  int16_t m_AnalogStickDeadzone = 0;
+  int16_t m_AnalogStickDeadzone = QRETRO_INPUT_DEFAULT_STICK_DEADZONE;
   bool m_AnalogStickToDigitalPad = false;
   int16_t m_Bitmask = 0;
   int16_t m_Buttons[RETRO_DEVICE_ID_JOYPAD_R3 + 1] = {};

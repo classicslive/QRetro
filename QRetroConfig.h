@@ -7,6 +7,7 @@
 #include <QWidget>
 
 #include "libretro.h"
+#include "QRetroInput.h"
 
 class QFormLayout;
 class QLabel;
@@ -38,6 +39,7 @@ public:
   float spoofIllum() const { return m_SpoofIllum; }
 
   bool analogStickToDigitalPad() const { return m_AnalogStickToDigitalPad; }
+  int analogStickDeadzone() const { return m_AnalogStickDeadzone; }
 
   void update();
 
@@ -114,6 +116,7 @@ private:
   float m_SpoofIllum = 0;
 
   bool m_AnalogStickToDigitalPad = false;
+  int m_AnalogStickDeadzone = QRETRO_INPUT_DEFAULT_STICK_DEADZONE;
 
   bool m_SpoofLocationEnabled = false;
   double m_SpoofLat = 0;
