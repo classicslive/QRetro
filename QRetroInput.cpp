@@ -8,6 +8,17 @@ void QRetroInputJoypad::poll(void)
   /* Update the input bitmask, even if reporting not to support it. */
   for (int i = 0; i <= RETRO_DEVICE_ID_JOYPAD_R3; i++)
     bitmask |= m_Buttons[i] ? (1 << i) : 0;
+
+  if (m_AnalogStickToDigitalPad)
+  {
+    int16_t ax = m_Sticks[RETRO_DEVICE_INDEX_ANALOG_LEFT][RETRO_DEVICE_ID_ANALOG_X];
+    int16_t ay = m_Sticks[RETRO_DEVICE_INDEX_ANALOG_LEFT][RETRO_DEVICE_ID_ANALOG_Y];
+    if (ay >  m_AnalogStickDeadzone) bitmask |= (1 << RETRO_DEVICE_ID_JOYPAD_UP);
+    if (ay < -m_AnalogStickDeadzone) bitmask |= (1 << RETRO_DEVICE_ID_JOYPAD_DOWN);
+    if (ax >  m_AnalogStickDeadzone) bitmask |= (1 << RETRO_DEVICE_ID_JOYPAD_LEFT);
+    if (ax < -m_AnalogStickDeadzone) bitmask |= (1 << RETRO_DEVICE_ID_JOYPAD_RIGHT);
+  }
+
   m_Bitmask = static_cast<int16_t>(bitmask);
 }
 
