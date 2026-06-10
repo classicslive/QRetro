@@ -37,6 +37,8 @@ public:
   bool spoofIllumEnabled() const { return m_SpoofIllumEnabled; }
   float spoofIllum() const { return m_SpoofIllum; }
 
+  bool analogStickToDigitalPad() const { return m_AnalogStickToDigitalPad; }
+
   void update();
 
 protected:
@@ -110,6 +112,8 @@ private:
 
   bool m_SpoofIllumEnabled = false;
   float m_SpoofIllum = 0;
+
+  bool m_AnalogStickToDigitalPad = false;
 
   bool m_SpoofLocationEnabled = false;
   double m_SpoofLat = 0;

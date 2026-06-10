@@ -143,6 +143,12 @@ QRetroConfig::QRetroConfig(QRetro *owner)
   m_Owner->m_BilinearFilter = m_BilinearFilter;
   m_Owner->m_IntegerScaling = m_IntegerScaling;
 
+  {
+    auto *input = m_Owner->input();
+    for (unsigned p = 0; p < input->maxUsers(); p++)
+      input->joypads()[p].setAnalogStickToDigitalPad(m_AnalogStickToDigitalPad);
+  }
+
   /* Poll sensor read-tracking flags and enable/disable per-axis UI widgets. */
   auto *sensor_read_timer = new QTimer(this);
   sensor_read_timer->setInterval(200);
@@ -422,6 +428,7 @@ void QRetroConfig::load()
   m_BilinearFilter = settings.value("bilinearFilter", true).toBool();
   m_AudioEnabled = settings.value("audioEnabled", true).toBool();
   m_AudioVolume = settings.value("audioVolume", 1.0f).toFloat();
+  m_AnalogStickToDigitalPad = settings.value("analogStickToDigitalPad", false).toBool();
 
   m_SpoofLocationEnabled = settings.value("spoofLocationEnabled", false).toBool();
   m_SpoofLat = settings.value("spoofLat", 0.0).toDouble();
@@ -455,6 +462,7 @@ void QRetroConfig::save()
   settings.setValue("bilinearFilter", m_BilinearFilter);
   settings.setValue("audioEnabled", m_AudioEnabled);
   settings.setValue("audioVolume", m_AudioVolume);
+  settings.setValue("analogStickToDigitalPad", m_AnalogStickToDigitalPad);
 
   settings.setValue("spoofLocationEnabled", m_SpoofLocationEnabled);
   settings.setValue("spoofLat", m_SpoofLat);
@@ -664,6 +672,17 @@ void QRetroConfig::update()
       label->setForegroundRole(QPalette::Dark);
       form->addRow(label);
     }
+
+    auto *analog_to_dpad = new QCheckBox();
+    analog_to_dpad->setChecked(m_AnalogStickToDigitalPad);
+    connect(analog_to_dpad, &QCheckBox::stateChanged, [this](int state) {
+      m_AnalogStickToDigitalPad = (state == Qt::Checked);
+      auto *input = m_Owner->input();
+      for (unsigned p = 0; p < input->maxUsers(); p++)
+        input->joypads()[p].setAnalogStickToDigitalPad(m_AnalogStickToDigitalPad);
+      m_SaveTimer->start();
+    });
+    form->addRow(tr("Analog Stick as D-Pad"), analog_to_dpad);
   }
 
   /* ── Environment ────────────────────────────────────────────── */
