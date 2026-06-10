@@ -1225,7 +1225,7 @@ bool core_environment(unsigned cmd, void *data)
   /// The frontend provides the target audio sample rate it prefers the core to output
   /// Returns true if the environment call is available
   case RETRO_ENVIRONMENT_GET_TARGET_SAMPLE_RATE:
-    if (data)
+    if (data && _this->audio())
       *reinterpret_cast<unsigned *>(data) = _this->audio()->targetSampleRate();
     break;
 
