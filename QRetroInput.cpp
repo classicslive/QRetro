@@ -13,14 +13,11 @@ void QRetroInputJoypad::poll(void)
   {
     int16_t ax = m_Sticks[RETRO_DEVICE_INDEX_ANALOG_LEFT][RETRO_DEVICE_ID_ANALOG_X];
     int16_t ay = m_Sticks[RETRO_DEVICE_INDEX_ANALOG_LEFT][RETRO_DEVICE_ID_ANALOG_Y];
-    if (ay > m_AnalogStickDeadzone)
-      bitmask |= (1 << RETRO_DEVICE_ID_JOYPAD_UP);
-    if (ay < -m_AnalogStickDeadzone)
-      bitmask |= (1 << RETRO_DEVICE_ID_JOYPAD_DOWN);
-    if (ax > m_AnalogStickDeadzone)
-      bitmask |= (1 << RETRO_DEVICE_ID_JOYPAD_LEFT);
-    if (ax < -m_AnalogStickDeadzone)
-      bitmask |= (1 << RETRO_DEVICE_ID_JOYPAD_RIGHT);
+    
+    if (ay < -(32767 / 2)) bitmask |= (1 << RETRO_DEVICE_ID_JOYPAD_UP);
+    if (ay >  (32767 / 2)) bitmask |= (1 << RETRO_DEVICE_ID_JOYPAD_DOWN);
+    if (ax < -(32767 / 2)) bitmask |= (1 << RETRO_DEVICE_ID_JOYPAD_LEFT);
+    if (ax >  (32767 / 2)) bitmask |= (1 << RETRO_DEVICE_ID_JOYPAD_RIGHT);
   }
 
   m_Bitmask = static_cast<int16_t>(bitmask);
@@ -51,17 +48,13 @@ bool QRetroInputJoypad::digitalButton(unsigned id)
     switch (id)
     {
     case RETRO_DEVICE_ID_JOYPAD_UP:
-      return m_Sticks[RETRO_DEVICE_INDEX_ANALOG_LEFT][RETRO_DEVICE_ID_ANALOG_Y] >
-             m_AnalogStickDeadzone;
+      return m_Sticks[RETRO_DEVICE_INDEX_ANALOG_LEFT][RETRO_DEVICE_ID_ANALOG_Y] < -(32767 / 2);
     case RETRO_DEVICE_ID_JOYPAD_DOWN:
-      return m_Sticks[RETRO_DEVICE_INDEX_ANALOG_LEFT][RETRO_DEVICE_ID_ANALOG_Y] <
-             -m_AnalogStickDeadzone;
+      return m_Sticks[RETRO_DEVICE_INDEX_ANALOG_LEFT][RETRO_DEVICE_ID_ANALOG_Y] >  (32767 / 2);
     case RETRO_DEVICE_ID_JOYPAD_LEFT:
-      return m_Sticks[RETRO_DEVICE_INDEX_ANALOG_LEFT][RETRO_DEVICE_ID_ANALOG_X] >
-             m_AnalogStickDeadzone;
+      return m_Sticks[RETRO_DEVICE_INDEX_ANALOG_LEFT][RETRO_DEVICE_ID_ANALOG_X] < -(32767 / 2);
     case RETRO_DEVICE_ID_JOYPAD_RIGHT:
-      return m_Sticks[RETRO_DEVICE_INDEX_ANALOG_LEFT][RETRO_DEVICE_ID_ANALOG_X] <
-             -m_AnalogStickDeadzone;
+      return m_Sticks[RETRO_DEVICE_INDEX_ANALOG_LEFT][RETRO_DEVICE_ID_ANALOG_X] >  (32767 / 2);
     }
   }
 
