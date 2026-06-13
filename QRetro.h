@@ -550,6 +550,9 @@ private:
   /// Number of seconds to wait before flushing save RAM to disk
   unsigned m_AutosaveInterval = 5;
 
+  /// Skip this number of new autosaves flushing to disk
+  unsigned m_AutosaveSkip = 0;
+
   /// Whether or not the core reports to duplicate frames
   bool m_CanDupe = true;
 

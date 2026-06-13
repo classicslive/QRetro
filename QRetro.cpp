@@ -468,20 +468,32 @@ bool QRetro::serialize(void *data, size_t size)
 {
   if (!data || !size)
     return false;
+  else
+  {
+    bool result = false;
 
-  bool result = false;
-  execOnTimingThread([&]() { result = m_Core.retro_serialize(data, size); });
-  return result;
+    execOnTimingThread([&]() { result = m_Core.retro_serialize(data, size); });
+
+    return result;
+  }
 }
 
 bool QRetro::unserialize(const void *data, size_t size)
 {
   if (!data || !size)
     return false;
+  else
+  {
+    bool result = false;
+  
+    execOnTimingThread([&]() { result = m_Core.retro_unserialize(data, size); });
 
-  bool result = false;
-  execOnTimingThread([&]() { result = m_Core.retro_unserialize(data, size); });
-  return result;
+    // Ignore next SRAM save to file
+    if (result)
+      m_AutosaveSkip = 1;
+
+    return result;
+  }
 }
 
 bool QRetro::serializeToFile(const QString &path, bool zipped)
@@ -538,7 +550,7 @@ bool QRetro::unserializeFromFile(const QString &path)
   return unserialize(data.constData(), static_cast<size_t>(data.size()));
 }
 
-QString QRetro::stateFilePath(void)
+QString QRetro::saveStatePath(void)
 {
   auto sanitize = [](const QString &s) {
     return s.toLower().replace(QRegularExpression("[^a-z0-9]"), "");
@@ -1185,6 +1197,12 @@ void QRetro::saving()
       continue;
 
     hash = result;
+
+    if (m_AutosaveSkip > 0)
+    {
+      m_AutosaveSkip--;
+      continue;
+    }
 
     if (save_file.open(QIODevice::WriteOnly | QIODevice::Truncate))
     {
