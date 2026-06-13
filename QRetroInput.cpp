@@ -5,26 +5,38 @@ void QRetroInputJoypad::poll(void)
 {
   uint16_t bitmask = 0;
 
+  if (m_AnalogStickToDigitalPad)
+  {
+    m_Buttons[RETRO_DEVICE_ID_JOYPAD_UP] |= analogToDigital(RETRO_DEVICE_ID_JOYPAD_UP);
+    m_Buttons[RETRO_DEVICE_ID_JOYPAD_DOWN] |= analogToDigital(RETRO_DEVICE_ID_JOYPAD_DOWN);
+    m_Buttons[RETRO_DEVICE_ID_JOYPAD_LEFT] |= analogToDigital(RETRO_DEVICE_ID_JOYPAD_LEFT);
+    m_Buttons[RETRO_DEVICE_ID_JOYPAD_RIGHT] |= analogToDigital(RETRO_DEVICE_ID_JOYPAD_RIGHT);
+  }
+
   /* Update the input bitmask, even if reporting not to support it. */
   for (int i = 0; i <= RETRO_DEVICE_ID_JOYPAD_R3; i++)
     bitmask |= m_Buttons[i] ? (1 << i) : 0;
 
-  if (m_AnalogStickToDigitalPad)
-  {
-    int16_t ax = m_Sticks[RETRO_DEVICE_INDEX_ANALOG_LEFT][RETRO_DEVICE_ID_ANALOG_X];
-    int16_t ay = m_Sticks[RETRO_DEVICE_INDEX_ANALOG_LEFT][RETRO_DEVICE_ID_ANALOG_Y];
-
-    if (ay < -(32767 / 4))
-      bitmask |= (1 << RETRO_DEVICE_ID_JOYPAD_UP);
-    if (ay > (32767 / 4))
-      bitmask |= (1 << RETRO_DEVICE_ID_JOYPAD_DOWN);
-    if (ax < -(32767 / 4))
-      bitmask |= (1 << RETRO_DEVICE_ID_JOYPAD_LEFT);
-    if (ax > (32767 / 4))
-      bitmask |= (1 << RETRO_DEVICE_ID_JOYPAD_RIGHT);
-  }
-
   m_Bitmask = static_cast<int16_t>(bitmask);
+}
+
+bool QRetroInputJoypad::analogToDigital(unsigned id) const
+{
+  int16_t threshold = static_cast<int16_t>(m_AnalogDigitalThreshold * 32767);
+
+  switch (id)
+  {
+  case RETRO_DEVICE_ID_JOYPAD_UP:
+    return m_Sticks[RETRO_DEVICE_INDEX_ANALOG_LEFT][RETRO_DEVICE_ID_ANALOG_Y] < -threshold;
+  case RETRO_DEVICE_ID_JOYPAD_DOWN:
+    return m_Sticks[RETRO_DEVICE_INDEX_ANALOG_LEFT][RETRO_DEVICE_ID_ANALOG_Y] > threshold;
+  case RETRO_DEVICE_ID_JOYPAD_LEFT:
+    return m_Sticks[RETRO_DEVICE_INDEX_ANALOG_LEFT][RETRO_DEVICE_ID_ANALOG_X] < -threshold;
+  case RETRO_DEVICE_ID_JOYPAD_RIGHT:
+    return m_Sticks[RETRO_DEVICE_INDEX_ANALOG_LEFT][RETRO_DEVICE_ID_ANALOG_X] > threshold;
+  default:
+    return false;
+  }
 }
 
 int16_t QRetroInputJoypad::analogButton(unsigned id)
@@ -47,20 +59,6 @@ bool QRetroInputJoypad::digitalButton(unsigned id)
 {
   if (id > RETRO_DEVICE_ID_JOYPAD_R3)
     return 0;
-  else if (m_AnalogStickToDigitalPad)
-  {
-    switch (id)
-    {
-    case RETRO_DEVICE_ID_JOYPAD_UP:
-      return m_Sticks[RETRO_DEVICE_INDEX_ANALOG_LEFT][RETRO_DEVICE_ID_ANALOG_Y] < -(32767 / 4);
-    case RETRO_DEVICE_ID_JOYPAD_DOWN:
-      return m_Sticks[RETRO_DEVICE_INDEX_ANALOG_LEFT][RETRO_DEVICE_ID_ANALOG_Y] > (32767 / 4);
-    case RETRO_DEVICE_ID_JOYPAD_LEFT:
-      return m_Sticks[RETRO_DEVICE_INDEX_ANALOG_LEFT][RETRO_DEVICE_ID_ANALOG_X] < -(32767 / 4);
-    case RETRO_DEVICE_ID_JOYPAD_RIGHT:
-      return m_Sticks[RETRO_DEVICE_INDEX_ANALOG_LEFT][RETRO_DEVICE_ID_ANALOG_X] > (32767 / 4);
-    }
-  }
 
   return m_Buttons[id] > m_AnalogButtonDeadzone;
 }
@@ -219,4 +217,368 @@ int16_t QRetroInput::state(unsigned port, unsigned device, unsigned index, unsig
   }
 
   return 0;
+}
+
+bool QRetroInputJoypad::analogStickToDigitalPad(void)
+{
+  return m_AnalogStickToDigitalPad;
+}
+void QRetroInputJoypad::setAnalogStickToDigitalPad(bool on)
+{
+  m_AnalogStickToDigitalPad = on;
+}
+
+float QRetroInputJoypad::analogDigitalThreshold(void)
+{
+  return m_AnalogDigitalThreshold;
+}
+void QRetroInputJoypad::setAnalogDigitalThreshold(float t)
+{
+  m_AnalogDigitalThreshold = t;
+}
+
+int16_t QRetroInputJoypad::analogStickDeadzone(void)
+{
+  return m_AnalogStickDeadzone;
+}
+void QRetroInputJoypad::setAnalogStickDeadzone(int16_t dz)
+{
+  m_AnalogStickDeadzone = dz;
+}
+
+int16_t QRetroInputJoypad::bitmask(void)
+{
+  return m_Bitmask;
+}
+
+bool QRetroInputJoypad::digitalPadToAnalogStick(void)
+{
+  return m_DigitalPadToAnalogStick;
+}
+void QRetroInputJoypad::setDigitalPadToAnalogStick(bool on)
+{
+  m_DigitalPadToAnalogStick = on;
+}
+
+uint16_t QRetroInputJoypad::rumbleStrong(void)
+{
+  return m_RumbleStrong;
+}
+uint16_t QRetroInputJoypad::rumbleWeak(void)
+{
+  return m_RumbleWeak;
+}
+void QRetroInputJoypad::setRumbleStrong(uint16_t v)
+{
+  m_RumbleStrong = v;
+}
+void QRetroInputJoypad::setRumbleWeak(uint16_t v)
+{
+  m_RumbleWeak = v;
+}
+
+bool QRetroInputJoypad::accelEnabled(void)
+{
+  return m_AccelState == SensorEnabled;
+}
+unsigned QRetroInputJoypad::accelRate(void)
+{
+  return m_AccelRate;
+}
+float QRetroInputJoypad::accelX(void)
+{
+  return m_Accel[0];
+}
+float QRetroInputJoypad::accelY(void)
+{
+  return m_Accel[1];
+}
+float QRetroInputJoypad::accelZ(void)
+{
+  return m_Accel[2];
+}
+void QRetroInputJoypad::setAccelRate(unsigned v)
+{
+  m_AccelRate = v;
+}
+void QRetroInputJoypad::setAccelState(QRetroInputJoypad::SensorState v)
+{
+  m_AccelState = v;
+}
+void QRetroInputJoypad::setAccelX(float v)
+{
+  m_Accel[0] = v;
+}
+void QRetroInputJoypad::setAccelY(float v)
+{
+  m_Accel[1] = v;
+}
+void QRetroInputJoypad::setAccelZ(float v)
+{
+  m_Accel[2] = v;
+}
+
+bool QRetroInputJoypad::gyroEnabled(void)
+{
+  return m_GyroState == SensorEnabled;
+}
+unsigned QRetroInputJoypad::gyroRate(void)
+{
+  return m_GyroRate;
+}
+float QRetroInputJoypad::gyroX(void)
+{
+  return m_Gyro[0];
+}
+float QRetroInputJoypad::gyroY(void)
+{
+  return m_Gyro[1];
+}
+float QRetroInputJoypad::gyroZ(void)
+{
+  return m_Gyro[2];
+}
+void QRetroInputJoypad::setGyroRate(unsigned v)
+{
+  m_GyroRate = v;
+}
+void QRetroInputJoypad::setGyroState(QRetroInputJoypad::SensorState v)
+{
+  m_GyroState = v;
+}
+void QRetroInputJoypad::setGyroX(float v)
+{
+  m_Gyro[0] = v;
+}
+void QRetroInputJoypad::setGyroY(float v)
+{
+  m_Gyro[1] = v;
+}
+void QRetroInputJoypad::setGyroZ(float v)
+{
+  m_Gyro[2] = v;
+}
+
+unsigned QRetroInputJoypad::inputMethods(void)
+{
+  return m_InputMethods;
+}
+
+unsigned QRetroInputJoypad::port(void)
+{
+  return m_Port;
+}
+void QRetroInputJoypad::setPort(unsigned port)
+{
+  m_Port = port;
+}
+
+void QRetroInput::setBackend(QRetroInputBackend *backend)
+{
+  m_Backend = backend;
+}
+QRetroInputBackend *QRetroInput::backend()
+{
+  return m_Backend;
+}
+
+int16_t QRetroInput::analogButtonDeadzone(void)
+{
+  return m_AnalogButtonDeadzone;
+}
+void QRetroInput::setAnalogButtonDeadzone(int16_t dz)
+{
+  m_AnalogButtonDeadzone = dz;
+}
+
+bool QRetroInput::key(retro_key key)
+{
+  return m_Keys[key];
+}
+void QRetroInput::setKey(retro_key key, bool down)
+{
+  m_Keys[key] = down;
+}
+
+const std::vector<QRetroControllerPort> &QRetroInput::controllerPorts(void) const
+{
+  return m_ControllerPorts;
+}
+
+void QRetroInput::setControllerPortDevice(void (*fn)(unsigned, unsigned))
+{
+  m_SetControllerPortDevice = fn;
+}
+
+void QRetroInput::setControllerInfo(const retro_controller_info *info)
+{
+  m_ControllerPorts.clear();
+  if (!info)
+    return;
+  for (const retro_controller_info *ci = info; ci->types; ci++)
+  {
+    QRetroControllerPort port;
+    for (unsigned i = 0; i < ci->num_types; i++)
+      port.types.push_back({ ci->types[i].desc ? ci->types[i].desc : "", ci->types[i].id });
+    if (!port.types.empty())
+      port.selectedId = port.types[0].id;
+    m_ControllerPorts.push_back(std::move(port));
+  }
+  if (m_SetControllerPortDevice)
+    for (unsigned p = 0; p < m_ControllerPorts.size(); p++)
+      m_SetControllerPortDevice(p, m_ControllerPorts[p].selectedId);
+}
+
+unsigned QRetroInput::selectedControllerType(unsigned port) const
+{
+  return port < m_ControllerPorts.size() ? m_ControllerPorts[port].selectedId : RETRO_DEVICE_JOYPAD;
+}
+
+void QRetroInput::setSelectedControllerType(unsigned port, unsigned id)
+{
+  if (port < m_ControllerPorts.size())
+  {
+    m_ControllerPorts[port].selectedId = id;
+    if (m_SetControllerPortDevice)
+      m_SetControllerPortDevice(port, id);
+  }
+}
+
+unsigned QRetroInput::maxUsers(void)
+{
+  return m_MaxUsers;
+}
+void QRetroInput::setMaxUsers(unsigned max)
+{
+  m_MaxUsers = max;
+}
+
+bool QRetroInput::supportsBitmasks(void)
+{
+  return m_SupportsBitmasks;
+}
+void QRetroInput::setSupportsBitmasks(bool supports)
+{
+  m_SupportsBitmasks = supports;
+}
+
+bool QRetroInput::useMaps(void)
+{
+  return m_UseMaps;
+}
+void QRetroInput::setUseMaps(bool use)
+{
+  m_UseMaps = use;
+}
+
+bool QRetroInput::setRumble(unsigned port, retro_rumble_effect effect, uint16_t strength)
+{
+  if (port < m_MaxUsers)
+  {
+    switch (effect)
+    {
+    case RETRO_RUMBLE_STRONG:
+      m_Joypads[port].setRumbleStrong(strength);
+      break;
+    case RETRO_RUMBLE_WEAK:
+      m_Joypads[port].setRumbleWeak(strength);
+      break;
+    /* No default to encourage a warning if more rumble types are added */
+    case RETRO_RUMBLE_DUMMY:
+      return false;
+    }
+  }
+
+  return m_Backend ? m_Backend->setRumble(port, effect, strength) : false;
+}
+
+bool QRetroInput::setSensorState(unsigned port, retro_sensor_action action, unsigned rate)
+{
+  if (port < m_MaxUsers)
+  {
+    switch (action)
+    {
+    case RETRO_SENSOR_ACCELEROMETER_ENABLE:
+      m_Joypads[port].setAccelState(QRetroInputJoypad::SensorEnabled);
+      m_Joypads[port].setAccelRate(rate);
+      break;
+    case RETRO_SENSOR_ACCELEROMETER_DISABLE:
+      m_Joypads[port].setAccelState(QRetroInputJoypad::SensorDisabled);
+      break;
+    case RETRO_SENSOR_GYROSCOPE_ENABLE:
+      m_Joypads[port].setGyroState(QRetroInputJoypad::SensorEnabled);
+      m_Joypads[port].setGyroRate(rate);
+      break;
+    case RETRO_SENSOR_GYROSCOPE_DISABLE:
+      m_Joypads[port].setGyroState(QRetroInputJoypad::SensorDisabled);
+      break;
+    /* No default to encourage a warning if more sensor actions are added */
+    case RETRO_SENSOR_ILLUMINANCE_ENABLE:
+    case RETRO_SENSOR_ILLUMINANCE_DISABLE:
+    case RETRO_SENSOR_DUMMY:
+      return false;
+    }
+  }
+
+  return m_Backend ? m_Backend->setSensorState(port, action, rate) : false;
+}
+
+float QRetroInput::getSensorInput(unsigned port, unsigned id)
+{
+  if (port >= m_MaxUsers)
+    return 0.0f;
+  QRetroInputJoypad &jp = m_Joypads[port];
+  switch (id)
+  {
+  case RETRO_SENSOR_ACCELEROMETER_X:
+    return jp.accelX();
+  case RETRO_SENSOR_ACCELEROMETER_Y:
+    return jp.accelY();
+  case RETRO_SENSOR_ACCELEROMETER_Z:
+    return jp.accelZ();
+  case RETRO_SENSOR_GYROSCOPE_X:
+    return jp.gyroX();
+  case RETRO_SENSOR_GYROSCOPE_Y:
+    return jp.gyroY();
+  case RETRO_SENSOR_GYROSCOPE_Z:
+    return jp.gyroZ();
+  default:
+    return 0.0f;
+  }
+}
+
+bool QRetroInput::backendHandlesSensor(unsigned port, unsigned id) const
+{
+  if (port >= m_MaxUsers || !m_Backend)
+    return false;
+  return m_Backend->sensorActive(port, id);
+}
+
+const std::vector<QRetroInputDescriptor> &QRetroInput::inputDescriptors(void) const
+{
+  return m_InputDescriptors;
+}
+
+void QRetroInput::setInputDescriptors(const retro_input_descriptor *desc)
+{
+  m_InputDescriptors.clear();
+  if (!desc)
+    return;
+  for (; desc->description; desc++)
+    m_InputDescriptors.push_back(
+      { desc->port, desc->device, desc->index, desc->id, desc->description });
+}
+
+uint64_t QRetroInput::deviceCapabilities(void) const
+{
+  return m_DeviceCapabilities;
+}
+void QRetroInput::setDeviceCapabilities(uint64_t caps)
+{
+  m_DeviceCapabilities = caps;
+}
+
+QRetroInputJoypad *QRetroInput::joypads()
+{
+  return m_Joypads;
 }

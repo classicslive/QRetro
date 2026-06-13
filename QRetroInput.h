@@ -32,6 +32,7 @@ struct QRetroControllerPort
 #define QRETRO_INPUT_DEFAULT_MAX_JOYPADS 16
 #define QRETRO_INPUT_DEFAULT_BUTTON_DEADZONE 0
 #define QRETRO_INPUT_DEFAULT_STICK_DEADZONE 4096
+#define QRETRO_INPUT_DEFAULT_ANALOG_DIGITAL_THRESHOLD 0.5f
 
 /// The maximum number of keys that can be combined in one mapping, and the
 /// number of buttons one macro can press
@@ -80,58 +81,64 @@ public:
   int16_t analogStick(unsigned index, unsigned id);
   void setAnalogStick(unsigned index, unsigned id, int16_t value);
 
-  bool analogStickToDigitalPad(void) { return m_AnalogStickToDigitalPad; }
-  void setAnalogStickToDigitalPad(bool on) { m_AnalogStickToDigitalPad = on; }
+  bool analogStickToDigitalPad(void);
+  void setAnalogStickToDigitalPad(bool on);
 
-  int16_t analogStickDeadzone(void) { return m_AnalogStickDeadzone; }
-  void setAnalogStickDeadzone(int16_t dz) { m_AnalogStickDeadzone = dz; }
+  float analogDigitalThreshold(void);
+  void setAnalogDigitalThreshold(float t);
 
-  int16_t bitmask(void) { return m_Bitmask; }
+  int16_t analogStickDeadzone(void);
+  void setAnalogStickDeadzone(int16_t dz);
+
+  int16_t bitmask(void);
 
   bool digitalButton(unsigned id);
   void setDigitalButton(unsigned id, bool value);
 
-  bool digitalPadToAnalogStick(void) { return m_DigitalPadToAnalogStick; }
-  void setDigitalPadToAnalogStick(bool on) { m_DigitalPadToAnalogStick = on; }
+  bool digitalPadToAnalogStick(void);
+  void setDigitalPadToAnalogStick(bool on);
 
-  uint16_t rumbleStrong(void) { return m_RumbleStrong; }
-  uint16_t rumbleWeak(void) { return m_RumbleWeak; }
-  void setRumbleStrong(uint16_t v) { m_RumbleStrong = v; }
-  void setRumbleWeak(uint16_t v) { m_RumbleWeak = v; }
+  uint16_t rumbleStrong(void);
+  uint16_t rumbleWeak(void);
+  void setRumbleStrong(uint16_t v);
+  void setRumbleWeak(uint16_t v);
 
-  bool accelEnabled(void) { return m_AccelState == SensorEnabled; }
-  unsigned accelRate(void) { return m_AccelRate; }
-  float accelX(void) { return m_Accel[0]; }
-  float accelY(void) { return m_Accel[1]; }
-  float accelZ(void) { return m_Accel[2]; }
-  void setAccelRate(unsigned v) { m_AccelRate = v; }
-  void setAccelState(QRetroInputJoypad::SensorState v) { m_AccelState = v; }
-  void setAccelX(float v) { m_Accel[0] = v; }
-  void setAccelY(float v) { m_Accel[1] = v; }
-  void setAccelZ(float v) { m_Accel[2] = v; }
+  bool accelEnabled(void);
+  unsigned accelRate(void);
+  float accelX(void);
+  float accelY(void);
+  float accelZ(void);
+  void setAccelRate(unsigned v);
+  void setAccelState(QRetroInputJoypad::SensorState v);
+  void setAccelX(float v);
+  void setAccelY(float v);
+  void setAccelZ(float v);
 
-  bool gyroEnabled(void) { return m_GyroState == SensorEnabled; }
-  unsigned gyroRate(void) { return m_GyroRate; }
-  float gyroX(void) { return m_Gyro[0]; }
-  float gyroY(void) { return m_Gyro[1]; }
-  float gyroZ(void) { return m_Gyro[2]; }
-  void setGyroRate(unsigned v) { m_GyroRate = v; }
-  void setGyroState(QRetroInputJoypad::SensorState v) { m_GyroState = v; }
-  void setGyroX(float v) { m_Gyro[0] = v; }
-  void setGyroY(float v) { m_Gyro[1] = v; }
-  void setGyroZ(float v) { m_Gyro[2] = v; }
+  bool gyroEnabled(void);
+  unsigned gyroRate(void);
+  float gyroX(void);
+  float gyroY(void);
+  float gyroZ(void);
+  void setGyroRate(unsigned v);
+  void setGyroState(QRetroInputJoypad::SensorState v);
+  void setGyroX(float v);
+  void setGyroY(float v);
+  void setGyroZ(float v);
 
-  unsigned inputMethods(void) { return m_InputMethods; }
+  unsigned inputMethods(void);
   void setInputMethods(unsigned method);
 
-  unsigned port(void) { return m_Port; }
-  void setPort(unsigned port) { m_Port = port; }
+  unsigned port(void);
+  void setPort(unsigned port);
 
   void poll(void);
 
 private:
+  bool analogToDigital(unsigned id) const;
+
   int16_t m_AnalogButtonDeadzone = QRETRO_INPUT_DEFAULT_BUTTON_DEADZONE;
   int16_t m_AnalogStickDeadzone = QRETRO_INPUT_DEFAULT_STICK_DEADZONE;
+  float m_AnalogDigitalThreshold = QRETRO_INPUT_DEFAULT_ANALOG_DIGITAL_THRESHOLD;
   bool m_AnalogStickToDigitalPad = false;
   int16_t m_Bitmask = 0;
   int16_t m_Buttons[RETRO_DEVICE_ID_JOYPAD_R3 + 1] = {};
@@ -159,230 +166,67 @@ class QRetroInput : public QObject
 public:
   QRetroInput(QObject *parent = nullptr);
 
-  /**
-   * Sets the active gamepad input backend. The backend must be initialized
-   * before calling setBackend(); QRetroInput does not take ownership.
-   * Call backend()->init(joypads(), maxUsers()) after constructing the backend.
-   */
-  void setBackend(QRetroInputBackend *backend) { m_Backend = backend; }
-  QRetroInputBackend *backend() { return m_Backend; }
+  void setBackend(QRetroInputBackend *backend);
+  QRetroInputBackend *backend();
 
+  /**
+   * Implements retro_input_poll. Polls the hardware backend, applies keyboard
+   * macros, then finalizes each joypad's bitmask. The core must call this
+   * once per retro_run() before querying state().
+   */
   void poll(void);
 
+  /**
+   * Returns the current state of an input. Implements `retro_input_state`.
+   * @param port Controller port (0-based player index)
+   * @param device Device type (RETRO_DEVICE_JOYPAD, ANALOG, etc)
+   * @param index Sub-index within the device (e.g. stick index for analog)
+   * @param id Input ID within the device (e.g. RETRO_DEVICE_ID_JOYPAD_B)
+   * @return The input value, or 0 if the arguments are unsupported
+   */
   int16_t state(unsigned port, unsigned device, unsigned index, unsigned id);
 
-  int16_t analogButtonDeadzone(void) { return m_AnalogButtonDeadzone; }
+  int16_t analogButtonDeadzone(void);
+  void setAnalogButtonDeadzone(int16_t dz);
 
-  void setAnalogButtonDeadzone(int16_t dz) { m_AnalogButtonDeadzone = dz; }
+  bool key(retro_key key);
+  void setKey(retro_key key, bool down);
 
-  bool key(retro_key key) { return m_Keys[key]; }
+  const std::vector<QRetroControllerPort> &controllerPorts(void) const;
 
-  void setKey(retro_key key, bool down) { m_Keys[key] = down; }
+  void setControllerPortDevice(void (*fn)(unsigned, unsigned));
 
-  const std::vector<QRetroControllerPort> &controllerPorts(void) const { return m_ControllerPorts; }
+  void setControllerInfo(const retro_controller_info *info);
 
-  /**
-   * Sets the core's retro_set_controller_port_device function pointer.
-   * Called automatically by setSelectedControllerType() to notify the core
-   * when the active device type for a port changes.
-   */
-  void setControllerPortDevice(void (*fn)(unsigned, unsigned)) { m_SetControllerPortDevice = fn; }
+  unsigned selectedControllerType(unsigned port) const;
 
-  void setControllerInfo(const retro_controller_info *info)
-  {
-    m_ControllerPorts.clear();
-    if (!info)
-      return;
-    for (const retro_controller_info *ci = info; ci->types; ci++)
-    {
-      QRetroControllerPort port;
-      for (unsigned i = 0; i < ci->num_types; i++)
-        port.types.push_back({ ci->types[i].desc ? ci->types[i].desc : "", ci->types[i].id });
-      if (!port.types.empty())
-        port.selectedId = port.types[0].id;
-      m_ControllerPorts.push_back(std::move(port));
-    }
-    if (m_SetControllerPortDevice)
-      for (unsigned p = 0; p < m_ControllerPorts.size(); p++)
-        m_SetControllerPortDevice(p, m_ControllerPorts[p].selectedId);
-  }
+  void setSelectedControllerType(unsigned port, unsigned id);
 
-  unsigned selectedControllerType(unsigned port) const
-  {
-    return port < m_ControllerPorts.size() ? m_ControllerPorts[port].selectedId
-                                           : RETRO_DEVICE_JOYPAD;
-  }
+  unsigned maxUsers(void);
+  void setMaxUsers(unsigned max);
 
-  void setSelectedControllerType(unsigned port, unsigned id)
-  {
-    if (port < m_ControllerPorts.size())
-    {
-      m_ControllerPorts[port].selectedId = id;
-      if (m_SetControllerPortDevice)
-        m_SetControllerPortDevice(port, id);
-    }
-  }
+  bool supportsBitmasks(void);
+  void setSupportsBitmasks(bool supports);
 
-  /**
-   * The number of joypads that will be polled and can have their state read.
-   */
-  unsigned maxUsers(void) { return m_MaxUsers; }
+  bool useMaps(void);
+  void setUseMaps(bool use);
 
-  /**
-   * Sets the number of joypads that will be polled and can have their state read.
-   */
-  void setMaxUsers(unsigned max) { m_MaxUsers = max; }
+  bool setRumble(unsigned port, retro_rumble_effect effect, uint16_t strength);
 
-  /**
-   * Whether or not the frontend is reporting to support input bitmasks.
-   */
-  bool supportsBitmasks(void) { return m_SupportsBitmasks; }
+  bool setSensorState(unsigned port, retro_sensor_action action, unsigned rate);
 
-  /**
-   * Sets whether or not the frontend reports to support input bitmasks.
-   * QRetro's default input implementation does, but if this is manually set to
-   * false, it will pretend not to.
-   */
-  void setSupportsBitmasks(bool supports) { m_SupportsBitmasks = supports; }
+  float getSensorInput(unsigned port, unsigned id);
 
-  bool useMaps(void) { return m_UseMaps; }
-  void setUseMaps(bool use) { m_UseMaps = use; }
+  bool backendHandlesSensor(unsigned port, unsigned id) const;
 
-  /**
-   * Delegates a rumble request to the active backend.
-   * Returns false if no backend is active or the backend does not support rumble.
-   */
-  bool setRumble(unsigned port, retro_rumble_effect effect, uint16_t strength)
-  {
-    if (port < m_MaxUsers)
-    {
-      switch (effect)
-      {
-      case RETRO_RUMBLE_STRONG:
-        m_Joypads[port].setRumbleStrong(strength);
-        break;
-      case RETRO_RUMBLE_WEAK:
-        m_Joypads[port].setRumbleWeak(strength);
-        break;
-      /* No default to encourage a warning if more rumble types are added */
-      case RETRO_RUMBLE_DUMMY:
-        return false;
-      }
-    }
+  const std::vector<QRetroInputDescriptor> &inputDescriptors(void) const;
 
-    return m_Backend ? m_Backend->setRumble(port, effect, strength) : false;
-  }
+  void setInputDescriptors(const retro_input_descriptor *desc);
 
-  /**
-   * Enables or disables a sensor on the active backend for a given port.
-   * Returns true if the backend accepted the request; false if unhandled
-   * (caller should fall back to QRetroSensors).
-   */
-  bool setSensorState(unsigned port, retro_sensor_action action, unsigned rate)
-  {
-    if (port < m_MaxUsers)
-    {
-      switch (action)
-      {
-      case RETRO_SENSOR_ACCELEROMETER_ENABLE:
-        m_Joypads[port].setAccelState(QRetroInputJoypad::SensorEnabled);
-        m_Joypads[port].setAccelRate(rate);
-        break;
-      case RETRO_SENSOR_ACCELEROMETER_DISABLE:
-        m_Joypads[port].setAccelState(QRetroInputJoypad::SensorDisabled);
-        break;
-      case RETRO_SENSOR_GYROSCOPE_ENABLE:
-        m_Joypads[port].setGyroState(QRetroInputJoypad::SensorEnabled);
-        m_Joypads[port].setGyroRate(rate);
-        break;
-      case RETRO_SENSOR_GYROSCOPE_DISABLE:
-        m_Joypads[port].setGyroState(QRetroInputJoypad::SensorDisabled);
-        break;
-      /* No default to encourage a warning if more sensor actions are added */
-      case RETRO_SENSOR_ILLUMINANCE_ENABLE:
-      case RETRO_SENSOR_ILLUMINANCE_DISABLE:
-      case RETRO_SENSOR_DUMMY:
-        return false;
-      }
-    }
+  uint64_t deviceCapabilities(void) const;
+  void setDeviceCapabilities(uint64_t caps);
 
-    return m_Backend ? m_Backend->setSensorState(port, action, rate) : false;
-  }
-
-  /**
-   * Returns a sensor reading from the active backend for a given port and axis.
-   * Only valid when the backend accepted the corresponding setSensorState() call.
-   */
-  float getSensorInput(unsigned port, unsigned id)
-  {
-    if (port >= m_MaxUsers)
-      return 0.0f;
-    QRetroInputJoypad &jp = m_Joypads[port];
-    switch (id)
-    {
-    case RETRO_SENSOR_ACCELEROMETER_X:
-      return jp.accelX();
-    case RETRO_SENSOR_ACCELEROMETER_Y:
-      return jp.accelY();
-    case RETRO_SENSOR_ACCELEROMETER_Z:
-      return jp.accelZ();
-    case RETRO_SENSOR_GYROSCOPE_X:
-      return jp.gyroX();
-    case RETRO_SENSOR_GYROSCOPE_Y:
-      return jp.gyroY();
-    case RETRO_SENSOR_GYROSCOPE_Z:
-      return jp.gyroZ();
-    default:
-      return 0.0f;
-    }
-  }
-
-  /**
-   * Returns true if the backend currently has a live sensor feed for the
-   * given port and axis. Delegates to the backend's sensorActive() so the
-   * answer reflects real-time state rather than stale cached flags.
-   */
-  bool backendHandlesSensor(unsigned port, unsigned id) const
-  {
-    if (port >= m_MaxUsers || !m_Backend)
-      return false;
-    return m_Backend->sensorActive(port, id);
-  }
-
-  /**
-   * Returns the input descriptors provided by the core via SET_INPUT_DESCRIPTORS.
-   * Each descriptor describes the function of a specific button/axis for a given port.
-   */
-  const std::vector<QRetroInputDescriptor> &inputDescriptors(void) const
-  {
-    return m_InputDescriptors;
-  }
-
-  void setInputDescriptors(const retro_input_descriptor *desc)
-  {
-    m_InputDescriptors.clear();
-    if (!desc)
-      return;
-    for (; desc->description; desc++)
-      m_InputDescriptors.push_back(
-        { desc->port, desc->device, desc->index, desc->id, desc->description });
-  }
-
-  /**
-   * Returns the bitmask of supported input device types reported to the core.
-   * Each bit N corresponds to device type N (i.e. (1 << RETRO_DEVICE_x)).
-   */
-  uint64_t deviceCapabilities(void) const { return m_DeviceCapabilities; }
-
-  /**
-   * Sets the bitmask of supported input device types to report to the core.
-   */
-  void setDeviceCapabilities(uint64_t caps) { m_DeviceCapabilities = caps; }
-
-  /**
-   * Returns the raw joypad array. Primarily used to pass to a backend's init().
-   */
-  QRetroInputJoypad *joypads() { return m_Joypads; }
+  QRetroInputJoypad *joypads();
 
 private:
   int16_t m_AnalogButtonDeadzone = QRETRO_INPUT_DEFAULT_BUTTON_DEADZONE;
