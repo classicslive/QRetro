@@ -479,6 +479,7 @@ public:
 
   bool stateLoad(void);
   bool stateSave(void);
+  QString saveStatePath(void);
   void reset(void);
   void waitFrames(int count);
   void execOnTimingThread(std::function<void()> action);

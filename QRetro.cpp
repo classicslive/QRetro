@@ -1092,10 +1092,10 @@ void QRetro::keyPressEvent(QKeyEvent *event)
       setFastForwarding(!m_FastForwarding);
       break;
     case Qt::Key_Z:
-      serializeToFile(stateFilePath());
+      serializeToFile(saveStatePath());
       break;
     case Qt::Key_X:
-      unserializeFromFile(stateFilePath());
+      unserializeFromFile(saveStatePath());
       break;
     case Qt::Key_T:
       setRotation(m_Rotation + 90);
