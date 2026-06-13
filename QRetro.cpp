@@ -485,7 +485,7 @@ bool QRetro::unserialize(const void *data, size_t size)
   else
   {
     bool result = false;
-  
+
     execOnTimingThread([&]() { result = m_Core.retro_unserialize(data, size); });
 
     // Ignore next SRAM save to file
@@ -1193,16 +1193,17 @@ void QRetro::saving()
     hasher.addData(reinterpret_cast<const char *>(data), static_cast<int>(size));
     auto result = hasher.result();
 
+    if (m_AutosaveSkip > 0)
+    {
+      m_AutosaveSkip--;
+      hash = result;
+      continue;
+    }
+
     if (result == hash)
       continue;
 
     hash = result;
-
-    if (m_AutosaveSkip > 0)
-    {
-      m_AutosaveSkip--;
-      continue;
-    }
 
     if (save_file.open(QIODevice::WriteOnly | QIODevice::Truncate))
     {
