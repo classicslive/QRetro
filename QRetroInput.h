@@ -95,6 +95,12 @@ public:
   bool digitalButton(unsigned id);
   void setDigitalButton(unsigned id, bool value);
 
+  bool turbo(unsigned id) const;
+  void setTurbo(unsigned id, bool value);
+
+  bool forcedButton(unsigned id) const;
+  void setForcedButton(unsigned id, bool value);
+
   bool digitalPadToAnalogStick(void);
   void setDigitalPadToAnalogStick(bool on);
 
@@ -142,6 +148,9 @@ private:
   bool m_AnalogStickToDigitalPad = false;
   int16_t m_Bitmask = 0;
   int16_t m_Buttons[RETRO_DEVICE_ID_JOYPAD_R3 + 1] = {};
+  uint16_t m_ForcedButtons = 0;
+  uint16_t m_Turbo = 0;
+  bool m_TurboPhase = false;
   bool m_DigitalPadToAnalogStick = false;
   unsigned m_InputMethods = InputMethodGamepad | InputMethodKeyboard;
   unsigned m_Port = 0;

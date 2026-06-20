@@ -17,8 +17,10 @@
 #include <QListWidget>
 #include <QTextEdit>
 #include <QThread>
+#include <QGridLayout>
 #include <QScrollArea>
 #include <QSettings>
+#include <QTabWidget>
 #include <QSlider>
 #include <QSplitter>
 #include <QStackedWidget>
@@ -71,6 +73,31 @@ static const struct
 };
 
 static const int k_languageCount = int(sizeof(k_languages) / sizeof(k_languages[0]));
+
+static const struct
+{
+  const char *name;
+  unsigned id;
+} k_joypadButtons[] = {
+  { "B",      RETRO_DEVICE_ID_JOYPAD_B      },
+  { "Y",      RETRO_DEVICE_ID_JOYPAD_Y      },
+  { "Select", RETRO_DEVICE_ID_JOYPAD_SELECT },
+  { "Start",  RETRO_DEVICE_ID_JOYPAD_START  },
+  { "Up",     RETRO_DEVICE_ID_JOYPAD_UP     },
+  { "Down",   RETRO_DEVICE_ID_JOYPAD_DOWN   },
+  { "Left",   RETRO_DEVICE_ID_JOYPAD_LEFT   },
+  { "Right",  RETRO_DEVICE_ID_JOYPAD_RIGHT  },
+  { "A",      RETRO_DEVICE_ID_JOYPAD_A      },
+  { "X",      RETRO_DEVICE_ID_JOYPAD_X      },
+  { "L",      RETRO_DEVICE_ID_JOYPAD_L      },
+  { "R",      RETRO_DEVICE_ID_JOYPAD_R      },
+  { "L2",     RETRO_DEVICE_ID_JOYPAD_L2     },
+  { "R2",     RETRO_DEVICE_ID_JOYPAD_R2     },
+  { "L3",     RETRO_DEVICE_ID_JOYPAD_L3     },
+  { "R3",     RETRO_DEVICE_ID_JOYPAD_R3     },
+};
+
+static const int k_joypadButtonCount = int(sizeof(k_joypadButtons) / sizeof(k_joypadButtons[0]));
 
 static const struct
 {
@@ -147,8 +174,11 @@ QRetroConfig::QRetroConfig(QRetro *owner)
     auto *input = m_Owner->input();
     for (unsigned p = 0; p < input->maxUsers(); p++)
     {
-      input->joypads()[p].setAnalogStickToDigitalPad(m_AnalogStickToDigitalPad);
-      input->joypads()[p].setAnalogStickDeadzone(static_cast<int16_t>(m_AnalogStickDeadzone));
+      input->joypads()[p].setAnalogStickToDigitalPad(m_AnalogStickToDigitalPad[p]);
+      input->joypads()[p].setAnalogStickDeadzone(static_cast<int16_t>(m_AnalogStickDeadzone[p]));
+      for (int b = 0; b < k_joypadButtonCount; b++)
+        input->joypads()[p].setTurbo(
+          k_joypadButtons[b].id, m_TurboMask[p] & (1u << k_joypadButtons[b].id));
     }
   }
 
@@ -158,6 +188,18 @@ QRetroConfig::QRetroConfig(QRetro *owner)
   connect(sensor_read_timer, &QTimer::timeout, [this]() {
     if (!m_Owner || !m_Owner->isActive())
       return;
+
+    if (auto *backend = m_Owner->input()->backend())
+    {
+      for (int p = 0; p < QRETRO_INPUT_DEFAULT_MAX_JOYPADS; p++)
+      {
+        if (!m_DeviceNameLabel[p])
+          continue;
+        QString name = backend->deviceName(static_cast<unsigned>(p));
+        m_DeviceNameLabel[p]->setText(name.isEmpty() ? tr("None") : name);
+      }
+    }
+
     auto *s = m_Owner->sensors();
     setAccelXHasBeenRead(s->accelXHasBeenRead());
     setAccelYHasBeenRead(s->accelYHasBeenRead());
@@ -431,9 +473,17 @@ void QRetroConfig::load()
   m_BilinearFilter = settings.value("bilinearFilter", true).toBool();
   m_AudioEnabled = settings.value("audioEnabled", true).toBool();
   m_AudioVolume = settings.value("audioVolume", 1.0f).toFloat();
-  m_AnalogStickToDigitalPad = settings.value("analogStickToDigitalPad", false).toBool();
-  m_AnalogStickDeadzone =
-    settings.value("analogStickDeadzone", QRETRO_INPUT_DEFAULT_STICK_DEADZONE).toInt();
+  for (int p = 0; p < QRETRO_INPUT_DEFAULT_MAX_JOYPADS; p++)
+  {
+    m_AnalogStickToDigitalPad[p] =
+      settings.value(QStringLiteral("analogStickToDigitalPad_%1").arg(p), false).toBool();
+    m_AnalogStickDeadzone[p] =
+      settings
+        .value(QStringLiteral("analogStickDeadzone_%1").arg(p), QRETRO_INPUT_DEFAULT_STICK_DEADZONE)
+        .toInt();
+    m_TurboMask[p] = static_cast<uint16_t>(
+      settings.value(QStringLiteral("turboMask_%1").arg(p), 0).toUInt());
+  }
 
   m_SpoofLocationEnabled = settings.value("spoofLocationEnabled", false).toBool();
   m_SpoofLat = settings.value("spoofLat", 0.0).toDouble();
@@ -467,8 +517,14 @@ void QRetroConfig::save()
   settings.setValue("bilinearFilter", m_BilinearFilter);
   settings.setValue("audioEnabled", m_AudioEnabled);
   settings.setValue("audioVolume", m_AudioVolume);
-  settings.setValue("analogStickToDigitalPad", m_AnalogStickToDigitalPad);
-  settings.setValue("analogStickDeadzone", m_AnalogStickDeadzone);
+  for (int p = 0; p < QRETRO_INPUT_DEFAULT_MAX_JOYPADS; p++)
+  {
+    settings.setValue(
+      QStringLiteral("analogStickToDigitalPad_%1").arg(p), m_AnalogStickToDigitalPad[p]);
+    settings.setValue(QStringLiteral("analogStickDeadzone_%1").arg(p), m_AnalogStickDeadzone[p]);
+    settings.setValue(
+      QStringLiteral("turboMask_%1").arg(p), static_cast<uint>(m_TurboMask[p]));
+  }
 
   settings.setValue("spoofLocationEnabled", m_SpoofLocationEnabled);
   settings.setValue("spoofLat", m_SpoofLat);
@@ -504,6 +560,9 @@ void QRetroConfig::update()
     }
     delete layout();
   }
+
+  for (auto &lbl : m_DeviceNameLabel)
+    lbl = nullptr;
 
   m_LedForm = nullptr;
   m_LedEmptyLabel = nullptr;
@@ -642,66 +701,120 @@ void QRetroConfig::update()
   /* ── Input ──────────────────────────────────────────────────── */
   auto *input_page = new QWidget();
   {
-    auto *form = new QFormLayout(input_page);
-    form->setContentsMargins(12, 12, 12, 12);
-    form->setVerticalSpacing(10);
+    auto *page_layout = new QVBoxLayout(input_page);
+    page_layout->setContentsMargins(12, 12, 12, 12);
+    page_layout->setSpacing(0);
 
     const auto &ports = m_Owner->input()->controllerPorts();
-    for (unsigned p = 0; p < static_cast<unsigned>(ports.size()); p++)
+    const unsigned numPorts = qMin(
+      qMax(static_cast<unsigned>(ports.size()), 2u),
+      static_cast<unsigned>(QRETRO_INPUT_DEFAULT_MAX_JOYPADS));
+    auto *backend = m_Owner->input()->backend();
+
+    auto *tabs = new QTabWidget();
+
+    for (unsigned p = 0; p < numPorts; p++)
     {
-      const auto &port = ports[p];
-      if (port.types.empty())
-        continue;
+      auto *tab_widget = new QWidget();
+      auto *form = new QFormLayout(tab_widget);
+      form->setContentsMargins(8, 8, 8, 8);
+      form->setVerticalSpacing(10);
 
-      auto *combo = new QComboBox();
-      for (const auto &type : port.types)
-        combo->addItem(QString::fromStdString(type.desc), type.id);
+      /* Connected device */
+      auto *device_label = new QLabel();
+      QString dev_name = backend ? backend->deviceName(p) : QString();
+      device_label->setText(dev_name.isEmpty() ? tr("None") : dev_name);
+      m_DeviceNameLabel[p] = device_label;
+      form->addRow(tr("Device"), device_label);
 
-      unsigned selected = port.selectedId;
-      int idx = combo->findData(selected);
-      combo->setCurrentIndex(idx >= 0 ? idx : 0);
+      /* Controller type (only if the core reported types for this port) */
+      if (p < static_cast<unsigned>(ports.size()) && !ports[p].types.empty())
+      {
+        auto *combo = new QComboBox();
+        for (const auto &type : ports[p].types)
+          combo->addItem(QString::fromStdString(type.desc), type.id);
 
-      /* Notify the core of the current selection now that the game is loaded. */
-      m_Owner->input()->setSelectedControllerType(p, selected);
+        unsigned selected = ports[p].selectedId;
+        int sel_idx = combo->findData(selected);
+        combo->setCurrentIndex(sel_idx >= 0 ? sel_idx : 0);
 
-      connect(combo, QOverload<int>::of(&QComboBox::currentIndexChanged), [this, combo, p](int) {
-        unsigned id = static_cast<unsigned>(combo->currentData().toUInt());
-        m_Owner->input()->setSelectedControllerType(p, id);
+        m_Owner->input()->setSelectedControllerType(p, selected);
+
+        connect(combo, QOverload<int>::of(&QComboBox::currentIndexChanged),
+          [this, combo, p](int) {
+            unsigned id = static_cast<unsigned>(combo->currentData().toUInt());
+            m_Owner->input()->setSelectedControllerType(p, id);
+          });
+
+        form->addRow(tr("Controller Type"), combo);
+      }
+
+      /* Analog stick as D-pad */
+      auto *analog_to_dpad = new QCheckBox();
+      analog_to_dpad->setChecked(m_AnalogStickToDigitalPad[p]);
+      connect(analog_to_dpad, &QCheckBox::stateChanged, [this, p](int state) {
+        m_AnalogStickToDigitalPad[p] = (state == Qt::Checked);
+        m_Owner->input()->joypads()[p].setAnalogStickToDigitalPad(m_AnalogStickToDigitalPad[p]);
+        m_SaveTimer->start();
       });
+      form->addRow(tr("Analog Stick as D-Pad"), analog_to_dpad);
 
-      form->addRow(tr("Port %1").arg(p + 1), combo);
+      /* Analog stick deadzone */
+      auto *dz_spin = new QSpinBox();
+      dz_spin->setRange(0, 32767);
+      dz_spin->setValue(m_AnalogStickDeadzone[p]);
+      dz_spin->setSingleStep(256);
+      connect(dz_spin, QOverload<int>::of(&QSpinBox::valueChanged), [this, p](int v) {
+        m_AnalogStickDeadzone[p] = v;
+        m_Owner->input()->joypads()[p].setAnalogStickDeadzone(static_cast<int16_t>(v));
+        m_SaveTimer->start();
+      });
+      form->addRow(tr("Analog Stick Deadzone"), dz_spin);
+
+      /* Turbo buttons */
+      auto *turbo_widget = new QWidget();
+      auto *turbo_grid = new QGridLayout(turbo_widget);
+      turbo_grid->setContentsMargins(0, 0, 0, 0);
+      turbo_grid->setSpacing(4);
+      for (int i = 0; i < k_joypadButtonCount; i++)
+      {
+        unsigned btn_id = k_joypadButtons[i].id;
+        auto *cb = new QCheckBox(tr(k_joypadButtons[i].name));
+        cb->setChecked(m_TurboMask[p] & (1u << btn_id));
+        connect(cb, &QCheckBox::stateChanged, [this, p, btn_id](int state) {
+          if (state == Qt::Checked)
+            m_TurboMask[p] |= static_cast<uint16_t>(1u << btn_id);
+          else
+            m_TurboMask[p] &= static_cast<uint16_t>(~(1u << btn_id));
+          m_Owner->input()->joypads()[p].setTurbo(btn_id, state == Qt::Checked);
+          m_SaveTimer->start();
+        });
+        turbo_grid->addWidget(cb, i / 4, i % 4);
+      }
+      form->addRow(tr("Turbo"), turbo_widget);
+
+      /* Force-hold buttons: OR'd into m_Buttons each poll regardless of
+       * controller input or turbo state. Not persisted. */
+      auto *hold_widget = new QWidget();
+      auto *hold_grid = new QGridLayout(hold_widget);
+      hold_grid->setContentsMargins(0, 0, 0, 0);
+      hold_grid->setSpacing(4);
+      for (int i = 0; i < k_joypadButtonCount; i++)
+      {
+        unsigned btn_id = k_joypadButtons[i].id;
+        auto *cb = new QCheckBox(tr(k_joypadButtons[i].name));
+        cb->setChecked(m_Owner->input()->joypads()[p].forcedButton(btn_id));
+        connect(cb, &QCheckBox::stateChanged, [this, p, btn_id](int state) {
+          m_Owner->input()->joypads()[p].setForcedButton(btn_id, state == Qt::Checked);
+        });
+        hold_grid->addWidget(cb, i / 4, i % 4);
+      }
+      form->addRow(tr("Hold"), hold_widget);
+
+      tabs->addTab(tab_widget, tr("Player %1").arg(p + 1));
     }
 
-    if (ports.empty())
-    {
-      auto *label = new QLabel(tr("No controller info provided by core."));
-      label->setForegroundRole(QPalette::Dark);
-      form->addRow(label);
-    }
-
-    auto *analog_to_dpad = new QCheckBox();
-    analog_to_dpad->setChecked(m_AnalogStickToDigitalPad);
-    connect(analog_to_dpad, &QCheckBox::stateChanged, [this](int state) {
-      m_AnalogStickToDigitalPad = (state == Qt::Checked);
-      auto *input = m_Owner->input();
-      for (unsigned p = 0; p < input->maxUsers(); p++)
-        input->joypads()[p].setAnalogStickToDigitalPad(m_AnalogStickToDigitalPad);
-      m_SaveTimer->start();
-    });
-    form->addRow(tr("Analog Stick as D-Pad"), analog_to_dpad);
-
-    auto *dz_spin = new QSpinBox();
-    dz_spin->setRange(0, 32767);
-    dz_spin->setValue(m_AnalogStickDeadzone);
-    dz_spin->setSingleStep(256);
-    connect(dz_spin, QOverload<int>::of(&QSpinBox::valueChanged), [this](int v) {
-      m_AnalogStickDeadzone = v;
-      auto *input = m_Owner->input();
-      for (unsigned p = 0; p < input->maxUsers(); p++)
-        input->joypads()[p].setAnalogStickDeadzone(static_cast<int16_t>(v));
-      m_SaveTimer->start();
-    });
-    form->addRow(tr("Analog Stick Deadzone"), dz_spin);
+    page_layout->addWidget(tabs);
   }
 
   /* ── Environment ────────────────────────────────────────────── */

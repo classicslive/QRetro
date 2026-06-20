@@ -80,6 +80,16 @@ public:
     return false;
   }
 
+  /**
+   * Returns a human-readable name for the physical device assigned to
+   * the given port, or an empty string if no device is connected.
+   */
+  virtual QString deviceName(unsigned port) const
+  {
+    Q_UNUSED(port)
+    return QString();
+  }
+
 signals:
   void gamepadConnected(unsigned port);
   void gamepadDisconnected(unsigned port);

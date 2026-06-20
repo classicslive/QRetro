@@ -22,6 +22,8 @@ public:
   // QGamepad is signal-driven; nothing to do at poll time.
   void poll() override {}
 
+  QString deviceName(unsigned port) const override;
+
 private slots:
   void onGamepadConnected(int deviceId);
   void onGamepadDisconnected(int deviceId);

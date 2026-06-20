@@ -219,6 +219,14 @@ bool QRetroInputBackendSDL3::sensorActive(unsigned port, unsigned id)
   return false;
 }
 
+QString QRetroInputBackendSDL3::deviceName(unsigned port) const
+{
+  if (port >= m_MaxUsers || !m_Gamepads[port])
+    return QString();
+  const char *name = SDL_GetGamepadName(m_Gamepads[port]);
+  return name ? QString::fromUtf8(name) : QString();
+}
+
 void QRetroInputBackendSDL3::openGamepad(unsigned port, SDL_JoystickID instanceId)
 {
   if (port >= m_MaxUsers)

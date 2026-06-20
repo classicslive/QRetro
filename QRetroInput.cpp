@@ -13,6 +13,22 @@ void QRetroInputJoypad::poll(void)
     m_Buttons[RETRO_DEVICE_ID_JOYPAD_RIGHT] |= analogToDigital(RETRO_DEVICE_ID_JOYPAD_RIGHT);
   }
 
+  /* Turbo: on each alternating poll, suppress any held buttons that have
+   * turbo enabled so they appear released to the core. */
+  m_TurboPhase = !m_TurboPhase;
+  if (m_Turbo && !m_TurboPhase)
+  {
+    for (int i = 0; i <= RETRO_DEVICE_ID_JOYPAD_R3; i++)
+      if (m_Turbo & (1 << i))
+        m_Buttons[i] = 0;
+  }
+
+  /* Force-held buttons: OR into m_Buttons after turbo so they bypass
+   * turbo suppression. */
+  if (m_ForcedButtons)
+    for (int i = 0; i <= RETRO_DEVICE_ID_JOYPAD_R3; i++)
+      m_Buttons[i] |= static_cast<int16_t>((m_ForcedButtons >> i) & 1);
+
   /* Update the input bitmask, even if reporting not to support it. */
   for (int i = 0; i <= RETRO_DEVICE_ID_JOYPAD_R3; i++)
     bitmask |= m_Buttons[i] ? (1 << i) : 0;
@@ -69,6 +85,40 @@ void QRetroInputJoypad::setDigitalButton(unsigned id, bool value)
     return;
   else
     m_Buttons[id] = value;
+}
+
+bool QRetroInputJoypad::forcedButton(unsigned id) const
+{
+  if (id > RETRO_DEVICE_ID_JOYPAD_R3)
+    return false;
+  return m_ForcedButtons & (1u << id);
+}
+
+void QRetroInputJoypad::setForcedButton(unsigned id, bool value)
+{
+  if (id > RETRO_DEVICE_ID_JOYPAD_R3)
+    return;
+  if (value)
+    m_ForcedButtons |= static_cast<uint16_t>(1u << id);
+  else
+    m_ForcedButtons &= static_cast<uint16_t>(~(1u << id));
+}
+
+bool QRetroInputJoypad::turbo(unsigned id) const
+{
+  if (id > RETRO_DEVICE_ID_JOYPAD_R3)
+    return false;
+  return m_Turbo & (1 << id);
+}
+
+void QRetroInputJoypad::setTurbo(unsigned id, bool value)
+{
+  if (id > RETRO_DEVICE_ID_JOYPAD_R3)
+    return;
+  if (value)
+    m_Turbo |= static_cast<uint16_t>(1 << id);
+  else
+    m_Turbo &= static_cast<uint16_t>(~(1 << id));
 }
 
 int16_t QRetroInputJoypad::analogStick(unsigned index, unsigned id)

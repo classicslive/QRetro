@@ -38,8 +38,19 @@ public:
   bool spoofIllumEnabled() const { return m_SpoofIllumEnabled; }
   float spoofIllum() const { return m_SpoofIllum; }
 
-  bool analogStickToDigitalPad() const { return m_AnalogStickToDigitalPad; }
-  int analogStickDeadzone() const { return m_AnalogStickDeadzone; }
+  bool analogStickToDigitalPad(unsigned port = 0) const
+  {
+    return port < QRETRO_INPUT_DEFAULT_MAX_JOYPADS && m_AnalogStickToDigitalPad[port];
+  }
+  int analogStickDeadzone(unsigned port = 0) const
+  {
+    return port < QRETRO_INPUT_DEFAULT_MAX_JOYPADS ? m_AnalogStickDeadzone[port]
+                                                   : QRETRO_INPUT_DEFAULT_STICK_DEADZONE;
+  }
+  uint16_t turboMask(unsigned port = 0) const
+  {
+    return port < QRETRO_INPUT_DEFAULT_MAX_JOYPADS ? m_TurboMask[port] : 0;
+  }
 
   void update();
 
@@ -115,8 +126,9 @@ private:
   bool m_SpoofIllumEnabled = false;
   float m_SpoofIllum = 0;
 
-  bool m_AnalogStickToDigitalPad = false;
-  int m_AnalogStickDeadzone = QRETRO_INPUT_DEFAULT_STICK_DEADZONE;
+  bool m_AnalogStickToDigitalPad[QRETRO_INPUT_DEFAULT_MAX_JOYPADS] = {};
+  int m_AnalogStickDeadzone[QRETRO_INPUT_DEFAULT_MAX_JOYPADS] = {};
+  uint16_t m_TurboMask[QRETRO_INPUT_DEFAULT_MAX_JOYPADS] = {};
 
   bool m_SpoofLocationEnabled = false;
   double m_SpoofLat = 0;
@@ -129,6 +141,8 @@ private:
   QTimer *m_SaveTimer = nullptr;
   QString m_Filename;
   QStringList m_ProcSymbols;
+
+  QLabel *m_DeviceNameLabel[QRETRO_INPUT_DEFAULT_MAX_JOYPADS] = {};
 
   QWidget *m_AccelAxisWidget[3] = { nullptr, nullptr, nullptr };
   QWidget *m_GyroAxisWidget[3] = { nullptr, nullptr, nullptr };

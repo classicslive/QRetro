@@ -88,6 +88,13 @@ void QRetroInputBackendQGamepad::connectPort(unsigned port, int deviceId)
   CONNECT_TRIGGER(gp, jp, buttonR2Changed, RETRO_DEVICE_ID_JOYPAD_R2);
 }
 
+QString QRetroInputBackendQGamepad::deviceName(unsigned port) const
+{
+  if (port >= m_MaxUsers || !m_Gamepads[port] || !m_Gamepads[port]->isConnected())
+    return QString();
+  return m_Gamepads[port]->name();
+}
+
 void QRetroInputBackendQGamepad::onGamepadConnected(int deviceId)
 {
   for (unsigned i = 0; i < m_MaxUsers; i++)

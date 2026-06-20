@@ -22,6 +22,7 @@ public:
   bool setRumble(unsigned port, retro_rumble_effect effect, uint16_t strength) override;
   bool setSensorState(unsigned port, retro_sensor_action action, unsigned rate) override;
   bool sensorActive(unsigned port, unsigned id) override;
+  QString deviceName(unsigned port) const override;
 
 private:
   QRetroInputJoypad *m_Joypads = nullptr;
