@@ -1137,7 +1137,7 @@ void QRetro::setFastForwarding(bool enabled)
 void QRetro::saving()
 {
   QByteArray hash;
-  QCryptographicHash hasher(QCryptographicHash::Md5);
+  QCryptographicHash hasher(QCryptographicHash::Md4);
   QFile save_file(QString("%1/%2.sav")
       .arg(
         m_Directories.get(QRetroDirectories::Save), QFileInfo(contentPath()).completeBaseName()));
