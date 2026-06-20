@@ -79,22 +79,22 @@ static const struct
   const char *name;
   unsigned id;
 } k_joypadButtons[] = {
-  { "B",      RETRO_DEVICE_ID_JOYPAD_B      },
-  { "Y",      RETRO_DEVICE_ID_JOYPAD_Y      },
+  { "B", RETRO_DEVICE_ID_JOYPAD_B },
+  { "Y", RETRO_DEVICE_ID_JOYPAD_Y },
   { "Select", RETRO_DEVICE_ID_JOYPAD_SELECT },
-  { "Start",  RETRO_DEVICE_ID_JOYPAD_START  },
-  { "Up",     RETRO_DEVICE_ID_JOYPAD_UP     },
-  { "Down",   RETRO_DEVICE_ID_JOYPAD_DOWN   },
-  { "Left",   RETRO_DEVICE_ID_JOYPAD_LEFT   },
-  { "Right",  RETRO_DEVICE_ID_JOYPAD_RIGHT  },
-  { "A",      RETRO_DEVICE_ID_JOYPAD_A      },
-  { "X",      RETRO_DEVICE_ID_JOYPAD_X      },
-  { "L",      RETRO_DEVICE_ID_JOYPAD_L      },
-  { "R",      RETRO_DEVICE_ID_JOYPAD_R      },
-  { "L2",     RETRO_DEVICE_ID_JOYPAD_L2     },
-  { "R2",     RETRO_DEVICE_ID_JOYPAD_R2     },
-  { "L3",     RETRO_DEVICE_ID_JOYPAD_L3     },
-  { "R3",     RETRO_DEVICE_ID_JOYPAD_R3     },
+  { "Start", RETRO_DEVICE_ID_JOYPAD_START },
+  { "Up", RETRO_DEVICE_ID_JOYPAD_UP },
+  { "Down", RETRO_DEVICE_ID_JOYPAD_DOWN },
+  { "Left", RETRO_DEVICE_ID_JOYPAD_LEFT },
+  { "Right", RETRO_DEVICE_ID_JOYPAD_RIGHT },
+  { "A", RETRO_DEVICE_ID_JOYPAD_A },
+  { "X", RETRO_DEVICE_ID_JOYPAD_X },
+  { "L", RETRO_DEVICE_ID_JOYPAD_L },
+  { "R", RETRO_DEVICE_ID_JOYPAD_R },
+  { "L2", RETRO_DEVICE_ID_JOYPAD_L2 },
+  { "R2", RETRO_DEVICE_ID_JOYPAD_R2 },
+  { "L3", RETRO_DEVICE_ID_JOYPAD_L3 },
+  { "R3", RETRO_DEVICE_ID_JOYPAD_R3 },
 };
 
 static const int k_joypadButtonCount = int(sizeof(k_joypadButtons) / sizeof(k_joypadButtons[0]));
@@ -481,8 +481,8 @@ void QRetroConfig::load()
       settings
         .value(QStringLiteral("analogStickDeadzone_%1").arg(p), QRETRO_INPUT_DEFAULT_STICK_DEADZONE)
         .toInt();
-    m_TurboMask[p] = static_cast<uint16_t>(
-      settings.value(QStringLiteral("turboMask_%1").arg(p), 0).toUInt());
+    m_TurboMask[p] =
+      static_cast<uint16_t>(settings.value(QStringLiteral("turboMask_%1").arg(p), 0).toUInt());
   }
 
   m_SpoofLocationEnabled = settings.value("spoofLocationEnabled", false).toBool();
@@ -522,8 +522,7 @@ void QRetroConfig::save()
     settings.setValue(
       QStringLiteral("analogStickToDigitalPad_%1").arg(p), m_AnalogStickToDigitalPad[p]);
     settings.setValue(QStringLiteral("analogStickDeadzone_%1").arg(p), m_AnalogStickDeadzone[p]);
-    settings.setValue(
-      QStringLiteral("turboMask_%1").arg(p), static_cast<uint>(m_TurboMask[p]));
+    settings.setValue(QStringLiteral("turboMask_%1").arg(p), static_cast<uint>(m_TurboMask[p]));
   }
 
   settings.setValue("spoofLocationEnabled", m_SpoofLocationEnabled);
@@ -706,8 +705,7 @@ void QRetroConfig::update()
     page_layout->setSpacing(0);
 
     const auto &ports = m_Owner->input()->controllerPorts();
-    const unsigned numPorts = qMin(
-      qMax(static_cast<unsigned>(ports.size()), 2u),
+    const unsigned numPorts = qMin(qMax(static_cast<unsigned>(ports.size()), 2u),
       static_cast<unsigned>(QRETRO_INPUT_DEFAULT_MAX_JOYPADS));
     auto *backend = m_Owner->input()->backend();
 
@@ -740,11 +738,10 @@ void QRetroConfig::update()
 
         m_Owner->input()->setSelectedControllerType(p, selected);
 
-        connect(combo, QOverload<int>::of(&QComboBox::currentIndexChanged),
-          [this, combo, p](int) {
-            unsigned id = static_cast<unsigned>(combo->currentData().toUInt());
-            m_Owner->input()->setSelectedControllerType(p, id);
-          });
+        connect(combo, QOverload<int>::of(&QComboBox::currentIndexChanged), [this, combo, p](int) {
+          unsigned id = static_cast<unsigned>(combo->currentData().toUInt());
+          m_Owner->input()->setSelectedControllerType(p, id);
+        });
 
         form->addRow(tr("Controller Type"), combo);
       }
