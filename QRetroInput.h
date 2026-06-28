@@ -95,6 +95,9 @@ public:
   bool digitalButton(unsigned id);
   void setDigitalButton(unsigned id, bool value);
 
+  void setButtonRemap(unsigned from, unsigned to);
+  void clearButtonRemaps(void);
+
   bool turbo(unsigned id) const;
   void setTurbo(unsigned id, bool value);
 
@@ -148,6 +151,8 @@ private:
   bool m_AnalogStickToDigitalPad = false;
   int16_t m_Bitmask = 0;
   int16_t m_Buttons[RETRO_DEVICE_ID_JOYPAD_R3 + 1] = {};
+  bool m_HasRemap = false; // when false, m_Remap is identity and skipped
+  unsigned m_Remap[RETRO_DEVICE_ID_JOYPAD_R3 + 1] = {};
   uint16_t m_ForcedButtons = 0;
   uint16_t m_Turbo = 0;
   bool m_TurboPhase = false;
@@ -197,6 +202,9 @@ public:
 
   int16_t analogButtonDeadzone(void);
   void setAnalogButtonDeadzone(int16_t dz);
+
+  void remapButton(unsigned port, unsigned from, unsigned to);
+  void clearButtonRemaps(unsigned port);
 
   bool key(retro_key key);
   void setKey(retro_key key, bool down);

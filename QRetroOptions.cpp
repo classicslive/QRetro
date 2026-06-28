@@ -90,7 +90,7 @@ QRetroOption::QRetroOption(retro_variable *var)
          "    Possible (%u): [%s]\n"
          "    Default: %s\n"
          "    Type = %s",
-    m_Title[Default].c_str(), var->key, m_PossibleValues[Default].count(),
+    m_Title[Default].c_str(), var->key, static_cast<unsigned>(m_PossibleValues[Default].count()),
     m_PossibleValues[Default].join(", ").toStdString().c_str(), m_DefaultValue.c_str(),
     type_name(m_Type));
 }
@@ -126,7 +126,8 @@ QRetroOption::QRetroOption(retro_core_option_definition *us, retro_core_option_d
          "    Default: %s\n"
          "    Type = %s",
     m_Title[local ? Language::Local : Language::Default].c_str(), us->key,
-    m_PossibleValues[Default].count(), m_PossibleValues[Default].join(", ").toStdString().c_str(),
+    static_cast<unsigned>(m_PossibleValues[Default].count()),
+    m_PossibleValues[Default].join(", ").toStdString().c_str(),
     m_DefaultValue.c_str(), type_name(m_Type));
 }
 
@@ -169,7 +170,8 @@ QRetroOption::QRetroOption(
          "    Default: %s\n"
          "    Type = %s",
     m_Title[local ? Language::Local : Language::Default].c_str(), us->key,
-    m_PossibleValues[Default].count(), m_PossibleValues[Default].join(", ").toStdString().c_str(),
+    static_cast<unsigned>(m_PossibleValues[Default].count()),
+    m_PossibleValues[Default].join(", ").toStdString().c_str(),
     m_DefaultValue.c_str(), type_name(m_Type));
 }
 
@@ -570,8 +572,8 @@ void QRetroOptions::update()
       std::string false_val = var->boolFalseValue();
       auto *elem = new QCheckBox(parent);
       elem->setChecked(strcmp(var->getValue(), false_val.c_str()) != 0);
-      connect(elem, &QCheckBox::stateChanged, [this, key, true_val, false_val](int state) {
-        setOptionValue(key.c_str(), state == Qt::Unchecked ? false_val.c_str() : true_val.c_str());
+      connect(elem, &QCheckBox::toggled, [this, key, true_val, false_val](bool checked) {
+        setOptionValue(key.c_str(), checked ? true_val.c_str() : false_val.c_str());
       });
       auto *label = new QLabel(var->title(), parent);
       label->setEnabled(var->getVisibility());

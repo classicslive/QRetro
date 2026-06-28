@@ -5,6 +5,7 @@ void QRetroInputJoypad::poll(void)
 {
   uint16_t bitmask = 0;
 
+  /* Handle analog-to-digital */
   if (m_AnalogStickToDigitalPad)
   {
     m_Buttons[RETRO_DEVICE_ID_JOYPAD_UP] |= analogToDigital(RETRO_DEVICE_ID_JOYPAD_UP);
@@ -13,8 +14,7 @@ void QRetroInputJoypad::poll(void)
     m_Buttons[RETRO_DEVICE_ID_JOYPAD_RIGHT] |= analogToDigital(RETRO_DEVICE_ID_JOYPAD_RIGHT);
   }
 
-  /* Turbo: on each alternating poll, suppress any held buttons that have
-   * turbo enabled so they appear released to the core. */
+  /* Handle turbo */
   m_TurboPhase = !m_TurboPhase;
   if (m_Turbo && !m_TurboPhase)
   {
@@ -23,11 +23,24 @@ void QRetroInputJoypad::poll(void)
         m_Buttons[i] = 0;
   }
 
-  /* Force-held buttons: OR into m_Buttons after turbo so they bypass
-   * turbo suppression. */
+  /* Handle programmatically forced buttons */
   if (m_ForcedButtons)
     for (int i = 0; i <= RETRO_DEVICE_ID_JOYPAD_R3; i++)
       m_Buttons[i] |= static_cast<int16_t>((m_ForcedButtons >> i) & 1);
+
+  /* Handle remappings */
+  if (m_HasRemap)
+  {
+    int16_t remapped[RETRO_DEVICE_ID_JOYPAD_R3 + 1] = {};
+    for (int i = 0; i <= RETRO_DEVICE_ID_JOYPAD_R3; i++)
+    {
+      const unsigned dst = m_Remap[i];
+      if (dst <= RETRO_DEVICE_ID_JOYPAD_R3 && m_Buttons[i] > remapped[dst])
+        remapped[dst] = m_Buttons[i];
+    }
+    for (int i = 0; i <= RETRO_DEVICE_ID_JOYPAD_R3; i++)
+      m_Buttons[i] = remapped[i];
+  }
 
   /* Update the input bitmask, even if reporting not to support it. */
   for (int i = 0; i <= RETRO_DEVICE_ID_JOYPAD_R3; i++)
@@ -85,6 +98,24 @@ void QRetroInputJoypad::setDigitalButton(unsigned id, bool value)
     return;
   else
     m_Buttons[id] = value;
+}
+
+void QRetroInputJoypad::setButtonRemap(unsigned from, unsigned to)
+{
+  if (from > RETRO_DEVICE_ID_JOYPAD_R3 || to > RETRO_DEVICE_ID_JOYPAD_R3)
+    return;
+  if (!m_HasRemap)
+  {
+    for (unsigned i = 0; i <= RETRO_DEVICE_ID_JOYPAD_R3; i++)
+      m_Remap[i] = i;
+    m_HasRemap = true;
+  }
+  m_Remap[from] = to;
+}
+
+void QRetroInputJoypad::clearButtonRemaps(void)
+{
+  m_HasRemap = false;
 }
 
 bool QRetroInputJoypad::forcedButton(unsigned id) const
@@ -439,6 +470,18 @@ int16_t QRetroInput::analogButtonDeadzone(void)
 void QRetroInput::setAnalogButtonDeadzone(int16_t dz)
 {
   m_AnalogButtonDeadzone = dz;
+}
+
+void QRetroInput::remapButton(unsigned port, unsigned from, unsigned to)
+{
+  if (port < QRETRO_INPUT_DEFAULT_MAX_JOYPADS)
+    m_Joypads[port].setButtonRemap(from, to);
+}
+
+void QRetroInput::clearButtonRemaps(unsigned port)
+{
+  if (port < QRETRO_INPUT_DEFAULT_MAX_JOYPADS)
+    m_Joypads[port].clearButtonRemaps();
 }
 
 bool QRetroInput::key(retro_key key)
