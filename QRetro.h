@@ -466,7 +466,11 @@ public:
   void setFastForwardingOverride(retro_fastforwarding_override *);
 
   void pause(void) { m_Paused = true; }
-  void unpause(void) { m_Paused = false; m_PauseCondition.wakeAll(); }
+  void unpause(void)
+  {
+    m_Paused = false;
+    m_PauseCondition.wakeAll();
+  }
 
   bool jitCapable(void) { return m_JitCapable; }
   void setJitCapable(bool capable) { m_JitCapable = capable; }

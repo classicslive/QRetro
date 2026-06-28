@@ -127,8 +127,8 @@ QRetroOption::QRetroOption(retro_core_option_definition *us, retro_core_option_d
          "    Type = %s",
     m_Title[local ? Language::Local : Language::Default].c_str(), us->key,
     static_cast<unsigned>(m_PossibleValues[Default].count()),
-    m_PossibleValues[Default].join(", ").toStdString().c_str(),
-    m_DefaultValue.c_str(), type_name(m_Type));
+    m_PossibleValues[Default].join(", ").toStdString().c_str(), m_DefaultValue.c_str(),
+    type_name(m_Type));
 }
 
 QRetroOption::QRetroOption(
@@ -171,8 +171,8 @@ QRetroOption::QRetroOption(
          "    Type = %s",
     m_Title[local ? Language::Local : Language::Default].c_str(), us->key,
     static_cast<unsigned>(m_PossibleValues[Default].count()),
-    m_PossibleValues[Default].join(", ").toStdString().c_str(),
-    m_DefaultValue.c_str(), type_name(m_Type));
+    m_PossibleValues[Default].join(", ").toStdString().c_str(), m_DefaultValue.c_str(),
+    type_name(m_Type));
 }
 
 bool QRetroOption::determineType()

@@ -919,7 +919,6 @@ void QRetro::timing()
       }
     }
 
-
     if (inputReady() && // stall if waiting for input (netplay)
         isVisible() && // stall if window is not available in context
         !m_Paused && // stall if content is paused
