@@ -605,8 +605,8 @@ void QRetroConfig::update()
 
     auto *aspect_ratio = new QCheckBox();
     aspect_ratio->setChecked(m_UseAspectRatio);
-    connect(aspect_ratio, &QCheckBox::stateChanged, [this](int state) {
-      m_UseAspectRatio = state != Qt::Unchecked;
+    connect(aspect_ratio, &QCheckBox::toggled, [this](bool checked) {
+      m_UseAspectRatio = checked;
       m_SaveTimer->start();
       m_Owner->m_UseAspectRatio = m_UseAspectRatio;
       m_Owner->updateScaling();
@@ -616,8 +616,8 @@ void QRetroConfig::update()
 
     auto *int_scaling = new QCheckBox();
     int_scaling->setChecked(m_IntegerScaling);
-    connect(int_scaling, &QCheckBox::stateChanged, [this](int state) {
-      m_IntegerScaling = state != Qt::Unchecked;
+    connect(int_scaling, &QCheckBox::toggled, [this](bool checked) {
+      m_IntegerScaling = checked;
       m_SaveTimer->start();
       m_Owner->m_IntegerScaling = m_IntegerScaling;
       m_Owner->updateScaling();
@@ -627,8 +627,8 @@ void QRetroConfig::update()
 
     auto *bilinear = new QCheckBox();
     bilinear->setChecked(m_BilinearFilter);
-    connect(bilinear, &QCheckBox::stateChanged, [this](int state) {
-      m_BilinearFilter = state != Qt::Unchecked;
+    connect(bilinear, &QCheckBox::toggled, [this](bool checked) {
+      m_BilinearFilter = checked;
       m_SaveTimer->start();
       m_Owner->m_BilinearFilter = m_BilinearFilter;
       emit bilinearFilterChanged(m_BilinearFilter);
@@ -645,8 +645,8 @@ void QRetroConfig::update()
 
     auto *enabled = new QCheckBox();
     enabled->setChecked(m_AudioEnabled);
-    connect(enabled, &QCheckBox::stateChanged, [this](int state) {
-      m_AudioEnabled = state != Qt::Unchecked;
+    connect(enabled, &QCheckBox::toggled, [this](bool checked) {
+      m_AudioEnabled = checked;
       m_SaveTimer->start();
       m_Owner->m_AudioEnabled = m_AudioEnabled;
       if (m_Owner->m_Audio)
@@ -749,8 +749,8 @@ void QRetroConfig::update()
       /* Analog stick as D-pad */
       auto *analog_to_dpad = new QCheckBox();
       analog_to_dpad->setChecked(m_AnalogStickToDigitalPad[p]);
-      connect(analog_to_dpad, &QCheckBox::stateChanged, [this, p](int state) {
-        m_AnalogStickToDigitalPad[p] = (state == Qt::Checked);
+      connect(analog_to_dpad, &QCheckBox::toggled, [this, p](bool checked) {
+        m_AnalogStickToDigitalPad[p] = checked;
         m_Owner->input()->joypads()[p].setAnalogStickToDigitalPad(m_AnalogStickToDigitalPad[p]);
         m_SaveTimer->start();
       });
@@ -778,12 +778,12 @@ void QRetroConfig::update()
         unsigned btn_id = k_joypadButtons[i].id;
         auto *cb = new QCheckBox(tr(k_joypadButtons[i].name));
         cb->setChecked(m_TurboMask[p] & (1u << btn_id));
-        connect(cb, &QCheckBox::stateChanged, [this, p, btn_id](int state) {
-          if (state == Qt::Checked)
+        connect(cb, &QCheckBox::toggled, [this, p, btn_id](bool checked) {
+          if (checked)
             m_TurboMask[p] |= static_cast<uint16_t>(1u << btn_id);
           else
             m_TurboMask[p] &= static_cast<uint16_t>(~(1u << btn_id));
-          m_Owner->input()->joypads()[p].setTurbo(btn_id, state == Qt::Checked);
+          m_Owner->input()->joypads()[p].setTurbo(btn_id, checked);
           m_SaveTimer->start();
         });
         turbo_grid->addWidget(cb, i / 4, i % 4);
@@ -801,8 +801,8 @@ void QRetroConfig::update()
         unsigned btn_id = k_joypadButtons[i].id;
         auto *cb = new QCheckBox(tr(k_joypadButtons[i].name));
         cb->setChecked(m_Owner->input()->joypads()[p].forcedButton(btn_id));
-        connect(cb, &QCheckBox::stateChanged, [this, p, btn_id](int state) {
-          m_Owner->input()->joypads()[p].setForcedButton(btn_id, state == Qt::Checked);
+        connect(cb, &QCheckBox::toggled, [this, p, btn_id](bool checked) {
+          m_Owner->input()->joypads()[p].setForcedButton(btn_id, checked);
         });
         hold_grid->addWidget(cb, i / 4, i % 4);
       }
@@ -1163,7 +1163,7 @@ void QRetroConfig::update()
           m_SpoofAccelEnabled, m_SpoofAccel[0], m_SpoofAccel[1], m_SpoofAccel[2]);
       };
 
-      connect(spoof_check, &QCheckBox::stateChanged, [emit_accel](int) { emit_accel(); });
+      connect(spoof_check, &QCheckBox::toggled, [emit_accel](bool) { emit_accel(); });
       connect(spinX, QOverload<double>::of(&QDoubleSpinBox::valueChanged),
         [emit_accel](double) { emit_accel(); });
       connect(spinY, QOverload<double>::of(&QDoubleSpinBox::valueChanged),
@@ -1214,7 +1214,7 @@ void QRetroConfig::update()
         emit spoofGyroChanged(m_SpoofGyroEnabled, m_SpoofGyro[0], m_SpoofGyro[1], m_SpoofGyro[2]);
       };
 
-      connect(spoof_check, &QCheckBox::stateChanged, [emit_gyro](int) { emit_gyro(); });
+      connect(spoof_check, &QCheckBox::toggled, [emit_gyro](bool) { emit_gyro(); });
       connect(spinX, QOverload<double>::of(&QDoubleSpinBox::valueChanged),
         [emit_gyro](double) { emit_gyro(); });
       connect(spinY, QOverload<double>::of(&QDoubleSpinBox::valueChanged),
@@ -1282,7 +1282,7 @@ void QRetroConfig::update()
         emit spoofIllumChanged(m_SpoofIllumEnabled, m_SpoofIllum);
       };
 
-      connect(spoof_check, &QCheckBox::stateChanged, [emit_illum](int) { emit_illum(); });
+      connect(spoof_check, &QCheckBox::toggled, [emit_illum](bool) { emit_illum(); });
       connect(spin, QOverload<double>::of(&QDoubleSpinBox::valueChanged),
         [emit_illum](double) { emit_illum(); });
 
@@ -1365,7 +1365,7 @@ void QRetroConfig::update()
         m_SpoofLocationEnabled, m_SpoofLat, m_SpoofLon, m_SpoofHAcc, m_SpoofVAcc);
     };
 
-    connect(spoof_check, &QCheckBox::stateChanged, [emit_location](int) { emit_location(); });
+    connect(spoof_check, &QCheckBox::toggled, [emit_location](bool) { emit_location(); });
     connect(lat_spin, QOverload<double>::of(&QDoubleSpinBox::valueChanged),
       [emit_location](double) { emit_location(); });
     connect(lon_spin, QOverload<double>::of(&QDoubleSpinBox::valueChanged),
