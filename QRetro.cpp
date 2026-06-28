@@ -454,6 +454,7 @@ void QRetro::execOnTimingThread(std::function<void()> action)
   }
   QMutexLocker lock(&m_PendingMutex);
   m_PendingAction = std::move(action);
+  m_PauseCondition.wakeAll();
   m_PendingDone.wait(&m_PendingMutex);
 }
 
@@ -715,6 +716,11 @@ void QRetro::unloadCore(void)
     /* Unblock the timing thread if it is waiting on the frame semaphore */
     m_FramePresented.release();
 
+    /* Unblock the timing thread if it is parked on the pause condition */
+    QMutexLocker lock(&m_PendingMutex);
+    m_Paused = false;
+    m_PauseCondition.wakeAll();
+
     if (m_ThreadTiming)
     {
       m_ThreadTiming->wait();
@@ -906,13 +912,10 @@ void QRetro::timing()
         m_PendingAction = nullptr;
         m_PendingDone.wakeAll();
       }
+        continue;
+      }
     }
 
-    if (m_Paused)
-    {
-      QThread::msleep(10);
-      continue;
-    }
 
     if (inputReady() && // stall if waiting for input (netplay)
         isVisible() && // stall if window is not available in context
@@ -1092,7 +1095,10 @@ void QRetro::keyPressEvent(QKeyEvent *event)
       initVideo(RETRO_HW_CONTEXT_OPENGL);
       break;
     case Qt::Key_P:
-      m_Paused = !m_Paused;
+      if (m_Paused)
+        unpause();
+      else
+        pause();
       break;
     case Qt::Key_R:
       reset();

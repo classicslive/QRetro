@@ -466,7 +466,7 @@ public:
   void setFastForwardingOverride(retro_fastforwarding_override *);
 
   void pause(void) { m_Paused = true; }
-  void unpause(void) { m_Paused = false; }
+  void unpause(void) { m_Paused = false; m_PauseCondition.wakeAll(); }
 
   bool jitCapable(void) { return m_JitCapable; }
   void setJitCapable(bool capable) { m_JitCapable = capable; }
@@ -689,6 +689,7 @@ private:
   QMutex m_PendingMutex;
   std::function<void()> m_PendingAction;
   QWaitCondition m_PendingDone;
+  QWaitCondition m_PauseCondition;
   QSemaphore m_FramePresented;
   QThread *m_ThreadSaving;
   QThread *m_ThreadTiming;
