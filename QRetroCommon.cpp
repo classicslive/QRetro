@@ -690,13 +690,22 @@ uint16_t qt2lr_keymod(Qt::KeyboardModifiers qt)
 }
 
 static_assert(RETRO_LANGUAGE_LAST == RETRO_LANGUAGE_IRISH + 1, "Update libretro language values!");
+static QLocale::Country qt_locale_territory(const QLocale &qt)
+{
+#if QT_VERSION >= QT_VERSION_CHECK(6, 2, 0)
+  return qt.territory();
+#else
+  return qt.country();
+#endif
+}
+
 retro_language qt2lr_language(const QLocale &qt)
 {
   switch (qt.language())
   {
   case QLocale::English:
-    return qt.country() == QLocale::UnitedKingdom ? RETRO_LANGUAGE_BRITISH_ENGLISH
-                                                  : RETRO_LANGUAGE_ENGLISH;
+    return qt_locale_territory(qt) == QLocale::UnitedKingdom ? RETRO_LANGUAGE_BRITISH_ENGLISH
+                                                             : RETRO_LANGUAGE_ENGLISH;
   case QLocale::Japanese:
     return RETRO_LANGUAGE_JAPANESE;
   case QLocale::French:
@@ -710,8 +719,8 @@ retro_language qt2lr_language(const QLocale &qt)
   case QLocale::Dutch:
     return RETRO_LANGUAGE_DUTCH;
   case QLocale::Portuguese:
-    return qt.country() == QLocale::Brazil ? RETRO_LANGUAGE_PORTUGUESE_BRAZIL
-                                           : RETRO_LANGUAGE_PORTUGUESE_PORTUGAL;
+    return qt_locale_territory(qt) == QLocale::Brazil ? RETRO_LANGUAGE_PORTUGUESE_BRAZIL
+                                                      : RETRO_LANGUAGE_PORTUGUESE_PORTUGAL;
   case QLocale::Russian:
     return RETRO_LANGUAGE_RUSSIAN;
   case QLocale::Korean:
