@@ -912,6 +912,9 @@ void QRetro::timing()
         m_PendingAction = nullptr;
         m_PendingDone.wakeAll();
       }
+      if (m_Paused)
+      {
+        m_PauseCondition.wait(&m_PendingMutex);
         continue;
       }
     }
@@ -1177,7 +1180,8 @@ void QRetro::saving()
       memcpy(data, initial_buffer.constData(), copy_size);
 
       hasher.reset();
-      hasher.addData(reinterpret_cast<const char *>(data), static_cast<int>(copy_size));
+      hasher.addData(
+        QByteArray::fromRawData(reinterpret_cast<const char *>(data), static_cast<int>(copy_size)));
       hash = hasher.result();
     }
   }
@@ -1196,7 +1200,8 @@ void QRetro::saving()
       continue;
 
     hasher.reset();
-    hasher.addData(reinterpret_cast<const char *>(data), static_cast<int>(size));
+    hasher.addData(
+      QByteArray::fromRawData(reinterpret_cast<const char *>(data), static_cast<int>(size)));
     auto result = hasher.result();
 
     if (m_AutosaveSkip > 0)
