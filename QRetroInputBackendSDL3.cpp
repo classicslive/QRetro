@@ -239,6 +239,57 @@ QString QRetroInputBackendSDL3::deviceName(unsigned port) const
   return name ? QString::fromUtf8(name) : QString();
 }
 
+QVector<QRetroGamepadInfo> QRetroInputBackendSDL3::connectedGamepads() const
+{
+  int count = 0;
+  SDL_JoystickID *ids = SDL_GetGamepads(&count);
+  QVector<QRetroGamepadInfo> result;
+  if (!ids)
+    return result;
+  result.reserve(count);
+  for (int i = 0; i < count; i++)
+  {
+    const char *name = SDL_GetGamepadNameForID(ids[i]);
+    result.append({ static_cast<unsigned>(ids[i]),
+                    name ? QString::fromUtf8(name) : QString() });
+  }
+  SDL_free(ids);
+  return result;
+}
+
+bool QRetroInputBackendSDL3::assignGamepad(unsigned port, unsigned deviceId)
+{
+  if (port >= m_MaxUsers)
+    return false;
+
+  if (deviceId == QRETRO_NO_DEVICE)
+  {
+    if (m_Gamepads[port])
+    {
+      SDL_CloseGamepad(m_Gamepads[port]);
+      m_Gamepads[port] = nullptr;
+      m_InstanceIds[port] = 0;
+      emit gamepadDisconnected(port);
+    }
+    return true;
+  }
+
+  openGamepad(port, static_cast<SDL_JoystickID>(deviceId));
+  if (m_Gamepads[port])
+  {
+    emit gamepadConnected(port);
+    return true;
+  }
+  return false;
+}
+
+unsigned QRetroInputBackendSDL3::assignedDeviceId(unsigned port) const
+{
+  if (port >= m_MaxUsers || !m_Gamepads[port])
+    return QRETRO_NO_DEVICE;
+  return static_cast<unsigned>(m_InstanceIds[port]);
+}
+
 void QRetroInputBackendSDL3::openGamepad(unsigned port, SDL_JoystickID instanceId)
 {
   if (port >= m_MaxUsers)

@@ -24,6 +24,10 @@ public:
   bool sensorActive(unsigned port, unsigned id) override;
   QString deviceName(unsigned port) const override;
 
+  QVector<QRetroGamepadInfo> connectedGamepads() const override;
+  bool assignGamepad(unsigned port, unsigned deviceId) override;
+  unsigned assignedDeviceId(unsigned port) const override;
+
 private:
   QRetroInputJoypad *m_Joypads = nullptr;
   unsigned m_MaxUsers = 0;

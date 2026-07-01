@@ -183,6 +183,10 @@ public:
   void setBackend(QRetroInputBackend *backend);
   QRetroInputBackend *backend();
 
+  QVector<QRetroGamepadInfo> connectedGamepads() const;
+  bool assignGamepad(unsigned port, unsigned deviceId);
+  unsigned assignedDeviceId(unsigned port) const;
+
   /**
    * Implements retro_input_poll. Polls the hardware backend, applies keyboard
    * macros, then finalizes each joypad's bitmask. The core must call this

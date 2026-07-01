@@ -28,6 +28,7 @@
 
 #include "QRetroConfig.h"
 #include "QRetro.h"
+#include "QRetroInputBackend.h"
 
 static const struct
 {
@@ -182,23 +183,21 @@ QRetroConfig::QRetroConfig(QRetro *owner)
     }
   }
 
+  /* Refresh gamepad combo boxes when devices connect or disconnect. */
+  if (auto *backend = m_Owner->input()->backend())
+  {
+    connect(backend, &QRetroInputBackend::gamepadConnected, this,
+      [this]() { refreshGamepadCombos(); }, Qt::QueuedConnection);
+    connect(backend, &QRetroInputBackend::gamepadDisconnected, this,
+      [this]() { refreshGamepadCombos(); }, Qt::QueuedConnection);
+  }
+
   /* Poll sensor read-tracking flags and enable/disable per-axis UI widgets. */
   auto *sensor_read_timer = new QTimer(this);
   sensor_read_timer->setInterval(200);
   connect(sensor_read_timer, &QTimer::timeout, [this]() {
     if (!m_Owner || !m_Owner->isActive())
       return;
-
-    if (auto *backend = m_Owner->input()->backend())
-    {
-      for (int p = 0; p < QRETRO_INPUT_DEFAULT_MAX_JOYPADS; p++)
-      {
-        if (!m_DeviceNameLabel[p])
-          continue;
-        QString name = backend->deviceName(static_cast<unsigned>(p));
-        m_DeviceNameLabel[p]->setText(name.isEmpty() ? tr("None") : name);
-      }
-    }
 
     auto *s = m_Owner->sensors();
     setAccelXHasBeenRead(s->accelXHasBeenRead());
@@ -462,6 +461,34 @@ void QRetroConfig::showEvent(QShowEvent *event)
   QWidget::showEvent(event);
 }
 
+void QRetroConfig::refreshGamepadCombos()
+{
+  if (!m_Owner)
+    return;
+  auto *input = m_Owner->input();
+  auto gamepads = input->connectedGamepads();
+
+  for (int p = 0; p < QRETRO_INPUT_DEFAULT_MAX_JOYPADS; p++)
+  {
+    auto *combo = m_GamepadCombo[p];
+    if (!combo)
+      continue;
+
+    unsigned assigned = input->assignedDeviceId(static_cast<unsigned>(p));
+
+    combo->blockSignals(true);
+    combo->clear();
+    combo->addItem(tr("None"), static_cast<uint>(QRETRO_NO_DEVICE));
+    for (const auto &gp : gamepads)
+      combo->addItem(gp.name.isEmpty() ? tr("Unknown") : gp.name, gp.deviceId);
+
+    int idx = combo->findData(assigned != QRETRO_NO_DEVICE ? assigned
+                                                           : static_cast<uint>(QRETRO_NO_DEVICE));
+    combo->setCurrentIndex(idx >= 0 ? idx : 0);
+    combo->blockSignals(false);
+  }
+}
+
 void QRetroConfig::load()
 {
   QSettings settings(m_Filename, QSettings::IniFormat);
@@ -560,8 +587,8 @@ void QRetroConfig::update()
     delete layout();
   }
 
-  for (auto &lbl : m_DeviceNameLabel)
-    lbl = nullptr;
+  for (auto &cb : m_GamepadCombo)
+    cb = nullptr;
 
   m_LedForm = nullptr;
   m_LedEmptyLabel = nullptr;
@@ -707,7 +734,6 @@ void QRetroConfig::update()
     const auto &ports = m_Owner->input()->controllerPorts();
     const unsigned numPorts = qMin(qMax(static_cast<unsigned>(ports.size()), 2u),
       static_cast<unsigned>(QRETRO_INPUT_DEFAULT_MAX_JOYPADS));
-    auto *backend = m_Owner->input()->backend();
 
     auto *tabs = new QTabWidget();
 
@@ -718,12 +744,15 @@ void QRetroConfig::update()
       form->setContentsMargins(8, 8, 8, 8);
       form->setVerticalSpacing(10);
 
-      /* Connected device */
-      auto *device_label = new QLabel();
-      QString dev_name = backend ? backend->deviceName(p) : QString();
-      device_label->setText(dev_name.isEmpty() ? tr("None") : dev_name);
-      m_DeviceNameLabel[p] = device_label;
-      form->addRow(tr("Device"), device_label);
+      /* Physical gamepad assignment combo */
+      auto *gamepad_combo = new QComboBox();
+      m_GamepadCombo[p] = gamepad_combo;
+      connect(gamepad_combo, QOverload<int>::of(&QComboBox::currentIndexChanged),
+        [this, gamepad_combo, p](int) {
+          unsigned id = static_cast<unsigned>(gamepad_combo->currentData().toUInt());
+          m_Owner->input()->assignGamepad(p, id);
+        });
+      form->addRow(tr("Gamepad"), gamepad_combo);
 
       /* Controller type (only if the core reported types for this port) */
       if (p < static_cast<unsigned>(ports.size()) && !ports[p].types.empty())
@@ -812,6 +841,7 @@ void QRetroConfig::update()
     }
 
     page_layout->addWidget(tabs);
+    refreshGamepadCombos();
   }
 
   /* ── Environment ────────────────────────────────────────────── */
@@ -1141,15 +1171,18 @@ void QRetroConfig::update()
       auto *spoof_check = new QCheckBox(tr("Spoof values"));
       spoof_check->setChecked(m_SpoofAccelEnabled);
 
-      auto [wX, spinX] = make_axis_widget(m_SpoofAccel[0], -20.0, 20.0, 100);
-      auto [wY, spinY] = make_axis_widget(m_SpoofAccel[1], -20.0, 20.0, 100);
-      auto [wZ, spinZ] = make_axis_widget(m_SpoofAccel[2], -20.0, 20.0, 100);
-      m_AccelAxisWidget[0] = wX;
-      wX->setEnabled(false);
-      m_AccelAxisWidget[1] = wY;
-      wY->setEnabled(false);
-      m_AccelAxisWidget[2] = wZ;
-      wZ->setEnabled(false);
+      auto axisX = make_axis_widget(m_SpoofAccel[0], -20.0, 20.0, 100);
+      auto axisY = make_axis_widget(m_SpoofAccel[1], -20.0, 20.0, 100);
+      auto axisZ = make_axis_widget(m_SpoofAccel[2], -20.0, 20.0, 100);
+      auto *spinX = axisX.second;
+      auto *spinY = axisY.second;
+      auto *spinZ = axisZ.second;
+      m_AccelAxisWidget[0] = axisX.first;
+      axisX.first->setEnabled(false);
+      m_AccelAxisWidget[1] = axisY.first;
+      axisY.first->setEnabled(false);
+      m_AccelAxisWidget[2] = axisZ.first;
+      axisZ.first->setEnabled(false);
 
       auto emit_accel = [this, spoof_check, spinX, spinY, spinZ]() {
         m_SpoofAccelEnabled = spoof_check->isChecked();
@@ -1172,9 +1205,9 @@ void QRetroConfig::update()
         [emit_accel](double) { emit_accel(); });
 
       form->addRow(tr("Spoof"), spoof_check);
-      form->addRow(tr("X"), wX);
-      form->addRow(tr("Y"), wY);
-      form->addRow(tr("Z"), wZ);
+      form->addRow(tr("X"), spinX);
+      form->addRow(tr("Y"), spinY);
+      form->addRow(tr("Z"), spinZ);
 
       page_layout->addWidget(group);
     }
@@ -1193,15 +1226,18 @@ void QRetroConfig::update()
       auto *spoof_check = new QCheckBox(tr("Spoof values"));
       spoof_check->setChecked(m_SpoofGyroEnabled);
 
-      auto [wX, spinX] = make_axis_widget(m_SpoofGyro[0], -1.0, 1.0, 100);
-      auto [wY, spinY] = make_axis_widget(m_SpoofGyro[1], -1.0, 1.0, 100);
-      auto [wZ, spinZ] = make_axis_widget(m_SpoofGyro[2], -1.0, 1.0, 100);
-      m_GyroAxisWidget[0] = wX;
-      wX->setEnabled(false);
-      m_GyroAxisWidget[1] = wY;
-      wY->setEnabled(false);
-      m_GyroAxisWidget[2] = wZ;
-      wZ->setEnabled(false);
+      auto axisX = make_axis_widget(m_SpoofGyro[0], -1.0, 1.0, 100);
+      auto axisY = make_axis_widget(m_SpoofGyro[1], -1.0, 1.0, 100);
+      auto axisZ = make_axis_widget(m_SpoofGyro[2], -1.0, 1.0, 100);
+      auto *spinX = axisX.second;
+      auto *spinY = axisY.second;
+      auto *spinZ = axisZ.second;
+      m_GyroAxisWidget[0] = axisX.first;
+      axisX.first->setEnabled(false);
+      m_GyroAxisWidget[1] = axisY.first;
+      axisY.first->setEnabled(false);
+      m_GyroAxisWidget[2] = axisZ.first;
+      axisZ.first->setEnabled(false);
 
       auto emit_gyro = [this, spoof_check, spinX, spinY, spinZ]() {
         m_SpoofGyroEnabled = spoof_check->isChecked();
@@ -1223,9 +1259,9 @@ void QRetroConfig::update()
         [emit_gyro](double) { emit_gyro(); });
 
       form->addRow(tr("Spoof"), spoof_check);
-      form->addRow(tr("X"), wX);
-      form->addRow(tr("Y"), wY);
-      form->addRow(tr("Z"), wZ);
+      form->addRow(tr("X"), spinX);
+      form->addRow(tr("Y"), spinY);
+      form->addRow(tr("Z"), spinZ);
 
       page_layout->addWidget(group);
     }
@@ -1958,7 +1994,7 @@ void QRetroConfig::update()
   search_bar->setContentsMargins(6, 4, 6, 4);
 
   connect(
-    search_bar, &QLineEdit::textChanged, sidebar, [sidebar, stack, page_rows](const QString &text) {
+    search_bar, &QLineEdit::textChanged, sidebar, [sidebar, page_rows](const QString &text) {
       const QString q = text.trimmed().toLower();
       const bool empty = q.isEmpty();
 

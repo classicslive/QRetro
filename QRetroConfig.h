@@ -9,6 +9,7 @@
 #include "libretro.h"
 #include "QRetroInput.h"
 
+class QComboBox;
 class QFormLayout;
 class QLabel;
 class QRetro;
@@ -109,6 +110,7 @@ signals:
 private:
   void load();
   void save();
+  void refreshGamepadCombos();
 
   retro_language m_Language = RETRO_LANGUAGE_ENGLISH;
   bool m_UseAspectRatio = true;
@@ -142,7 +144,7 @@ private:
   QString m_Filename;
   QStringList m_ProcSymbols;
 
-  QLabel *m_DeviceNameLabel[QRETRO_INPUT_DEFAULT_MAX_JOYPADS] = {};
+  QComboBox *m_GamepadCombo[QRETRO_INPUT_DEFAULT_MAX_JOYPADS] = {};
 
   QWidget *m_AccelAxisWidget[3] = { nullptr, nullptr, nullptr };
   QWidget *m_GyroAxisWidget[3] = { nullptr, nullptr, nullptr };

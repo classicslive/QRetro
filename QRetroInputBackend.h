@@ -2,7 +2,19 @@
 #define QRETRO_INPUT_BACKEND_H
 
 #include <QObject>
+#include <QString>
+#include <QVector>
 #include <libretro.h>
+
+/// Sentinel value meaning "no physical device assigned to this port".
+static constexpr unsigned QRETRO_NO_DEVICE = ~0u;
+
+/// Name and opaque backend ID for a single connected gamepad.
+struct QRetroGamepadInfo
+{
+  unsigned deviceId;
+  QString name;
+};
 
 class QRetroInputJoypad;
 
@@ -88,6 +100,34 @@ public:
   {
     Q_UNUSED(port)
     return QString();
+  }
+
+  /**
+   * Returns a list of every gamepad the backend currently sees as connected,
+   * whether or not it is assigned to a port.
+   */
+  virtual QVector<QRetroGamepadInfo> connectedGamepads() const { return {}; }
+
+  /**
+   * Assigns the physical device identified by deviceId to the given port.
+   * Pass QRETRO_NO_DEVICE to disconnect any device from that port.
+   * Returns true on success.
+   */
+  virtual bool assignGamepad(unsigned port, unsigned deviceId)
+  {
+    Q_UNUSED(port)
+    Q_UNUSED(deviceId)
+    return false;
+  }
+
+  /**
+   * Returns the device ID currently assigned to the given port, or
+   * QRETRO_NO_DEVICE if the port has no physical device.
+   */
+  virtual unsigned assignedDeviceId(unsigned port) const
+  {
+    Q_UNUSED(port)
+    return QRETRO_NO_DEVICE;
   }
 
 signals:

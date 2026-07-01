@@ -463,6 +463,21 @@ QRetroInputBackend *QRetroInput::backend()
   return m_Backend;
 }
 
+QVector<QRetroGamepadInfo> QRetroInput::connectedGamepads() const
+{
+  return m_Backend ? m_Backend->connectedGamepads() : QVector<QRetroGamepadInfo>();
+}
+
+bool QRetroInput::assignGamepad(unsigned port, unsigned deviceId)
+{
+  return m_Backend && m_Backend->assignGamepad(port, deviceId);
+}
+
+unsigned QRetroInput::assignedDeviceId(unsigned port) const
+{
+  return m_Backend ? m_Backend->assignedDeviceId(port) : QRETRO_NO_DEVICE;
+}
+
 int16_t QRetroInput::analogButtonDeadzone(void)
 {
   return m_AnalogButtonDeadzone;

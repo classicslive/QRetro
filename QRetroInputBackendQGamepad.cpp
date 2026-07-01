@@ -95,6 +95,46 @@ QString QRetroInputBackendQGamepad::deviceName(unsigned port) const
   return m_Gamepads[port]->name();
 }
 
+QVector<QRetroGamepadInfo> QRetroInputBackendQGamepad::connectedGamepads() const
+{
+  QVector<QRetroGamepadInfo> result;
+  for (int id : QGamepadManager::instance()->connectedGamepads())
+  {
+    QGamepad gp(id);
+    result.append({ static_cast<unsigned>(id), gp.name() });
+  }
+  return result;
+}
+
+bool QRetroInputBackendQGamepad::assignGamepad(unsigned port, unsigned deviceId)
+{
+  if (port >= m_MaxUsers)
+    return false;
+
+  if (deviceId == QRETRO_NO_DEVICE)
+  {
+    if (m_Gamepads[port])
+    {
+      disconnect(m_Gamepads[port], nullptr, this, nullptr);
+      delete m_Gamepads[port];
+      m_Gamepads[port] = nullptr;
+      emit gamepadDisconnected(port);
+    }
+    return true;
+  }
+
+  connectPort(port, static_cast<int>(deviceId));
+  emit gamepadConnected(port);
+  return true;
+}
+
+unsigned QRetroInputBackendQGamepad::assignedDeviceId(unsigned port) const
+{
+  if (port >= m_MaxUsers || !m_Gamepads[port] || !m_Gamepads[port]->isConnected())
+    return QRETRO_NO_DEVICE;
+  return static_cast<unsigned>(m_Gamepads[port]->deviceId());
+}
+
 void QRetroInputBackendQGamepad::onGamepadConnected(int deviceId)
 {
   for (unsigned i = 0; i < m_MaxUsers; i++)

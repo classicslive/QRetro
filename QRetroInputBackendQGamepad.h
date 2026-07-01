@@ -24,6 +24,10 @@ public:
 
   QString deviceName(unsigned port) const override;
 
+  QVector<QRetroGamepadInfo> connectedGamepads() const override;
+  bool assignGamepad(unsigned port, unsigned deviceId) override;
+  unsigned assignedDeviceId(unsigned port) const override;
+
 private slots:
   void onGamepadConnected(int deviceId);
   void onGamepadDisconnected(int deviceId);
