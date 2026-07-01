@@ -41,46 +41,58 @@ void QRetroInputBackendSDL3::init(QRetroInputJoypad *joypads, unsigned maxUsers)
 
 void QRetroInputBackendSDL3::poll()
 {
-  // Pump the event queue so SDL's internal state is up-to-date.
+  // Pump so SDL's device list and cached gamepad state are current.
   SDL_PumpEvents();
 
-  // Drain gamepad add/remove events without consuming window/keyboard events.
-  // SDL_EVENT_GAMEPAD_ADDED and SDL_EVENT_GAMEPAD_REMOVED are not adjacent in
-  // SDL3, so drain each type separately.
-  SDL_Event event;
+  /* Handle controller connects from when we were inactive */
+  SDL_FlushEvents(SDL_EVENT_GAMEPAD_ADDED, SDL_EVENT_GAMEPAD_ADDED);
+  SDL_FlushEvents(SDL_EVENT_GAMEPAD_REMOVED, SDL_EVENT_GAMEPAD_REMOVED);
 
-  while (
-    SDL_PeepEvents(&event, 1, SDL_GETEVENT, SDL_EVENT_GAMEPAD_ADDED, SDL_EVENT_GAMEPAD_ADDED) > 0)
+  int count = 0;
+  SDL_JoystickID *ids = SDL_GetGamepads(&count);
+  if (ids) // null only on error; leave existing handles untouched if so
   {
-    SDL_JoystickID id = event.gdevice.which;
-
-    // Ignore stale add-events for gamepads already opened during init().
-    bool already_open = false;
-    for (unsigned port = 0; port < m_MaxUsers; port++)
-    {
-      if (m_InstanceIds[port] == id)
-      {
-        already_open = true;
-        break;
-      }
-    }
-    if (already_open)
-      continue;
-
+    // Close ports whose gamepad is no longer connected.
     for (unsigned port = 0; port < m_MaxUsers; port++)
     {
       if (!m_Gamepads[port])
+        continue;
+      bool present = false;
+      for (int i = 0; i < count; i++)
+        if (ids[i] == m_InstanceIds[port])
+        {
+          present = true;
+          break;
+        }
+      if (!present)
+        closeGamepad(m_InstanceIds[port]);
+    }
+
+    // Open any connected gamepad we do not already have a handle for.
+    for (int i = 0; i < count; i++)
+    {
+      bool already_open = false;
+      for (unsigned port = 0; port < m_MaxUsers; port++)
+        if (m_InstanceIds[port] == ids[i])
+        {
+          already_open = true;
+          break;
+        }
+      if (already_open)
+        continue;
+
+      for (unsigned port = 0; port < m_MaxUsers; port++)
       {
-        openGamepad(port, id);
-        emit gamepadConnected(port);
-        break;
+        if (!m_Gamepads[port])
+        {
+          openGamepad(port, ids[i]);
+          emit gamepadConnected(port);
+          break;
+        }
       }
     }
+    SDL_free(ids);
   }
-
-  while (SDL_PeepEvents(
-           &event, 1, SDL_GETEVENT, SDL_EVENT_GAMEPAD_REMOVED, SDL_EVENT_GAMEPAD_REMOVED) > 0)
-    closeGamepad(event.gdevice.which);
 
   // Read direct state for each open gamepad.
   for (unsigned port = 0; port < m_MaxUsers; port++)
