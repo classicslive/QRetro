@@ -228,8 +228,10 @@ void QRetroInput::poll(void)
   if (m_Backend)
     m_Backend->poll();
 
-  /* Check keyboard macros, which may also update m_Buttons. */
-  if (m_UseMaps)
+  /* Check keyboard macros, which may also update m_Buttons. Macros always
+   * target whichever port the keyboard is currently assigned to, not the
+   * port baked into the default mapping (which is always 0). */
+  if (m_UseMaps && m_KeyboardPort >= 0)
     for (const auto &map : m_KeyboardMaps)
     {
       auto button = &map.buttons[0];
@@ -244,6 +246,7 @@ void QRetroInput::poll(void)
         key++;
       }
 
+      QRetroInputJoypad &joypad = m_Joypads[m_KeyboardPort];
       for (unsigned i = 0; i < QRETRO_INPUT_MAPPING_MAX; i++)
       {
         if (button->port < 0)
@@ -251,21 +254,18 @@ void QRetroInput::poll(void)
         switch (button->device)
         {
         case RETRO_DEVICE_JOYPAD:
-          m_Joypads[button->port].setDigitalButton(
-            button->id, pressed ? button->value : !button->value);
+          joypad.setDigitalButton(button->id, pressed ? button->value : !button->value);
           break;
         case RETRO_DEVICE_ANALOG:
           if (button->index != RETRO_DEVICE_INDEX_ANALOG_BUTTON)
           {
             if (pressed)
-              m_Joypads[button->port].setAnalogStick(
-                button->index, button->id, static_cast<int16_t>(button->value));
-            else if (m_Joypads[button->port].analogStick(button->index, button->id) ==
-                     button->value)
-              m_Joypads[button->port].setAnalogStick(button->index, button->id, 0);
+              joypad.setAnalogStick(button->index, button->id, static_cast<int16_t>(button->value));
+            else if (joypad.analogStick(button->index, button->id) == button->value)
+              joypad.setAnalogStick(button->index, button->id, 0);
           }
           else
-            m_Joypads[button->port].setAnalogButton(button->id, pressed ? button->value : 0);
+            joypad.setAnalogButton(button->id, pressed ? button->value : 0);
           break;
         }
         button++;
@@ -559,6 +559,15 @@ unsigned QRetroInput::maxUsers(void)
 void QRetroInput::setMaxUsers(unsigned max)
 {
   m_MaxUsers = max;
+}
+
+int QRetroInput::keyboardPort(void) const
+{
+  return m_KeyboardPort;
+}
+void QRetroInput::setKeyboardPort(int port)
+{
+  m_KeyboardPort = port >= 0 && port < static_cast<int>(QRETRO_INPUT_DEFAULT_MAX_JOYPADS) ? port : -1;
 }
 
 bool QRetroInput::supportsBitmasks(void)

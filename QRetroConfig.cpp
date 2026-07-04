@@ -468,22 +468,31 @@ void QRetroConfig::refreshGamepadCombos()
   auto *input = m_Owner->input();
   auto gamepads = input->connectedGamepads();
 
+  /* If nothing else has claimed the keyboard and no controllers are
+   * connected, default to keyboard input on Player 1. */
+  if (gamepads.isEmpty() && input->keyboardPort() < 0)
+    input->setKeyboardPort(0);
+
   for (int p = 0; p < QRETRO_INPUT_DEFAULT_MAX_JOYPADS; p++)
   {
     auto *combo = m_GamepadCombo[p];
     if (!combo)
       continue;
 
+    bool is_keyboard = input->keyboardPort() == p;
     unsigned assigned = input->assignedDeviceId(static_cast<unsigned>(p));
 
     combo->blockSignals(true);
     combo->clear();
     combo->addItem(tr("None"), static_cast<uint>(QRETRO_NO_DEVICE));
+    combo->addItem(tr("Keyboard"), static_cast<uint>(QRETRO_KEYBOARD_DEVICE));
     for (const auto &gp : gamepads)
       combo->addItem(gp.name.isEmpty() ? tr("Unknown") : gp.name, gp.deviceId);
 
-    int idx = combo->findData(assigned != QRETRO_NO_DEVICE ? assigned
-                                                           : static_cast<uint>(QRETRO_NO_DEVICE));
+    unsigned target = is_keyboard
+      ? static_cast<uint>(QRETRO_KEYBOARD_DEVICE)
+      : (assigned != QRETRO_NO_DEVICE ? assigned : static_cast<uint>(QRETRO_NO_DEVICE));
+    int idx = combo->findData(target);
     combo->setCurrentIndex(idx >= 0 ? idx : 0);
     combo->blockSignals(false);
   }
@@ -744,13 +753,24 @@ void QRetroConfig::update()
       form->setContentsMargins(8, 8, 8, 8);
       form->setVerticalSpacing(10);
 
-      /* Physical gamepad assignment combo */
+      /* Physical gamepad / keyboard assignment combo */
       auto *gamepad_combo = new QComboBox();
       m_GamepadCombo[p] = gamepad_combo;
       connect(gamepad_combo, QOverload<int>::of(&QComboBox::currentIndexChanged),
         [this, gamepad_combo, p](int) {
           unsigned id = static_cast<unsigned>(gamepad_combo->currentData().toUInt());
-          m_Owner->input()->assignGamepad(p, id);
+          auto *input = m_Owner->input();
+          if (id == QRETRO_KEYBOARD_DEVICE)
+          {
+            input->assignGamepad(p, QRETRO_NO_DEVICE);
+            input->setKeyboardPort(static_cast<int>(p));
+          }
+          else
+          {
+            if (input->keyboardPort() == static_cast<int>(p))
+              input->setKeyboardPort(-1);
+            input->assignGamepad(p, id);
+          }
         });
       form->addRow(tr("Gamepad"), gamepad_combo);
 

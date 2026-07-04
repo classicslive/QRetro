@@ -226,6 +226,13 @@ public:
   unsigned maxUsers(void);
   void setMaxUsers(unsigned max);
 
+  /**
+   * The port currently receiving keyboard macro input, or -1 if the
+   * keyboard is not assigned to any port.
+   */
+  int keyboardPort(void) const;
+  void setKeyboardPort(int port);
+
   bool supportsBitmasks(void);
   void setSupportsBitmasks(bool supports);
 
@@ -260,6 +267,7 @@ private:
   std::vector<QRetroInputDescriptor> m_InputDescriptors;
   QRetroInputJoypad m_Joypads[QRETRO_INPUT_DEFAULT_MAX_JOYPADS];
   std::vector<qretro_input_kb_map_t> m_KeyboardMaps;
+  int m_KeyboardPort = -1;
   bool m_BackendAccel[QRETRO_INPUT_DEFAULT_MAX_JOYPADS] = {};
   bool m_BackendGyro[QRETRO_INPUT_DEFAULT_MAX_JOYPADS] = {};
   bool m_Keys[RETROK_LAST] = { false };

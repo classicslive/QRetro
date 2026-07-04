@@ -9,6 +9,10 @@
 /// Sentinel value meaning "no physical device assigned to this port".
 static constexpr unsigned QRETRO_NO_DEVICE = ~0u;
 
+/// Sentinel value meaning "the keyboard is assigned to this port", used in
+/// place of a physical device ID in gamepad-assignment combo boxes.
+static constexpr unsigned QRETRO_KEYBOARD_DEVICE = ~0u - 1;
+
 /// Name and opaque backend ID for a single connected gamepad.
 struct QRetroGamepadInfo
 {

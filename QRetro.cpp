@@ -690,10 +690,6 @@ QRetro::QRetro(QWindow *parent, retro_hw_context_type format)
   {
     m_InputBackend->init(m_Input.joypads(), m_Input.maxUsers());
     m_Input.setBackend(m_InputBackend);
-    /* Keyboard macros actively clear buttons each frame when their key isn't
-     * held, which overwrites state set by the hardware backend. Disable them
-     * so the backend has full control; re-enable with setUseMaps(true). */
-    m_Input.setUseMaps(false);
   }
 
   setLanguage(qt2lr_language_system());
