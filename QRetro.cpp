@@ -920,6 +920,18 @@ void QRetro::timing()
         !m_Paused && // stall if content is paused
         !m_Audio->excessFramesInBuffer()) // stall to play the audio queue
     {
+      /* Hold the SRAM restore window open: allow the first frames to run so the
+       * core can expose SAVE_RAM, but don't advance past the window until the
+       * saving thread has applied the initial save (m_SramApplied). This keeps
+       * startup contention from letting the emulation blow past the window
+       * before the copy lands. */
+      if (!m_SramApplied.load() && m_Frames > 15)
+      {
+        while (m_Active && !m_Paused && !m_SramApplied.load())
+          QThread::msleep(1);
+        continue;
+      }
+
 #if QRETRO_HAVE_OPENGL
       /* Ensure the core context is current on this thread before retro_run.
        * This prevents the main thread's m_OpenGlContext from stealing the surface. */
@@ -1158,18 +1170,30 @@ void QRetro::saving()
     save_file.close();
   }
 
+  /* Nothing to restore — release the startup gate immediately so the timing
+   * thread doesn't hold frames waiting for a copy that will never happen. */
+  if (initial_buffer.isEmpty())
+    m_SramApplied = true;
+
   /* Wait until retro_load_game has completed (core memory functions are safe),
    * but before the first retro_run (so frame 1 sees the restored SRAM). */
   while (m_Active && !m_SramReady)
     ;
 
-  /* For first 15 frames, continuously copy buffer into SRAM */
-  while (m_Active && m_Frames <= 15)
+  /* Restore the save file into the core's SAVE_RAM. Some cores don't expose
+   * SAVE_RAM until they have run a few frames, so this can't be a single copy
+   * before the first frame; instead the timing thread holds at the end of the
+   * restore window until m_SramApplied latches, so a scheduling stall under
+   * startup contention can't let the emulation run past the window before this
+   * lands. Bounded so a core that never exposes SAVE_RAM can't hang forever. */
+  QElapsedTimer restoreTimer;
+  restoreTimer.start();
+  while (m_Active && !m_SramApplied.load())
   {
     void *data = m_Core.retro_get_memory_data(RETRO_MEMORY_SAVE_RAM);
     size_t size = m_Core.retro_get_memory_size(RETRO_MEMORY_SAVE_RAM);
 
-    if (data && size && !initial_buffer.isEmpty())
+    if (data && size)
     {
       size_t copy_size = std::min<size_t>(size, static_cast<size_t>(initial_buffer.size()));
       memcpy(data, initial_buffer.constData(), copy_size);
@@ -1178,6 +1202,17 @@ void QRetro::saving()
       hasher.addData(
         QByteArray::fromRawData(reinterpret_cast<const char *>(data), static_cast<int>(copy_size)));
       hash = hasher.result();
+      m_SramApplied = true;
+    }
+    else if (restoreTimer.hasExpired(3000))
+    {
+      emit onCoreLog(RETRO_LOG_WARN,
+        "SAVE_RAM never became available; starting without restoring the save file.");
+      m_SramApplied = true;
+    }
+    else
+    {
+      QThread::msleep(1);
     }
   }
 
@@ -1231,6 +1266,7 @@ bool QRetro::startCore(void)
   {
     m_Frames = 0;
     m_SramReady = false;
+    m_SramApplied = false;
     m_Active = true;
 
     /* Paint black immediately so the window doesn't show garbage

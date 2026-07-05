@@ -579,6 +579,13 @@ private:
   /// The saving thread waits on this before touching core memory.
   std::atomic<bool> m_SramReady{ false };
 
+  /// Set by the saving thread once the initial save file has been written into
+  /// the core's SAVE_RAM (or once it has determined there is nothing to restore
+  /// / given up). The timing thread holds at the end of the restore window until
+  /// this latches, so startup contention can't let the emulation blow past the
+  /// window before the copy lands.
+  std::atomic<bool> m_SramApplied{ false };
+
   /// Whether or not input has been received between calls to retro_run
   bool m_InputReady = false;
 
