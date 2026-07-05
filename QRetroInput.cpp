@@ -567,7 +567,8 @@ int QRetroInput::keyboardPort(void) const
 }
 void QRetroInput::setKeyboardPort(int port)
 {
-  m_KeyboardPort = port >= 0 && port < static_cast<int>(QRETRO_INPUT_DEFAULT_MAX_JOYPADS) ? port : -1;
+  m_KeyboardPort =
+    port >= 0 && port < static_cast<int>(QRETRO_INPUT_DEFAULT_MAX_JOYPADS) ? port : -1;
 }
 
 bool QRetroInput::supportsBitmasks(void)

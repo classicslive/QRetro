@@ -250,8 +250,7 @@ QVector<QRetroGamepadInfo> QRetroInputBackendSDL3::connectedGamepads() const
   for (int i = 0; i < count; i++)
   {
     const char *name = SDL_GetGamepadNameForID(ids[i]);
-    result.append({ static_cast<unsigned>(ids[i]),
-                    name ? QString::fromUtf8(name) : QString() });
+    result.append({ static_cast<unsigned>(ids[i]), name ? QString::fromUtf8(name) : QString() });
   }
   SDL_free(ids);
   return result;

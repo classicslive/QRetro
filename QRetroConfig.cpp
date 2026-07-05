@@ -186,10 +186,12 @@ QRetroConfig::QRetroConfig(QRetro *owner)
   /* Refresh gamepad combo boxes when devices connect or disconnect. */
   if (auto *backend = m_Owner->input()->backend())
   {
-    connect(backend, &QRetroInputBackend::gamepadConnected, this,
-      [this]() { refreshGamepadCombos(); }, Qt::QueuedConnection);
-    connect(backend, &QRetroInputBackend::gamepadDisconnected, this,
-      [this]() { refreshGamepadCombos(); }, Qt::QueuedConnection);
+    connect(
+      backend, &QRetroInputBackend::gamepadConnected, this, [this]() { refreshGamepadCombos(); },
+      Qt::QueuedConnection);
+    connect(
+      backend, &QRetroInputBackend::gamepadDisconnected, this, [this]() { refreshGamepadCombos(); },
+      Qt::QueuedConnection);
   }
 
   /* Poll sensor read-tracking flags and enable/disable per-axis UI widgets. */
@@ -489,9 +491,9 @@ void QRetroConfig::refreshGamepadCombos()
     for (const auto &gp : gamepads)
       combo->addItem(gp.name.isEmpty() ? tr("Unknown") : gp.name, gp.deviceId);
 
-    unsigned target = is_keyboard
-      ? static_cast<uint>(QRETRO_KEYBOARD_DEVICE)
-      : (assigned != QRETRO_NO_DEVICE ? assigned : static_cast<uint>(QRETRO_NO_DEVICE));
+    unsigned target =
+      is_keyboard ? static_cast<uint>(QRETRO_KEYBOARD_DEVICE)
+                  : (assigned != QRETRO_NO_DEVICE ? assigned : static_cast<uint>(QRETRO_NO_DEVICE));
     int idx = combo->findData(target);
     combo->setCurrentIndex(idx >= 0 ? idx : 0);
     combo->blockSignals(false);
@@ -2013,111 +2015,109 @@ void QRetroConfig::update()
   search_bar->setClearButtonEnabled(true);
   search_bar->setContentsMargins(6, 4, 6, 4);
 
-  connect(
-    search_bar, &QLineEdit::textChanged, sidebar, [sidebar, page_rows](const QString &text) {
-      const QString q = text.trimmed().toLower();
-      const bool empty = q.isEmpty();
+  connect(search_bar, &QLineEdit::textChanged, sidebar, [sidebar, page_rows](const QString &text) {
+    const QString q = text.trimmed().toLower();
+    const bool empty = q.isEmpty();
 
-      // Show/hide form rows and determine page visibility
-      QVector<bool> page_visible(page_rows.size(), false);
-      for (int idx = 0; idx < page_rows.size(); ++idx)
+    // Show/hide form rows and determine page visibility
+    QVector<bool> page_visible(page_rows.size(), false);
+    for (int idx = 0; idx < page_rows.size(); ++idx)
+    {
+      const auto &rows = page_rows[idx];
+      if (rows.isEmpty())
       {
-        const auto &rows = page_rows[idx];
-        if (rows.isEmpty())
+        // Non-form page: visible when search is empty
+        page_visible[idx] = empty;
+      }
+      else
+      {
+        // First pass: determine which group boxes have a title match
+        QSet<QGroupBox *> group_matches;
+        if (!empty)
         {
-          // Non-form page: visible when search is empty
-          page_visible[idx] = empty;
-        }
-        else
-        {
-          // First pass: determine which group boxes have a title match
-          QSet<QGroupBox *> group_matches;
-          if (!empty)
-          {
-            for (const auto &row : rows)
-            {
-              if (row.groupBox && row.group.toLower().contains(q))
-                group_matches.insert(row.groupBox);
-            }
-          }
-
-          // Second pass: show/hide rows; a row is visible if it, its group
-          // title, or (when empty) anything matches
-          QMap<QGroupBox *, bool> group_has_visible;
-          bool any_visible = false;
           for (const auto &row : rows)
           {
-            bool match = empty || row.text.toLower().contains(q) ||
-                         (row.groupBox && group_matches.contains(row.groupBox));
-            if (row.lw)
-              row.lw->setVisible(match);
-            if (row.fw)
-              row.fw->setVisible(match);
-            if (match)
-              any_visible = true;
-            if (row.groupBox)
-              group_has_visible[row.groupBox] =
-                group_has_visible.value(row.groupBox, false) || match;
+            if (row.groupBox && row.group.toLower().contains(q))
+              group_matches.insert(row.groupBox);
           }
-
-          // Show/hide group box widgets themselves
-          for (auto it = group_has_visible.begin(); it != group_has_visible.end(); ++it)
-            it.key()->setVisible(it.value());
-
-          page_visible[idx] = any_visible;
         }
-      }
 
-      // Update sidebar page item visibility; non-form pages also match on label
-      for (int i = 0; i < sidebar->count(); ++i)
-      {
-        auto *item = sidebar->item(i);
-        QVariant v = item->data(Qt::UserRole);
-        if (!v.isValid())
-          continue;
-        int idx = v.toInt();
-        bool visible = (idx < page_visible.size()) && page_visible[idx];
-        if (!visible && idx < page_rows.size() && page_rows[idx].isEmpty())
-          visible = empty || item->text().toLower().contains(q);
-        item->setHidden(!visible);
-      }
-
-      // Hide dividers whose entire section is hidden
-      for (int i = 0; i < sidebar->count(); ++i)
-      {
-        auto *item = sidebar->item(i);
-        if (item->data(Qt::UserRole).isValid())
-          continue;
+        // Second pass: show/hide rows; a row is visible if it, its group
+        // title, or (when empty) anything matches
+        QMap<QGroupBox *, bool> group_has_visible;
         bool any_visible = false;
-        for (int j = i + 1; j < sidebar->count(); ++j)
+        for (const auto &row : rows)
         {
-          auto *next = sidebar->item(j);
-          if (!next->data(Qt::UserRole).isValid())
-            break;
-          if (!next->isHidden())
-          {
+          bool match = empty || row.text.toLower().contains(q) ||
+                       (row.groupBox && group_matches.contains(row.groupBox));
+          if (row.lw)
+            row.lw->setVisible(match);
+          if (row.fw)
+            row.fw->setVisible(match);
+          if (match)
             any_visible = true;
-            break;
-          }
+          if (row.groupBox)
+            group_has_visible[row.groupBox] = group_has_visible.value(row.groupBox, false) || match;
         }
-        item->setHidden(!any_visible);
-      }
 
-      // If the current selection was hidden, move to first visible item
-      auto *current = sidebar->currentItem();
-      if (current && current->isHidden())
+        // Show/hide group box widgets themselves
+        for (auto it = group_has_visible.begin(); it != group_has_visible.end(); ++it)
+          it.key()->setVisible(it.value());
+
+        page_visible[idx] = any_visible;
+      }
+    }
+
+    // Update sidebar page item visibility; non-form pages also match on label
+    for (int i = 0; i < sidebar->count(); ++i)
+    {
+      auto *item = sidebar->item(i);
+      QVariant v = item->data(Qt::UserRole);
+      if (!v.isValid())
+        continue;
+      int idx = v.toInt();
+      bool visible = (idx < page_visible.size()) && page_visible[idx];
+      if (!visible && idx < page_rows.size() && page_rows[idx].isEmpty())
+        visible = empty || item->text().toLower().contains(q);
+      item->setHidden(!visible);
+    }
+
+    // Hide dividers whose entire section is hidden
+    for (int i = 0; i < sidebar->count(); ++i)
+    {
+      auto *item = sidebar->item(i);
+      if (item->data(Qt::UserRole).isValid())
+        continue;
+      bool any_visible = false;
+      for (int j = i + 1; j < sidebar->count(); ++j)
       {
-        for (int i = 0; i < sidebar->count(); ++i)
+        auto *next = sidebar->item(j);
+        if (!next->data(Qt::UserRole).isValid())
+          break;
+        if (!next->isHidden())
         {
-          auto *item = sidebar->item(i);
-          if (!item->isHidden() && item->data(Qt::UserRole).isValid())
-          {
-            sidebar->setCurrentItem(item);
-            break;
-          }
+          any_visible = true;
+          break;
         }
       }
-    });
+      item->setHidden(!any_visible);
+    }
+
+    // If the current selection was hidden, move to first visible item
+    auto *current = sidebar->currentItem();
+    if (current && current->isHidden())
+    {
+      for (int i = 0; i < sidebar->count(); ++i)
+      {
+        auto *item = sidebar->item(i);
+        if (!item->isHidden() && item->data(Qt::UserRole).isValid())
+        {
+          sidebar->setCurrentItem(item);
+          break;
+        }
+      }
+    }
+  });
 
   /* ── Splitter (25 % / 75 %) ─────────────────────────────────── */
   auto *splitter = new QSplitter(Qt::Horizontal);
