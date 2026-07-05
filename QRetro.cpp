@@ -896,6 +896,7 @@ void QRetro::timing()
   }
 #endif
 
+  bool wasPaused = false;
   while (m_Active)
   {
     frame_timer.restart();
@@ -910,9 +911,17 @@ void QRetro::timing()
       }
       if (m_Paused)
       {
+        wasPaused = true;
         m_PauseCondition.wait(&m_PendingMutex);
         continue;
       }
+    }
+
+    if (wasPaused)
+    {
+      wasPaused = false;
+      if (m_Audio)
+        m_Audio->reset();
     }
 
     if (inputReady() && // stall if waiting for input (netplay)

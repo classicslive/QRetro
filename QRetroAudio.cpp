@@ -90,6 +90,22 @@ void QRetroAudio::playFrame(void)
 #endif
 }
 
+void QRetroAudio::reset(void)
+{
+#if QRETRO_HAVE_MULTIMEDIA
+  if (!m_AudioOutput)
+    return;
+
+  m_AudioOutput->reset();
+
+  m_AudioBuffer.clear();
+  m_AudioBuffer.resize(m_BufferFrames * QRETRO_AUDIO_CHANNELS * sizeof(sample_t));
+  m_AudioBuffer.fill(0);
+
+  m_AudioDevice = m_AudioOutput->start();
+#endif
+}
+
 void QRetroAudio::pushSamples(const sample_t *data, size_t frames)
 {
   m_AudioBuffer.append(reinterpret_cast<const char *>(data),

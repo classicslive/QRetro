@@ -36,6 +36,8 @@ public:
 
   void playFrame(void);
 
+  void reset(void);
+
   void pushSamples(const sample_t *data, size_t frames);
 
   double baseSampleRate(void) { return m_SampleRateBase; }
