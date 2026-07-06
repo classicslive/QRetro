@@ -472,6 +472,9 @@ public:
     m_PauseCondition.wakeAll();
   }
 
+  bool savingEnabled(void) const { return m_SavingEnabled; }
+  void setSavingEnabled(bool enabled) { m_SavingEnabled = enabled; }
+
   bool jitCapable(void) { return m_JitCapable; }
   void setJitCapable(bool capable) { m_JitCapable = capable; }
 
@@ -612,6 +615,9 @@ private:
 
   /// Whether the user has paused the frontend. Will halt calls to retro_run
   bool m_Paused = false;
+
+  /// Whether battery-save load/autosave runs (see setSavingEnabled).
+  bool m_SavingEnabled = true;
 
   /// The performance level reported by the core using
   /// RETRO_ENVIRONMENT_SET_PERFORMANCE_LEVEL

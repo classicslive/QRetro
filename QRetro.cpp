@@ -1287,8 +1287,16 @@ bool QRetro::startCore(void)
     }
     QMetaObject::invokeMethod(this, [this]() { requestUpdate(); }, Qt::QueuedConnection);
 
-    m_ThreadSaving = QThread::create([this] { saving(); });
-    m_ThreadSaving->start();
+    if (m_SavingEnabled)
+    {
+      m_ThreadSaving = QThread::create([this] { saving(); });
+      m_ThreadSaving->start();
+    }
+    else
+    {
+      m_ThreadSaving = nullptr;
+      m_SramApplied = true;
+    }
 
     m_ThreadTiming = QThread::create([this] { timing(); });
     m_ThreadTiming->start();
