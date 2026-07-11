@@ -348,8 +348,7 @@ void QRetroOptions::applyPendingValues()
     if (var != m_Variables.end() && var->second)
     {
       var->second->setValue(it->second);
-      settings.setValue(
-        QString::fromStdString(it->first), QString::fromStdString(it->second));
+      settings.setValue(QString::fromStdString(it->first), QString::fromStdString(it->second));
       m_VariablesUpdated = true;
       it = m_PendingValues.erase(it);
     }
