@@ -227,6 +227,13 @@ public:
 
   void update();
 
+private:
+  /**
+   * Applies any values set via setOptionValue() before their option was
+   * registered by the core (see m_PendingValues). Called after each setOptions().
+   */
+  void applyPendingValues();
+
 public slots:
   void onOptionBoolChanged(int state);
   void onOptionChoiceChanged(const QString &);
@@ -239,6 +246,8 @@ private:
   retro_core_options_update_display_callback_t m_UpdateDisplayCallback = nullptr;
   std::vector<std::string> m_VariableOrder;
   std::map<std::string, QRetroOption *> m_Variables;
+  /// Values set before their option existed; applied once the core registers them.
+  std::map<std::string, std::string> m_PendingValues;
   Version m_Version;
   bool m_VariablesUpdated;
 };

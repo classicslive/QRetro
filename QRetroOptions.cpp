@@ -303,7 +303,8 @@ QRetroOptions::~QRetroOptions()
 
 QRetroOption *QRetroOptions::getOption(const char *key)
 {
-  return m_Variables[key];
+  auto it = m_Variables.find(key);
+  return it != m_Variables.end() ? it->second : nullptr;
 }
 
 const char *QRetroOptions::getOptionValue(const char *key)
@@ -325,6 +326,37 @@ void QRetroOptions::setOptionValue(const char *key, const char *value)
     if (m_UpdateDisplayCallback)
       m_UpdateDisplayCallback();
   }
+  else
+  {
+    /* The core hasn't registered this option yet (e.g. set before loadCore).
+     * Remember it and apply it once the option is defined; see applyPendingValues. */
+    m_PendingValues[key] = value;
+  }
+}
+
+void QRetroOptions::applyPendingValues()
+{
+  if (m_PendingValues.empty())
+    return;
+
+  QSettings settings(m_Filename, QSettings::IniFormat);
+  settings.beginGroup(m_CoreName);
+
+  for (auto it = m_PendingValues.begin(); it != m_PendingValues.end();)
+  {
+    auto var = m_Variables.find(it->first);
+    if (var != m_Variables.end() && var->second)
+    {
+      var->second->setValue(it->second);
+      settings.setValue(
+        QString::fromStdString(it->first), QString::fromStdString(it->second));
+      m_VariablesUpdated = true;
+      it = m_PendingValues.erase(it);
+    }
+    else
+      ++it;
+  }
+  settings.sync();
 }
 
 void QRetroOptions::setOptions(retro_variable *vars)
@@ -353,6 +385,7 @@ void QRetroOptions::setOptions(retro_variable *vars)
   }
   settings.sync();
   m_Version = v0;
+  applyPendingValues();
 }
 
 void QRetroOptions::setOptions(retro_core_option_definition **vars)
@@ -382,6 +415,7 @@ void QRetroOptions::setOptions(retro_core_option_definition **vars)
   }
   settings.sync();
   m_Version = v1;
+  applyPendingValues();
 }
 
 void QRetroOptions::setOptions(retro_core_options_intl *vars)
@@ -434,6 +468,7 @@ void QRetroOptions::setOptions(retro_core_options_intl *vars)
   }
   settings.sync();
   m_Version = v1;
+  applyPendingValues();
 }
 
 void QRetroOptions::setOptions(retro_core_options_v2 *vars, retro_core_options_v2 *local)
@@ -503,6 +538,7 @@ void QRetroOptions::setOptions(retro_core_options_v2 *vars, retro_core_options_v
   }
   settings.sync();
   m_Version = v2;
+  applyPendingValues();
 }
 
 void QRetroOptions::setOptions(retro_core_options_v2_intl *vars)
