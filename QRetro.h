@@ -73,6 +73,11 @@ public:
   QRetroInput *input(void) { return &m_Input; }
   QRetroLed *led(void) { return &m_Led; }
   QRetroLog *log(void) { return &m_Log; }
+  void pushCoreLog(retro_log_level level, const QString &message)
+  {
+    m_Log.push(level, message);
+    emit onCoreLog(level, message);
+  }
   QRetroMessage *message(void) { return m_Message; }
   QRetroLocation *location(void) { return m_Location; }
   QRetroMicrophone *microphone(void) { return &m_Microphone; }
@@ -499,6 +504,7 @@ public:
 
 signals:
   void onCoreLog(int level, const QString msg);
+  void onCoreMessage(QRetroMessageEntry entry);
   void onCoreStart(void);
   void frameBegin(void);
   void frameEnd(void);

@@ -209,7 +209,7 @@ static void core_log(enum retro_log_level level, const char *fmt, ...)
 
   final_string = QString(msg);
 
-  _this->log()->push(level, final_string);
+  _this->pushCoreLog(level, final_string);
 }
 
 static bool core_ra_clear_all_thread_waits(unsigned a, void *b)

@@ -680,6 +680,7 @@ QRetro::QRetro(QWindow *parent, retro_hw_context_type format)
   m_DiskControl = new QRetroDiskControl(this);
   m_Location = new QRetroLocation(this);
   m_Message = new QRetroMessage(this);
+  connect(m_Message, &QRetroMessage::onMessage, this, &QRetro::onCoreMessage);
 
 #if QRETRO_HAVE_SDL3
   m_InputBackend = new QRetroInputBackendSDL3(this);
