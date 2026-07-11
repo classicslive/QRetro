@@ -115,16 +115,26 @@ void QRetroAudio::pushSamples(const sample_t *data, size_t frames)
 void QRetroAudio::setEnabled(bool v)
 {
   m_Enabled = v;
-  setVolume(v ? 1.0f : 0.0f);
+  applyVolume();
 }
 
 void QRetroAudio::setVolume(float v)
 {
+  m_Volume = v;
+  applyVolume();
+}
+
+void QRetroAudio::setMute(bool mute)
+{
+  m_Muted = mute;
+  applyVolume();
+}
+
+void QRetroAudio::applyVolume(void)
+{
 #if QRETRO_HAVE_MULTIMEDIA
   if (m_AudioOutput)
-    m_AudioOutput->setVolume(v);
-#else
-  Q_UNUSED(v)
+    m_AudioOutput->setVolume((m_Enabled && !m_Muted) ? m_Volume : 0.0f);
 #endif
 }
 
@@ -183,6 +193,7 @@ bool QRetroAudio::start(void)
     if (m_AudioOutput->error() == QAudio::NoError)
     {
       m_AudioDevice = m_AudioOutput->start();
+      applyVolume();
       return true;
     }
   }

@@ -58,11 +58,19 @@ public:
 
   void setTimingMultiplier(double mult);
   void setVolume(float v);
+  float volume(void) const { return m_Volume; }
+
+  void setMute(bool mute);
+  bool isMuted(void) const { return m_Muted; }
 
   bool start(void);
 
 private:
+  void applyVolume(void);
+
   bool m_Enabled = true;
+  float m_Volume = 1.0f;
+  bool m_Muted = false;
 #if QRETRO_HAVE_MULTIMEDIA
 #if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
   QAudioSink *m_AudioOutput = nullptr;
