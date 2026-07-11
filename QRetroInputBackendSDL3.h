@@ -35,6 +35,9 @@ private:
   // SDL3 gamepad handles; index == port. nullptr means slot is empty.
   SDL_Gamepad *m_Gamepads[QRETRO_INPUT_DEFAULT_MAX_JOYPADS] = {};
 
+  uint16_t m_RumbleStrong[QRETRO_INPUT_DEFAULT_MAX_JOYPADS] = {};
+  uint16_t m_RumbleWeak[QRETRO_INPUT_DEFAULT_MAX_JOYPADS] = {};
+
   // Instance IDs for mapping SDL events back to port numbers.
   SDL_JoystickID m_InstanceIds[QRETRO_INPUT_DEFAULT_MAX_JOYPADS] = {};
 

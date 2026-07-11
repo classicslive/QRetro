@@ -166,19 +166,23 @@ void QRetroInputBackendSDL3::updatePort(unsigned port)
 
 bool QRetroInputBackendSDL3::setRumble(unsigned port, retro_rumble_effect effect, uint16_t strength)
 {
-  Q_UNUSED(effect)
-  Q_UNUSED(strength)
-
   if (port >= m_MaxUsers || !m_Gamepads[port])
     return false;
-  else
-  {
-    QRetroInputJoypad *jp = &m_Joypads[port];
-    /* Use a duration of 0ms to turn off, or a short window */
-    Uint32 duration = (jp->rumbleStrong() || jp->rumbleWeak()) ? 5000 : 0;
 
-    return SDL_RumbleGamepad(m_Gamepads[port], jp->rumbleStrong(), jp->rumbleWeak(), duration);
+  switch (effect)
+  {
+  case RETRO_RUMBLE_STRONG:
+    m_RumbleStrong[port] = strength;
+    break;
+  case RETRO_RUMBLE_WEAK:
+    m_RumbleWeak[port] = strength;
+    break;
+  default:
+    return false;
   }
+
+  const Uint32 duration = (m_RumbleStrong[port] || m_RumbleWeak[port]) ? 5000 : 0;
+  return SDL_RumbleGamepad(m_Gamepads[port], m_RumbleStrong[port], m_RumbleWeak[port], duration);
 }
 
 bool QRetroInputBackendSDL3::setSensorState(
