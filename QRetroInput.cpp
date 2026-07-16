@@ -118,6 +118,24 @@ void QRetroInputJoypad::clearButtonRemaps(void)
   m_HasRemap = false;
 }
 
+void QRetroInputJoypad::setAnalogStickRemap(unsigned dest, unsigned src)
+{
+  if (dest > RETRO_DEVICE_INDEX_ANALOG_RIGHT || src > RETRO_DEVICE_INDEX_ANALOG_RIGHT)
+    return;
+  if (!m_HasStickRemap)
+  {
+    m_StickRemap[RETRO_DEVICE_INDEX_ANALOG_LEFT] = RETRO_DEVICE_INDEX_ANALOG_LEFT;
+    m_StickRemap[RETRO_DEVICE_INDEX_ANALOG_RIGHT] = RETRO_DEVICE_INDEX_ANALOG_RIGHT;
+    m_HasStickRemap = true;
+  }
+  m_StickRemap[dest] = src;
+}
+
+void QRetroInputJoypad::clearAnalogStickRemaps(void)
+{
+  m_HasStickRemap = false;
+}
+
 bool QRetroInputJoypad::forcedButton(unsigned id) const
 {
   if (id > RETRO_DEVICE_ID_JOYPAD_R3)
@@ -156,8 +174,9 @@ int16_t QRetroInputJoypad::analogStick(unsigned index, unsigned id)
 {
   if (index > RETRO_DEVICE_INDEX_ANALOG_RIGHT || id > RETRO_DEVICE_ID_ANALOG_Y)
     return 0;
-  else
-    return m_Sticks[index][id];
+  if (m_HasStickRemap)
+    index = m_StickRemap[index];
+  return m_Sticks[index][id];
 }
 
 void QRetroInputJoypad::setAnalogStick(unsigned index, unsigned id, int16_t value)

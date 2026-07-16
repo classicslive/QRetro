@@ -98,6 +98,12 @@ public:
   void setButtonRemap(unsigned from, unsigned to);
   void clearButtonRemaps(void);
 
+  /// Remaps an analog stick index so reads of `dest` return `src` (e.g. make the
+  /// core's left-stick reads come from the physical right stick). Digital-button
+  /// remaps are separate (setButtonRemap); this only affects analog stick reads.
+  void setAnalogStickRemap(unsigned dest, unsigned src);
+  void clearAnalogStickRemaps(void);
+
   bool turbo(unsigned id) const;
   void setTurbo(unsigned id, bool value);
 
@@ -153,6 +159,8 @@ private:
   int16_t m_Buttons[RETRO_DEVICE_ID_JOYPAD_R3 + 1] = {};
   bool m_HasRemap = false; // when false, m_Remap is identity and skipped
   unsigned m_Remap[RETRO_DEVICE_ID_JOYPAD_R3 + 1] = {};
+  bool m_HasStickRemap = false; // when false, sticks are read directly
+  unsigned m_StickRemap[2] = { RETRO_DEVICE_INDEX_ANALOG_LEFT, RETRO_DEVICE_INDEX_ANALOG_RIGHT };
   uint16_t m_ForcedButtons = 0;
   uint16_t m_Turbo = 0;
   bool m_TurboPhase = false;
