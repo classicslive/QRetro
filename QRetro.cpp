@@ -854,6 +854,9 @@ void QRetro::timing()
    * Signal the saving thread to proceed before the first retro_run. */
   m_SramReady = true;
 
+  m_Memory.setMemoryData(m_Core.retro_get_memory_data(RETRO_MEMORY_SYSTEM_RAM),
+                         m_Core.retro_get_memory_size(RETRO_MEMORY_SYSTEM_RAM));
+
   if (m_Core.hw_render.context_reset)
     m_Core.hw_render.context_reset();
 

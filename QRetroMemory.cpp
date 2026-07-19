@@ -6,16 +6,25 @@
 
 const retro_memory_descriptor *QRetroMemory::containing(size_t address)
 {
-  if (!m_MemoryMaps.descriptors)
-    return nullptr;
+  if (m_MemoryMaps.descriptors)
+    for (unsigned i = 0; i < m_MemoryMaps.num_descriptors; i++)
+    {
+      auto &desc = m_MemoryMaps.descriptors[i];
+      if (address >= desc.start && address < desc.start + desc.len)
+        return &desc;
+    }
 
-  for (unsigned i = 0; i < m_MemoryMaps.num_descriptors; i++)
-  {
-    auto &desc = m_MemoryMaps.descriptors[i];
-    if (address >= desc.start && address < desc.start + desc.len)
-      return &desc;
-  }
+  if (m_MemoryMaps.num_descriptors == 0 && m_SystemRam.ptr && address < m_SystemRam.len)
+    return &m_SystemRam;
+
   return nullptr;
+}
+
+void QRetroMemory::setMemoryData(void *data, size_t size)
+{
+  m_SystemRam = {};
+  m_SystemRam.ptr = data;
+  m_SystemRam.len = data ? size : 0;
 }
 
 void QRetroMemory::setMemoryMaps(const struct retro_memory_map *maps)

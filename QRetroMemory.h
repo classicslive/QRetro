@@ -12,6 +12,8 @@ public:
   retro_memory_map *memoryMaps(void) { return &m_MemoryMaps; }
   void setMemoryMaps(const struct retro_memory_map *maps);
 
+  void setMemoryData(void *data, size_t size);
+
   /**
    * Reads data from the core's address space into a buffer.
    * @param ptr Pointer to the buffer to read into
@@ -104,6 +106,7 @@ public:
 
 private:
   retro_memory_map m_MemoryMaps = { nullptr, 0 };
+  retro_memory_descriptor m_SystemRam = {};
 };
 
 #endif
