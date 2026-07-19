@@ -988,7 +988,6 @@ void QRetro::timing()
       m_Frames++;
     }
 
-    m_Core.retro_get_system_av_info(&m_Core.av_info);
     updateScaling();
 
     if (m_Core.audio_callback.callback)
