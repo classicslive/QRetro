@@ -104,6 +104,15 @@ public:
   void setAnalogStickRemap(unsigned dest, unsigned src);
   void clearAnalogStickRemaps(void);
 
+  /// Remaps a single analog axis: reads of stick `destIndex` axis `destId` return
+  /// `sign` (+1 or -1) times the source stick `srcIndex` axis `srcId`. Setting
+  /// both axes of a stick composes into a rotation/flip (e.g. a 90-degree twist
+  /// for a sideways-motion layout: X <- Y, Y <- -X). Takes precedence over
+  /// setAnalogStickRemap for any axis it covers.
+  void setAnalogAxisRemap(
+    unsigned destIndex, unsigned destId, unsigned srcIndex, unsigned srcId, int sign);
+  void clearAnalogAxisRemaps(void);
+
   bool turbo(unsigned id) const;
   void setTurbo(unsigned id, bool value);
 
@@ -161,6 +170,14 @@ private:
   unsigned m_Remap[RETRO_DEVICE_ID_JOYPAD_R3 + 1] = {};
   bool m_HasStickRemap = false; // when false, sticks are read directly
   unsigned m_StickRemap[2] = { RETRO_DEVICE_INDEX_ANALOG_LEFT, RETRO_DEVICE_INDEX_ANALOG_RIGHT };
+  struct AxisRemap
+  {
+    unsigned index;
+    unsigned id;
+    int sign;
+  };
+  bool m_HasAxisRemap = false; // when false, axes are read directly
+  AxisRemap m_AxisRemap[2][2] = {}; // [destIndex][destId] -> source axis + sign
   uint16_t m_ForcedButtons = 0;
   uint16_t m_Turbo = 0;
   bool m_TurboPhase = false;

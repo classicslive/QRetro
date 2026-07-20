@@ -136,6 +136,28 @@ void QRetroInputJoypad::clearAnalogStickRemaps(void)
   m_HasStickRemap = false;
 }
 
+void QRetroInputJoypad::setAnalogAxisRemap(
+  unsigned destIndex, unsigned destId, unsigned srcIndex, unsigned srcId, int sign)
+{
+  if (destIndex > RETRO_DEVICE_INDEX_ANALOG_RIGHT || destId > RETRO_DEVICE_ID_ANALOG_Y ||
+      srcIndex > RETRO_DEVICE_INDEX_ANALOG_RIGHT || srcId > RETRO_DEVICE_ID_ANALOG_Y)
+    return;
+  if (!m_HasAxisRemap)
+  {
+    /* Seed the table with identity so untouched axes still read straight through. */
+    for (unsigned i = 0; i <= RETRO_DEVICE_INDEX_ANALOG_RIGHT; i++)
+      for (unsigned j = 0; j <= RETRO_DEVICE_ID_ANALOG_Y; j++)
+        m_AxisRemap[i][j] = { i, j, 1 };
+    m_HasAxisRemap = true;
+  }
+  m_AxisRemap[destIndex][destId] = { srcIndex, srcId, sign < 0 ? -1 : 1 };
+}
+
+void QRetroInputJoypad::clearAnalogAxisRemaps(void)
+{
+  m_HasAxisRemap = false;
+}
+
 bool QRetroInputJoypad::forcedButton(unsigned id) const
 {
   if (id > RETRO_DEVICE_ID_JOYPAD_R3)
@@ -174,6 +196,17 @@ int16_t QRetroInputJoypad::analogStick(unsigned index, unsigned id)
 {
   if (index > RETRO_DEVICE_INDEX_ANALOG_RIGHT || id > RETRO_DEVICE_ID_ANALOG_Y)
     return 0;
+  if (m_HasAxisRemap)
+  {
+    const AxisRemap &r = m_AxisRemap[index][id];
+    int32_t v = static_cast<int32_t>(m_Sticks[r.index][r.id]) * r.sign;
+    /* Clamp: negating -32768 would overflow the int16_t range. */
+    if (v > 32767)
+      v = 32767;
+    else if (v < -32768)
+      v = -32768;
+    return static_cast<int16_t>(v);
+  }
   if (m_HasStickRemap)
     index = m_StickRemap[index];
   return m_Sticks[index][id];
