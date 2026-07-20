@@ -348,6 +348,7 @@ public:
    */
   bool environmentCallbackSupported(unsigned id)
   {
+    id &= 0xFF;
     if (id >= RETRO_ENVIRONMENT_SIZE)
       return false;
     else
@@ -362,6 +363,7 @@ public:
    */
   void setEnvironmentCallbackSupported(unsigned id, bool supported)
   {
+    id &= 0xFF;
     if (id < RETRO_ENVIRONMENT_SIZE)
       m_SupportedEnvCallbacks[id] = supported;
   }
