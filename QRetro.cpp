@@ -835,10 +835,6 @@ void QRetro::timing()
   m_Core.retro_init();
   m_Core.inited = true;
 
-  /* retro_init has run, so it is now safe to push controller-port devices to the
-   * core; apply any that arrived during retro_set_environment (e.g. fceumm). */
-  m_Input.setPortDeviceReady(true);
-
   if (m_Core.content_loaded && !m_Core.retro_load_game(&m_Core.game_info))
   {
     emit onCoreLog(RETRO_LOG_ERROR, QRETRO_ERROR(QString("Function retro_load_game failed for "
@@ -857,6 +853,8 @@ void QRetro::timing()
   /* retro_load_game has completed — core memory functions are now safe to call.
    * Signal the saving thread to proceed before the first retro_run. */
   m_SramReady = true;
+
+  m_Input.setPortDeviceReady(true);
 
   m_Memory.setMemoryData(m_Core.retro_get_memory_data(RETRO_MEMORY_SYSTEM_RAM),
     m_Core.retro_get_memory_size(RETRO_MEMORY_SYSTEM_RAM));
