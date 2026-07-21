@@ -244,6 +244,12 @@ public:
 
   void setControllerInfo(const retro_controller_info *info);
 
+  /// Marks whether it is safe to call retro_set_controller_port_device on the
+  /// core. Cores may send SET_CONTROLLER_INFO from retro_set_environment (before
+  /// retro_init), and some crash if the port device is set that early. QRetro
+  /// sets this true after retro_init and any pending defaults are applied then.
+  void setPortDeviceReady(bool ready);
+
   unsigned selectedControllerType(unsigned port) const;
 
   void setSelectedControllerType(unsigned port, unsigned id);
@@ -285,6 +291,7 @@ private:
   int16_t m_AnalogButtonDeadzone = QRETRO_INPUT_DEFAULT_BUTTON_DEADZONE;
   QRetroInputBackend *m_Backend = nullptr;
   void (*m_SetControllerPortDevice)(unsigned, unsigned) = nullptr;
+  bool m_PortDeviceReady = false; // false until the core has run retro_init
   std::vector<QRetroControllerPort> m_ControllerPorts;
   uint64_t m_DeviceCapabilities = (1 << RETRO_DEVICE_JOYPAD) | (1 << RETRO_DEVICE_MOUSE) |
                                   (1 << RETRO_DEVICE_KEYBOARD) | (1 << RETRO_DEVICE_ANALOG) |

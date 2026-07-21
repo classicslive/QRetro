@@ -584,7 +584,19 @@ void QRetroInput::setControllerInfo(const retro_controller_info *info)
       port.selectedId = port.types[0].id;
     m_ControllerPorts.push_back(std::move(port));
   }
-  if (m_SetControllerPortDevice)
+  /* Only push defaults to the core once retro_init has run; otherwise a core that
+   * sends SET_CONTROLLER_INFO from retro_set_environment (e.g. fceumm) would have
+   * retro_set_controller_port_device called before it is initialized. The pending
+   * ports are applied by setPortDeviceReady(). */
+  if (m_SetControllerPortDevice && m_PortDeviceReady)
+    for (unsigned p = 0; p < m_ControllerPorts.size(); p++)
+      m_SetControllerPortDevice(p, m_ControllerPorts[p].selectedId);
+}
+
+void QRetroInput::setPortDeviceReady(bool ready)
+{
+  m_PortDeviceReady = ready;
+  if (ready && m_SetControllerPortDevice)
     for (unsigned p = 0; p < m_ControllerPorts.size(); p++)
       m_SetControllerPortDevice(p, m_ControllerPorts[p].selectedId);
 }
