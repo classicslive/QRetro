@@ -98,6 +98,8 @@ public:
   bool loadContent(const char *path, const char *meta = nullptr);
   bool startCore(void);
 
+  void unloadCore(void);
+
   QPoint mouseDelta(void) { return m_MouseDelta; }
   QPoint mousePosition(void) { return m_MousePosition; }
   int mousewheelV(void) { return m_Mousewheel[0]; }
@@ -766,7 +768,6 @@ private:
 
   bool inputReady(void) { return hasInputPollHandler() ? m_InputReady : true; }
   void setupPainter(QPainter *painter);
-  void unloadCore(void);
   void updateScaling(void);
 
   /* The functions that get spun off into their own threads, defined above */
