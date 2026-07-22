@@ -196,20 +196,39 @@ int16_t QRetroInputJoypad::analogStick(unsigned index, unsigned id)
 {
   if (index > RETRO_DEVICE_INDEX_ANALOG_RIGHT || id > RETRO_DEVICE_ID_ANALOG_Y)
     return 0;
+
+  int32_t v;
   if (m_HasAxisRemap)
   {
     const AxisRemap &r = m_AxisRemap[index][id];
-    int32_t v = static_cast<int32_t>(m_Sticks[r.index][r.id]) * r.sign;
-    /* Clamp: negating -32768 would overflow the int16_t range. */
-    if (v > 32767)
-      v = 32767;
-    else if (v < -32768)
-      v = -32768;
-    return static_cast<int16_t>(v);
+    v = static_cast<int32_t>(m_Sticks[r.index][r.id]) * r.sign;
   }
-  if (m_HasStickRemap)
-    index = m_StickRemap[index];
-  return m_Sticks[index][id];
+  else
+  {
+    const unsigned src = m_HasStickRemap ? m_StickRemap[index] : index;
+    v = m_Sticks[src][id];
+  }
+
+  if (m_AnalogSensitivity != 1.0f)
+    v = static_cast<int32_t>(v * m_AnalogSensitivity);
+
+  /* Clamp: negating -32768 or scaling up can leave the int16_t range. */
+  if (v > 32767)
+    v = 32767;
+  else if (v < -32768)
+    v = -32768;
+
+  return static_cast<int16_t>(v);
+}
+
+float QRetroInputJoypad::analogSensitivity(void)
+{
+  return m_AnalogSensitivity;
+}
+
+void QRetroInputJoypad::setAnalogSensitivity(float s)
+{
+  m_AnalogSensitivity = s;
 }
 
 void QRetroInputJoypad::setAnalogStick(unsigned index, unsigned id, int16_t value)
@@ -330,8 +349,35 @@ void QRetroInput::poll(void)
     m_Joypads[i].poll();
 }
 
+void QRetroInput::setPortRoute(unsigned dest, int src)
+{
+  if (dest >= QRETRO_INPUT_DEFAULT_MAX_JOYPADS)
+    return;
+  if (!m_HasPortRoute)
+  {
+    for (unsigned i = 0; i < QRETRO_INPUT_DEFAULT_MAX_JOYPADS; i++)
+      m_PortSource[i] = static_cast<int>(i); /* identity by default */
+    m_HasPortRoute = true;
+  }
+  m_PortSource[dest] = src; /* -1 = read from nowhere */
+}
+
+void QRetroInput::clearPortRoutes()
+{
+  m_HasPortRoute = false;
+}
+
 int16_t QRetroInput::state(unsigned port, unsigned device, unsigned index, unsigned id)
 {
+  /* Redirect the port the core is reading, if a route is set. */
+  if (m_HasPortRoute && port < QRETRO_INPUT_DEFAULT_MAX_JOYPADS)
+  {
+    const int src = m_PortSource[port];
+    if (src < 0)
+      return 0; /* routed to nowhere */
+    port = static_cast<unsigned>(src);
+  }
+
   if (port < m_MaxUsers)
   {
     switch (device)

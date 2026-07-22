@@ -90,6 +90,12 @@ public:
   int16_t analogStickDeadzone(void);
   void setAnalogStickDeadzone(int16_t dz);
 
+  /// Scales analog stick reads; 1.0 leaves them unchanged, 0.5 halves them.
+  /// Lets a control profile soften (or amplify) stick input, e.g. a motion
+  /// layout that would otherwise be too twitchy.
+  float analogSensitivity(void);
+  void setAnalogSensitivity(float s);
+
   int16_t bitmask(void);
 
   bool digitalButton(unsigned id);
@@ -162,6 +168,7 @@ private:
 
   int16_t m_AnalogButtonDeadzone = QRETRO_INPUT_DEFAULT_BUTTON_DEADZONE;
   int16_t m_AnalogStickDeadzone = QRETRO_INPUT_DEFAULT_STICK_DEADZONE;
+  float m_AnalogSensitivity = 1.0f; // multiplier applied to analog stick reads
   float m_AnalogDigitalThreshold = QRETRO_INPUT_DEFAULT_ANALOG_DIGITAL_THRESHOLD;
   bool m_AnalogStickToDigitalPad = false;
   int16_t m_Bitmask = 0;
@@ -287,6 +294,13 @@ public:
 
   QRetroInputJoypad *joypads();
 
+  /// Routes the input the core reads on port `dest` to come from physical port
+  /// `src`, or from nowhere (neutral input) when `src` is -1. Lets a mini-game
+  /// hand one player's controls to another port, or disable a port entirely.
+  /// Only affects reads via state(); does not move the joypad objects.
+  void setPortRoute(unsigned dest, int src);
+  void clearPortRoutes();
+
 private:
   int16_t m_AnalogButtonDeadzone = QRETRO_INPUT_DEFAULT_BUTTON_DEADZONE;
   QRetroInputBackend *m_Backend = nullptr;
@@ -298,6 +312,8 @@ private:
                                   (1 << RETRO_DEVICE_POINTER);
   std::vector<QRetroInputDescriptor> m_InputDescriptors;
   QRetroInputJoypad m_Joypads[QRETRO_INPUT_DEFAULT_MAX_JOYPADS];
+  bool m_HasPortRoute = false; // when false, ports read straight through
+  int m_PortSource[QRETRO_INPUT_DEFAULT_MAX_JOYPADS] = {}; // dest -> source, or -1 = none
   std::vector<qretro_input_kb_map_t> m_KeyboardMaps;
   int m_KeyboardPort = -1;
   bool m_BackendAccel[QRETRO_INPUT_DEFAULT_MAX_JOYPADS] = {};
