@@ -608,8 +608,16 @@ private:
   /// The platform-specific handle to the libretro dynamic library
   QRETRO_LIBRARY_T m_Library = nullptr;
 
-  /// Temp path of the core copy that was dlopen'd (deleted on unload)
+  /// Temp path of the core copy that was dlopen'd. On Linux it is unlinked right
+  /// after loading (the mapping keeps it alive); on Windows it is deleted via the
+  /// handle below when the library unloads.
   QString m_CoreTempPath;
+
+#ifdef _WIN32
+  /// A FILE_FLAG_DELETE_ON_CLOSE handle held open for the Windows temp copy, so
+  /// the file is removed once the library unloads or the process exits.
+  HANDLE m_CoreDeleteHandle = INVALID_HANDLE_VALUE;
+#endif
 
   /// The minimum log level for messages to be emitted as signals
   retro_log_level m_LogLevel = RETRO_LOG_DEBUG;

@@ -785,6 +785,17 @@ void QRetro::unloadCore(void)
     m_Library = nullptr;
   }
 
+#ifdef _WIN32
+  /* Library is unloaded; closing the delete-on-close handle drops the last
+   * reference and removes the temp copy. */
+  if (m_CoreDeleteHandle != INVALID_HANDLE_VALUE)
+  {
+    CloseHandle(m_CoreDeleteHandle);
+    m_CoreDeleteHandle = INVALID_HANDLE_VALUE;
+  }
+#endif
+
+  /* On Linux the temp copy was already unlinked at load time (path cleared). */
   if (!m_CoreTempPath.isEmpty())
   {
     QFile::remove(m_CoreTempPath);
@@ -1396,6 +1407,13 @@ bool QRetro::loadCore(const char *path)
   }
 
 #ifdef _WIN32
+  /* Hold a delete-on-close handle so the temp copy is removed when the library
+   * unloads (or on process teardown, even after a crash). FILE_SHARE_DELETE lets
+   * the loader map the image while the delete is pending. */
+  m_CoreDeleteHandle = CreateFileW(reinterpret_cast<LPCWSTR>(m_CoreTempPath.utf16()),
+    DELETE | GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, nullptr,
+    OPEN_EXISTING, FILE_FLAG_DELETE_ON_CLOSE, nullptr);
+
   m_Library = LoadLibraryW(reinterpret_cast<LPCWSTR>(m_CoreTempPath.utf16()));
 #else
   m_Library = dlopen(m_CoreTempPath.toUtf8().constData(), RTLD_LAZY);
@@ -1403,6 +1421,13 @@ bool QRetro::loadCore(const char *path)
 
   if (!m_Library)
   {
+#ifdef _WIN32
+    if (m_CoreDeleteHandle != INVALID_HANDLE_VALUE)
+    {
+      CloseHandle(m_CoreDeleteHandle); /* fires the delete-on-close */
+      m_CoreDeleteHandle = INVALID_HANDLE_VALUE;
+    }
+#endif
     QFile::remove(m_CoreTempPath);
     m_CoreTempPath.clear();
 #ifdef _WIN32
@@ -1416,6 +1441,14 @@ bool QRetro::loadCore(const char *path)
 #endif
     return false;
   }
+
+#ifndef _WIN32
+  /* The mapping keeps the library valid after dlopen, so unlink the temp copy
+   * now: it vanishes from the temp dir immediately, and the inode is freed when
+   * the last user unmaps it (unload or exit), including after a crash. */
+  QFile::remove(m_CoreTempPath);
+  m_CoreTempPath.clear();
+#endif
 
   if (!_qr_load_library(&m_Core, m_Library))
     return false;
