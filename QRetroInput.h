@@ -8,6 +8,10 @@
 
 #include "QRetroInputBackend.h"
 
+/// A remap destination meaning "nowhere": a button remapped here is dropped, so
+/// the core never sees it pressed. Mirrors the RETRO_DEVICE_ID_JOYPAD_* ids.
+#define RETRO_DEVICE_ID_JOYPAD_NONE (-1)
+
 struct QRetroControllerType
 {
   std::string desc;
@@ -101,7 +105,7 @@ public:
   bool digitalButton(unsigned id);
   void setDigitalButton(unsigned id, bool value);
 
-  void setButtonRemap(unsigned from, unsigned to);
+  void setButtonRemap(int from, int to);
   void clearButtonRemaps(void);
 
   /// Remaps an analog stick index so reads of `dest` return `src` (e.g. make the
@@ -174,7 +178,7 @@ private:
   int16_t m_Bitmask = 0;
   int16_t m_Buttons[RETRO_DEVICE_ID_JOYPAD_R3 + 1] = {};
   bool m_HasRemap = false; // when false, m_Remap is identity and skipped
-  unsigned m_Remap[RETRO_DEVICE_ID_JOYPAD_R3 + 1] = {};
+  int m_Remap[RETRO_DEVICE_ID_JOYPAD_R3 + 1] = {}; // NONE (-1) = unmapped
   bool m_HasStickRemap = false; // when false, sticks are read directly
   unsigned m_StickRemap[2] = { RETRO_DEVICE_INDEX_ANALOG_LEFT, RETRO_DEVICE_INDEX_ANALOG_RIGHT };
   struct AxisRemap

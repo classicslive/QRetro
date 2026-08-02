@@ -34,8 +34,9 @@ void QRetroInputJoypad::poll(void)
     int16_t remapped[RETRO_DEVICE_ID_JOYPAD_R3 + 1] = {};
     for (int i = 0; i <= RETRO_DEVICE_ID_JOYPAD_R3; i++)
     {
-      const unsigned dst = m_Remap[i];
-      if (dst <= RETRO_DEVICE_ID_JOYPAD_R3 && m_Buttons[i] > remapped[dst])
+      const int dst = m_Remap[i];
+      /* dst == NONE (-1) drops the button, so the core never sees it. */
+      if (dst >= 0 && dst <= RETRO_DEVICE_ID_JOYPAD_R3 && m_Buttons[i] > remapped[dst])
         remapped[dst] = m_Buttons[i];
     }
     for (int i = 0; i <= RETRO_DEVICE_ID_JOYPAD_R3; i++)
@@ -100,13 +101,14 @@ void QRetroInputJoypad::setDigitalButton(unsigned id, bool value)
     m_Buttons[id] = value;
 }
 
-void QRetroInputJoypad::setButtonRemap(unsigned from, unsigned to)
+void QRetroInputJoypad::setButtonRemap(int from, int to)
 {
-  if (from > RETRO_DEVICE_ID_JOYPAD_R3 || to > RETRO_DEVICE_ID_JOYPAD_R3)
+  /* `from` must be a real button; `to` may also be NONE to unmap it. */
+  if (from < 0 || from > RETRO_DEVICE_ID_JOYPAD_R3 || to > RETRO_DEVICE_ID_JOYPAD_R3)
     return;
   if (!m_HasRemap)
   {
-    for (unsigned i = 0; i <= RETRO_DEVICE_ID_JOYPAD_R3; i++)
+    for (int i = 0; i <= RETRO_DEVICE_ID_JOYPAD_R3; i++)
       m_Remap[i] = i;
     m_HasRemap = true;
   }
