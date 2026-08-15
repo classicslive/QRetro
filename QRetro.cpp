@@ -489,9 +489,12 @@ bool QRetro::unserialize(const void *data, size_t size)
 
     execOnTimingThread([&]() { result = m_Core.retro_unserialize(data, size); });
 
-    // Ignore next SRAM save to file
     if (result)
+    {
+      // Ignore next SRAM save to file
       m_AutosaveSkip = 1;
+      emit onStateLoaded();
+    }
 
     return result;
   }

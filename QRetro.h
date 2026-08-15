@@ -513,6 +513,7 @@ signals:
   void frameBegin(void);
   void frameEnd(void);
   void onSave(void);
+  void onStateLoaded(void);
   void onVideoRefresh(const void *ptr, unsigned width, unsigned height, unsigned bytes_per_line);
 
 public slots:
