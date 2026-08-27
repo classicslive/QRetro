@@ -734,6 +734,8 @@ private:
   QImage m_Image;
   QRect m_BaseRect;
   QRect m_Rect;
+  QRect m_DeviceRect;
+  double m_DevicePixelRatio = 1.0;
   unsigned m_VideoWidth = 0;
   unsigned m_VideoHeight = 0;
 
@@ -776,7 +778,9 @@ private:
   int16_t (*m_InputStateHandler)(unsigned, unsigned, unsigned, unsigned) = nullptr;
 
   bool inputReady(void) { return hasInputPollHandler() ? m_InputReady : true; }
-  void setupPainter(QPainter *painter);
+  QSize deviceSize(void) const { return size() * m_DevicePixelRatio; }
+  void refreshScaling(void);
+  void setupPainter(QPainter *painter, const QRect &rect);
   void updateScaling(void);
 
   /* The functions that get spun off into their own threads, defined above */

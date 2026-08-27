@@ -9,6 +9,7 @@
 #include <QKeyEvent>
 #include <QPainter>
 #include <QMutexLocker>
+#include <QScreen>
 #include <QThread>
 #include <QUuid>
 
@@ -130,10 +131,24 @@ void QRetro::updateScaling()
 {
   int bw = m_BaseRect.width();
   int bh = m_BaseRect.height();
-  double ar;
+  double dpr, ar, fit_w, fit_h, mult;
+  int win_w, win_h, min1x_w, min1x_h, disp_w, disp_h;
   bool swap = (m_Rotation == 90 || m_Rotation == 270);
 
   if (bw <= 0 || bh <= 0)
+    return;
+
+  /* m_BaseRect is a count of real pixels the core rendered, so every fit is
+   * computed in device pixels; the window only reports logical ones. On a
+   * display with scaling these differ and mixing them shrinks the output. */
+  dpr = devicePixelRatio();
+  if (dpr <= 0.0)
+    dpr = 1.0;
+  m_DevicePixelRatio = dpr;
+  win_w = deviceSize().width();
+  win_h = deviceSize().height();
+
+  if (win_w <= 0 || win_h <= 0)
     return;
 
   /* Setup preferred aspect ratio */
@@ -142,35 +157,36 @@ void QRetro::updateScaling()
   else
     ar = static_cast<double>(bw) / bh;
 
-  /* Grow the window if it is smaller than 1x scale */
-  int min1x_w = swap ? bh : static_cast<int>(ceil(ar * bh));
-  int min1x_h = swap ? static_cast<int>(ceil(ar * bh)) : bh;
-  if (size().width() < min1x_w || size().height() < min1x_h)
+  min1x_w = swap ? bh : static_cast<int>(ceil(ar * bh));
+  min1x_h = swap ? static_cast<int>(ceil(ar * bh)) : bh;
+  if ((win_w < min1x_w || win_h < min1x_h) && !parent())
   {
-    int new_w = qMax(size().width(), min1x_w);
-    int new_h = qMax(size().height(), min1x_h);
+    int new_w = qMax(size().width(), static_cast<int>(ceil(min1x_w / dpr)));
+    int new_h = qMax(size().height(), static_cast<int>(ceil(min1x_h / dpr)));
     QMetaObject::invokeMethod(
       this, [this, new_w, new_h]() { resize(new_w, new_h); }, Qt::QueuedConnection);
-    return;
   }
 
-  double fit_w = swap ? static_cast<double>(size().width()) / bh
-                      : static_cast<double>(size().width()) / (ar * bh);
-  double fit_h = swap ? static_cast<double>(size().height()) / (ar * bh)
-                      : static_cast<double>(size().height()) / bh;
-  double mult = qMin(fit_w, fit_h);
+  fit_w = swap ? static_cast<double>(win_w) / bh : static_cast<double>(win_w) / (ar * bh);
+  fit_h = swap ? static_cast<double>(win_h) / (ar * bh) : static_cast<double>(win_h) / bh;
+  mult = qMin(fit_w, fit_h);
 
-  /* Use integer scaling if requested */
-  if (m_IntegerScaling && mult > 0)
+  /* Use integer scaling if requested. Below 1x there is no integer multiple to
+   * snap to, so leave the fractional fit alone rather than collapsing to zero. */
+  if (m_IntegerScaling && mult >= 1.0)
     mult = floor(mult);
 
-  int disp_w = static_cast<int>(ar * bh * mult);
-  int disp_h = static_cast<int>(bh * mult);
+  disp_w = static_cast<int>(ar * bh * mult);
+  disp_h = static_cast<int>(bh * mult);
 
   /* Center the rect in the available screenspace */
-  m_Rect.setSize(QSize(disp_w, disp_h));
-  m_Rect.moveLeft((size().width() - disp_w) / 2);
-  m_Rect.moveTop((size().height() - disp_h) / 2);
+  m_DeviceRect.setSize(QSize(disp_w, disp_h));
+  m_DeviceRect.moveLeft((win_w - disp_w) / 2);
+  m_DeviceRect.moveTop((win_h - disp_h) / 2);
+
+  /* The QPainter paths and mouse mapping work in logical coordinates */
+  m_Rect = QRect(static_cast<int>(m_DeviceRect.x() / dpr), static_cast<int>(m_DeviceRect.y() / dpr),
+    static_cast<int>(m_DeviceRect.width() / dpr), static_cast<int>(m_DeviceRect.height() / dpr));
 
   m_ScalingFactor = mult;
 }
@@ -178,6 +194,12 @@ void QRetro::updateScaling()
 void QRetro::resizeEvent(QResizeEvent *event)
 {
   Q_UNUSED(event)
+  updateScaling();
+  requestUpdate();
+}
+
+void QRetro::refreshScaling(void)
+{
   updateScaling();
   requestUpdate();
 }
@@ -212,7 +234,7 @@ void QRetro::setAvInfo(const retro_system_av_info *info)
   }
 }
 
-void QRetro::setupPainter(QPainter *painter)
+void QRetro::setupPainter(QPainter *painter, const QRect &rect)
 {
   /* Apply a basic filter if requested. */
   if (m_BilinearFilter)
@@ -222,8 +244,8 @@ void QRetro::setupPainter(QPainter *painter)
   /* TODO: Make scaling work properly on rotation */
   if (m_Rotation)
   {
-    int x = m_Rect.left() + m_Rect.width() / 2;
-    int y = m_Rect.top() + m_Rect.height() / 2;
+    int x = rect.left() + rect.width() / 2;
+    int y = rect.top() + rect.height() / 2;
 
     painter->translate(x, y);
     painter->rotate(m_Rotation);
@@ -241,6 +263,11 @@ bool QRetro::event(QEvent *ev)
     unloadCore();
     deleteLater();
     return QWindow::event(ev);
+#if QT_VERSION >= QT_VERSION_CHECK(6, 6, 0)
+  case QEvent::DevicePixelRatioChange:
+    refreshScaling();
+    return QWindow::event(ev);
+#endif
   case QEvent::UpdateRequest:
   {
     QPainter painter;
@@ -265,7 +292,7 @@ bool QRetro::event(QEvent *ev)
       m_ImageDrawing = true;
       m_BackingStore->beginPaint(m_Image.rect());
       painter.begin(m_BackingStore->paintDevice());
-      setupPainter(&painter);
+      setupPainter(&painter, m_Rect);
 
       painter.fillRect(0, 0, size().width(), size().height(), Qt::black);
       painter.drawImage(m_Rect, m_Image);
@@ -296,16 +323,19 @@ bool QRetro::event(QEvent *ev)
         if (!m_OpenGlContext->makeCurrent(this))
           return false;
 
-        if (!m_OpenGlDevice || m_OpenGlDevice->size() != size())
+         * window on any display with scaling. */
+        QSize dev_size = deviceSize();
+
+        if (!m_OpenGlDevice || m_OpenGlDevice->size() != dev_size)
         {
           delete m_OpenGlDevice;
-          m_OpenGlDevice = new QOpenGLPaintDevice(size());
+          m_OpenGlDevice = new QOpenGLPaintDevice(dev_size);
         }
 
         painter.begin(m_OpenGlDevice);
-        setupPainter(&painter);
-        painter.fillRect(0, 0, size().width(), size().height(), Qt::black);
-        painter.drawImage(m_Rect, m_Image);
+        setupPainter(&painter, m_DeviceRect);
+        painter.fillRect(0, 0, dev_size.width(), dev_size.height(), Qt::black);
+        painter.drawImage(m_DeviceRect, m_Image);
         painter.end();
         m_OpenGlContext->swapBuffers(this);
         m_FramePresented.release();
@@ -342,15 +372,17 @@ void QRetro::setImagePtr(const void *data, unsigned width, unsigned height, unsi
     return;
   }
 #if QRETRO_HAVE_OPENGL
-  else if (surfaceType() == QSurface::OpenGLSurface && m_OpenGlContextCore && m_Rect.isValid())
+  else if (surfaceType() == QSurface::OpenGLSurface && m_OpenGlContextCore && m_DeviceRect.isValid())
   {
-    int h = size().height();
+    /* The default framebuffer is sized in device pixels and its origin is
+     * bottom-left, so the destination comes from m_DeviceRect, flipped. */
+    int h = deviceSize().height();
     int sw = (width > 0) ? static_cast<int>(width) : m_BaseRect.width();
     int sh = (height > 0) ? static_cast<int>(height) : m_BaseRect.height();
-    int dx0 = m_Rect.x();
-    int dy0 = h - m_Rect.y() - m_Rect.height();
-    int dx1 = m_Rect.x() + m_Rect.width();
-    int dy1 = h - m_Rect.y();
+    int dx0 = m_DeviceRect.x();
+    int dy0 = h - m_DeviceRect.y() - m_DeviceRect.height();
+    int dx1 = m_DeviceRect.x() + m_DeviceRect.width();
+    int dy1 = h - m_DeviceRect.y();
 
     auto *ef = m_OpenGlContextCore->extraFunctions();
     GLenum filter = m_BilinearFilter ? GL_LINEAR : GL_NEAREST;
@@ -426,8 +458,12 @@ void QRetro::updateMouse(void)
   /* Update RETRO_DEVICE_MOUSE */
   auto new_pos = mapFromGlobal(QCursor::pos());
 
-  m_MouseDelta = QPoint(static_cast<int>((new_pos.x() - m_MousePosition.x()) / m_ScalingFactor),
-    static_cast<int>((new_pos.y() - m_MousePosition.y()) / m_ScalingFactor));
+  /* m_ScalingFactor is device pixels per core pixel, but the cursor is reported
+   * in logical ones, so the delta goes through the ratio first. */
+  double mouse_scale = m_ScalingFactor / m_DevicePixelRatio;
+
+  m_MouseDelta = QPoint(static_cast<int>((new_pos.x() - m_MousePosition.x()) / mouse_scale),
+    static_cast<int>((new_pos.y() - m_MousePosition.y()) / mouse_scale));
   m_MousePosition = new_pos;
 
   /* Update RETRO_DEVICE_POINTER */
@@ -698,6 +734,10 @@ QRetro::QRetro(QWindow *parent, retro_hw_context_type format)
 
   setLanguage(qt2lr_language_system());
   setPreferredRenderer(format);
+
+  /* Moving to a screen with different scaling changes devicePixelRatio without
+   * necessarily changing the logical size, so no resizeEvent would arrive. */
+  connect(this, &QWindow::screenChanged, this, [this](QScreen *) { refreshScaling(); });
 
   /* Initialize member variables */
   memset(&m_Core, 0, sizeof(m_Core));
