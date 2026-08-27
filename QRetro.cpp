@@ -313,9 +313,9 @@ bool QRetro::event(QEvent *ev)
       if (m_OpenGlContextCore)
       {
         /**
-           * GL core: timing thread owns m_OpenGlContextCore and handles
-           * rendering and buffer swapping. Nothing to do here.
-           */
+         * GL core: timing thread owns m_OpenGlContextCore and handles
+         * rendering and buffer swapping. Nothing to do here.
+         */
       }
       else if (m_OpenGlContext)
       {
@@ -323,7 +323,6 @@ bool QRetro::event(QEvent *ev)
         if (!m_OpenGlContext->makeCurrent(this))
           return false;
 
-         * window on any display with scaling. */
         QSize dev_size = deviceSize();
 
         if (!m_OpenGlDevice || m_OpenGlDevice->size() != dev_size)
@@ -372,7 +371,8 @@ void QRetro::setImagePtr(const void *data, unsigned width, unsigned height, unsi
     return;
   }
 #if QRETRO_HAVE_OPENGL
-  else if (surfaceType() == QSurface::OpenGLSurface && m_OpenGlContextCore && m_DeviceRect.isValid())
+  else if (surfaceType() == QSurface::OpenGLSurface && m_OpenGlContextCore &&
+           m_DeviceRect.isValid())
   {
     /* The default framebuffer is sized in device pixels and its origin is
      * bottom-left, so the destination comes from m_DeviceRect, flipped. */
