@@ -538,8 +538,7 @@ QImage QRetro::readbackFrame(void)
   ef->glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
   ef->glReadBuffer(GL_BACK);
   glPixelStorei(GL_PACK_ALIGNMENT, 4);
-  glReadPixels(0, 0, dev_size.width(), dev_size.height(), GL_RGBA, GL_UNSIGNED_BYTE,
-    image.bits());
+  glReadPixels(0, 0, dev_size.width(), dev_size.height(), GL_RGBA, GL_UNSIGNED_BYTE, image.bits());
 
   /* GL rows run bottom-up. */
 #if QT_VERSION >= QT_VERSION_CHECK(6, 9, 0)

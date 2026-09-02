@@ -116,8 +116,8 @@ void QRetroAudio::pushSamples(const sample_t *data, size_t frames)
   if (m_SampleRateBytesPerFrame <= 0)
     return;
 
-  cap_bytes = static_cast<int>(qMax(m_MaxBufferFrames, m_BufferFrames + 2)) *
-              m_SampleRateBytesPerFrame;
+  cap_bytes =
+    static_cast<int>(qMax(m_MaxBufferFrames, m_BufferFrames + 2)) * m_SampleRateBytesPerFrame;
   if (m_AudioBuffer.size() > cap_bytes)
     m_AudioBuffer.remove(0, m_AudioBuffer.size() - cap_bytes);
 }
