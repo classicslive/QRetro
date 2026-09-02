@@ -53,6 +53,8 @@ public:
   */
   void setBufferFrames(unsigned frames) { m_BufferFrames = frames; }
 
+  void setMaxBufferFrames(unsigned frames) { m_MaxBufferFrames = frames; }
+
   void setEnabled(bool v);
   bool isEnabled(void) const { return m_Enabled; }
 
@@ -83,6 +85,7 @@ private:
 
   double m_FramesPerSecond = 60.0;
   unsigned m_BufferFrames = 1;
+  unsigned m_MaxBufferFrames = 8;
   double m_SampleRateBase = 0.0;
   int m_SampleRateBytesPerFrame = 0;
   double m_SampleRateCurrent = 0.0;

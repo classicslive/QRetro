@@ -108,8 +108,18 @@ void QRetroAudio::reset(void)
 
 void QRetroAudio::pushSamples(const sample_t *data, size_t frames)
 {
+  int cap_bytes;
+
   m_AudioBuffer.append(reinterpret_cast<const char *>(data),
     static_cast<int>(frames * QRETRO_AUDIO_CHANNELS * sizeof(sample_t)));
+
+  if (m_SampleRateBytesPerFrame <= 0)
+    return;
+
+  cap_bytes = static_cast<int>(qMax(m_MaxBufferFrames, m_BufferFrames + 2)) *
+              m_SampleRateBytesPerFrame;
+  if (m_AudioBuffer.size() > cap_bytes)
+    m_AudioBuffer.remove(0, m_AudioBuffer.size() - cap_bytes);
 }
 
 void QRetroAudio::setEnabled(bool v)
