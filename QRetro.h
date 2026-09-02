@@ -157,6 +157,14 @@ public:
   void setRotation(const unsigned degrees);
 
   /**
+   * Requests a copy of the frame currently on screen, delivered on
+   * frameGrabbed(). A software core answers before this returns; a
+   * hardware-rendered one has to read its framebuffer back on the thread that
+   * owns the GL context, so its image arrives after the next presented frame.
+   */
+  void grabFrame(void);
+
+  /**
    * Returns whether or not the core reports to support starting without any
    * content, set by RETRO_ENVIRONMENT_SET_SUPPORT_NO_GAME.
    * @return Whether or not the core reports to support starting without content,
@@ -516,6 +524,10 @@ signals:
   void onStateLoaded(void);
   void onVideoRefresh(const void *ptr, unsigned width, unsigned height, unsigned bytes_per_line);
 
+  /// A frame asked for with grabFrame(), copied into system memory. Emitted from
+  /// the timing thread for a hardware-rendered core.
+  void frameGrabbed(QImage image);
+
 public slots:
   void setImagePtr(const void *ptr, unsigned width, unsigned height, unsigned bytes_per_line);
 
@@ -534,7 +546,15 @@ private:
 
 #if QRETRO_HAVE_OPENGL
   void glInitCoreContext(QThread *thread);
+
+  /// Reads the GL back buffer into system memory. Only valid on the thread whose
+  /// context is current, and only before the buffers are swapped.
+  QImage readbackFrame(void);
 #endif
+
+  /// The core's frame laid out the way the window shows it: scaled into m_Rect
+  /// on black. Copies, since m_Image usually just points at core memory.
+  QImage composedFrame(void);
 
   QRetroAudio *m_Audio = nullptr;
   QRetroAudioVideoEnable m_AudioVideoEnable;
@@ -767,6 +787,9 @@ private:
   SwapIntervalFn m_pfnSwapInterval = nullptr;
   bool m_SwapIntervalFetched = false;
 #endif
+  /// Set by grabFrame(), cleared once the timing thread has read the frame back.
+  std::atomic<bool> m_GrabRequested{ false };
+
   bool m_ImageDrawing = false;
   bool m_ImageRendering = false;
   /* Set to true when input has been pre-polled right after vsync.

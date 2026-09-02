@@ -440,6 +440,11 @@ void QRetro::setImagePtr(const void *data, unsigned width, unsigned height, unsi
       }
     }
 
+    /* Answer a pending grabFrame() from the finished back buffer, while it is
+     * still the one holding this frame. */
+    if (m_GrabRequested.exchange(false))
+      emit frameGrabbed(readbackFrame());
+
     /* Toggle vsync based on fast-forward state, then present. */
     if (m_pfnSwapInterval)
       m_pfnSwapInterval(m_FastForwarding ? 0 : 1);
@@ -480,6 +485,73 @@ void QRetro::setRotation(const unsigned degrees)
 {
   m_Rotation = degrees % 360;
 }
+
+void QRetro::grabFrame(void)
+{
+  /* A software core's frame already sits in system memory, so it can be copied
+   * right here. A hardware-rendered one lives in the GL back buffer, which only
+   * the timing thread's context can read, so flag it and let setImagePtr answer
+   * once the core has drawn its next frame. */
+#if QRETRO_HAVE_OPENGL
+  if (surfaceType() == QSurface::OpenGLSurface && m_OpenGlContextCore)
+  {
+    m_GrabRequested = true;
+    return;
+  }
+#endif
+  emit frameGrabbed(composedFrame());
+}
+
+QImage QRetro::composedFrame(void)
+{
+  if (m_Image.isNull() || size().isEmpty())
+    return QImage();
+
+  QImage image(size(), QImage::Format_RGB32);
+  QPainter painter;
+
+  image.fill(Qt::black);
+  painter.begin(&image);
+  setupPainter(&painter, m_Rect);
+  painter.drawImage(m_Rect, m_Image);
+  painter.end();
+
+  return image;
+}
+
+#if QRETRO_HAVE_OPENGL
+QImage QRetro::readbackFrame(void)
+{
+  QSize dev_size = deviceSize();
+
+  if (dev_size.isEmpty() || !m_OpenGlContextCore)
+    return QImage();
+
+  auto *ef = m_OpenGlContextCore->extraFunctions();
+  QImage image(dev_size, QImage::Format_RGBA8888);
+
+  if (!ef)
+    return QImage();
+
+  /* glReadPixels reads whatever is bound for reading, which the blits above may
+   * have left pointing at an FBO. */
+  ef->glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+  ef->glReadBuffer(GL_BACK);
+  glPixelStorei(GL_PACK_ALIGNMENT, 4);
+  glReadPixels(0, 0, dev_size.width(), dev_size.height(), GL_RGBA, GL_UNSIGNED_BYTE,
+    image.bits());
+
+  /* GL rows run bottom-up. */
+#if QT_VERSION >= QT_VERSION_CHECK(6, 9, 0)
+  image = image.flipped(Qt::Vertical);
+#else
+  image = image.mirrored(false, true);
+#endif
+  image.setDevicePixelRatio(m_DevicePixelRatio);
+
+  return image;
+}
+#endif
 
 void QRetro::execOnTimingThread(std::function<void()> action)
 {
@@ -631,8 +703,23 @@ void QRetro::reset(void)
 
 void QRetro::waitFrames(int count)
 {
-  for (int i = 0; i < count; i++)
-    execOnTimingThread([]() {});
+  QElapsedTimer timer;
+  unsigned long target;
+  qint64 limit_ms;
+
+  /* execOnTimingThread only round-trips the timing loop, and that loop keeps
+   * servicing actions while it is gated (paused, hidden, audio backed up), so
+   * counting round-trips reported frames that never ran. Watch the frame counter
+   * instead, bounded by wall clock so a stalled core can't hang the caller. */
+  if (count <= 0 || QThread::currentThread() == m_ThreadTiming)
+    return;
+
+  target = m_Frames.load() + static_cast<unsigned long>(count);
+  limit_ms = static_cast<qint64>(count * 1000.0 / m_TargetRefreshRate) * 4 + 250;
+  timer.start();
+
+  while (m_Active && m_Frames.load() < target && !timer.hasExpired(limit_ms))
+    QThread::msleep(1);
 }
 
 static bool _qr_load_function(void *func_ptr, QRETRO_LIBRARY_T library, const char *name)
