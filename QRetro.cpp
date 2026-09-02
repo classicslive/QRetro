@@ -1072,7 +1072,7 @@ void QRetro::timing()
 
     if (inputReady() && // stall if waiting for input (netplay)
         !m_Paused && // stall if content is paused
-        !m_Audio->excessFramesInBuffer()) // stall to play the audio queue
+        !m_Audio->shouldStallEmulation()) // stall to play the audio queue
     {
       /* Hold the SRAM restore window open: allow the first frames to run so the
        * core can expose SAVE_RAM, but don't advance past the window until the

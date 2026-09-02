@@ -1,8 +1,11 @@
 #include <QtGlobal>
 #if QRETRO_HAVE_MULTIMEDIA
 #if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+#include <QAudioDevice>
 #include <QAudioSink>
+#include <QMediaDevices>
 #else
+#include <QAudioDeviceInfo>
 #include <QAudioOutput>
 #endif
 #endif
@@ -14,6 +17,9 @@
  * value should be made mutable.
  */
 #define QRETRO_AUDIO_CHANNELS 2
+
+/* How long the queue may fail to drain before the device is presumed stuck. */
+#define QRETRO_AUDIO_NO_DRAIN_MS 250
 
 QRetroAudio::QRetroAudio(void)
 {
@@ -90,6 +96,40 @@ void QRetroAudio::playFrame(void)
 #endif
 }
 
+bool QRetroAudio::shouldStallEmulation(void)
+{
+#if QRETRO_HAVE_MULTIMEDIA
+  qint64 played;
+
+  if (!excessFramesInBuffer())
+  {
+    m_StallTimer.invalidate();
+    return false;
+  }
+
+  /* The device is the only thing that empties the queue, so if it has not played
+   * anything for a while it has stopped, however full the queue looks. */
+  played = m_AudioOutput ? m_AudioOutput->processedUSecs() : 0;
+
+  if (!m_StallTimer.isValid() || played != m_PlayedUSecs)
+  {
+    m_PlayedUSecs = played;
+    m_StallTimer.start();
+  }
+  else if (m_StallTimer.hasExpired(QRETRO_AUDIO_NO_DRAIN_MS))
+  {
+    qDebug("Audio device stopped playing, restarting it.");
+    m_StallTimer.invalidate();
+    reset();
+    return false;
+  }
+
+  return true;
+#else
+  return false;
+#endif
+}
+
 void QRetroAudio::reset(void)
 {
 #if QRETRO_HAVE_MULTIMEDIA
@@ -108,18 +148,8 @@ void QRetroAudio::reset(void)
 
 void QRetroAudio::pushSamples(const sample_t *data, size_t frames)
 {
-  int cap_bytes;
-
   m_AudioBuffer.append(reinterpret_cast<const char *>(data),
     static_cast<int>(frames * QRETRO_AUDIO_CHANNELS * sizeof(sample_t)));
-
-  if (m_SampleRateBytesPerFrame <= 0)
-    return;
-
-  cap_bytes =
-    static_cast<int>(qMax(m_MaxBufferFrames, m_BufferFrames + 2)) * m_SampleRateBytesPerFrame;
-  if (m_AudioBuffer.size() > cap_bytes)
-    m_AudioBuffer.remove(0, m_AudioBuffer.size() - cap_bytes);
 }
 
 void QRetroAudio::setEnabled(bool v)
@@ -194,18 +224,36 @@ bool QRetroAudio::start(void)
     m_AudioBuffer.resize(m_BufferFrames * QRETRO_AUDIO_CHANNELS * sizeof(sample_t));
     m_AudioBuffer.fill(0);
 
+    /* Cores ask for rates the device may not take (Dolphin wants 32000), and an
+     * unsupported format opens without an error but never plays. */
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+    const QAudioDevice info = QMediaDevices::defaultAudioOutput();
+    const QString name = info.description();
+#else
+    const QAudioDeviceInfo info = QAudioDeviceInfo::defaultOutputDevice();
+    const QString name = info.deviceName();
+#endif
+    qDebug("Audio: requesting %d Hz, %d ch on \"%s\" (supported: %s, prefers %d Hz)",
+      format.sampleRate(), format.channelCount(), qPrintable(name),
+      info.isFormatSupported(format) ? "yes" : "NO", info.preferredFormat().sampleRate());
+
     /* Start the new audio output */
 #if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
-    m_AudioOutput = new QAudioSink(format);
+    m_AudioOutput = new QAudioSink(info, format);
 #else
-    m_AudioOutput = new QAudioOutput(format);
+    m_AudioOutput = new QAudioOutput(info, format);
 #endif
     if (m_AudioOutput->error() == QAudio::NoError)
     {
       m_AudioDevice = m_AudioOutput->start();
       applyVolume();
+      qDebug("Audio: started, state %d, error %d, %d bytes free",
+        static_cast<int>(m_AudioOutput->state()), static_cast<int>(m_AudioOutput->error()),
+        static_cast<int>(m_AudioOutput->bytesFree()));
       return true;
     }
+
+    qDebug("Audio: device would not open, error %d", static_cast<int>(m_AudioOutput->error()));
   }
 #endif
 

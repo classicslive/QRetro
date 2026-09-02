@@ -1,6 +1,7 @@
 #ifndef QRETRO_AUDIO_H
 #define QRETRO_AUDIO_H
 
+#include <QElapsedTimer>
 #include <QWidget>
 #include <QtGlobal>
 
@@ -36,6 +37,10 @@ public:
 
   void playFrame(void);
 
+  /* Whether emulation should wait for the audio queue to drain. A core may
+   * queue as much as it likes; only a queue that stops draining is a fault. */
+  bool shouldStallEmulation(void);
+
   void reset(void);
 
   void pushSamples(const sample_t *data, size_t frames);
@@ -52,8 +57,6 @@ public:
     the expense of increased audio latency.
   */
   void setBufferFrames(unsigned frames) { m_BufferFrames = frames; }
-
-  void setMaxBufferFrames(unsigned frames) { m_MaxBufferFrames = frames; }
 
   void setEnabled(bool v);
   bool isEnabled(void) const { return m_Enabled; }
@@ -85,7 +88,8 @@ private:
 
   double m_FramesPerSecond = 60.0;
   unsigned m_BufferFrames = 1;
-  unsigned m_MaxBufferFrames = 8;
+  QElapsedTimer m_StallTimer;
+  qint64 m_PlayedUSecs = 0;
   double m_SampleRateBase = 0.0;
   int m_SampleRateBytesPerFrame = 0;
   double m_SampleRateCurrent = 0.0;
