@@ -226,12 +226,23 @@ void QRetro::setAvInfo(const retro_system_av_info *info)
   setGeometry(info->geometry.base_width, info->geometry.base_height);
 
   if (m_Audio && m_Audio->baseSampleRate() != info->timing.sample_rate)
-  {
-    delete m_Audio;
-    m_Audio = new QRetroAudio(info->timing.sample_rate, 60.0, m_TargetRefreshRate);
-    m_Audio->start();
-    m_Audio->setEnabled(m_AudioEnabled);
-  }
+    createAudio(info->timing.sample_rate);
+}
+
+void QRetro::createAudio(double sample_rate)
+{
+  /* A rate change replaces the object, so carry the mute state over -- losing it
+   * unmutes a core mid-load. */
+  const bool muted = m_Audio && m_Audio->isMuted();
+
+  delete m_Audio;
+  m_Audio = new QRetroAudio(sample_rate, 60.0, m_TargetRefreshRate);
+  /* Direct, so audio lines reach the log on the thread that produced them, the
+   * same way core messages do. */
+  connect(m_Audio, &QRetroAudio::logMessage, this, &QRetro::onCoreLog, Qt::DirectConnection);
+  m_Audio->start();
+  m_Audio->setEnabled(m_AudioEnabled);
+  m_Audio->setMute(muted);
 }
 
 void QRetro::setupPainter(QPainter *painter, const QRect &rect)
@@ -1014,9 +1025,7 @@ void QRetro::timing()
   setGeometry(m_Core.av_info.geometry.base_width, m_Core.av_info.geometry.base_height);
   QWindow::setGeometry(m_BaseRect);
 
-  m_Audio = new QRetroAudio(m_Core.av_info.timing.sample_rate, 60.0, m_TargetRefreshRate);
-  m_Audio->start();
-  m_Audio->setEnabled(m_AudioEnabled);
+  createAudio(m_Core.av_info.timing.sample_rate);
 
   /* Notify core to begin sending audio, if using audio callback */
   if (m_Core.audio_callback.set_state)
@@ -1067,7 +1076,7 @@ void QRetro::timing()
     {
       wasPaused = false;
       if (m_Audio)
-        m_Audio->reset();
+        m_Audio->flush();
     }
 
     if (inputReady() && // stall if waiting for input (netplay)

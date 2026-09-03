@@ -15,8 +15,10 @@ QT_FORWARD_DECLARE_CLASS(QAudioOutput);
 #endif
 #endif
 
-class QRetroAudio
+class QRetroAudio : public QObject
 {
+  Q_OBJECT
+
 public:
   QRetroAudio(void);
   QRetroAudio(double frequency, double core_fps);
@@ -41,6 +43,10 @@ public:
    * queue as much as it likes; only a queue that stops draining is a fault. */
   bool shouldStallEmulation(void);
 
+  /* Drops the queue without touching the device. */
+  void flush(void);
+
+  /* Drops the queue and restarts the device. */
   void reset(void);
 
   void pushSamples(const sample_t *data, size_t frames);
@@ -70,6 +76,10 @@ public:
 
   bool start(void);
 
+signals:
+  /* Emitted from the timing thread, as a retro_log_level plus text. */
+  void logMessage(int level, const QString &msg);
+
 private:
   void applyVolume(void);
 
@@ -90,6 +100,11 @@ private:
   unsigned m_BufferFrames = 1;
   QElapsedTimer m_StallTimer;
   qint64 m_PlayedUSecs = 0;
+  bool m_Restarted = false;
+  double m_ResampleRatio = 1.0;
+  double m_ResamplePhase = 0.0;
+  sample_t m_ResamplePrev[2] = { 0, 0 };
+  QByteArray m_ResampleScratch;
   double m_SampleRateBase = 0.0;
   int m_SampleRateBytesPerFrame = 0;
   double m_SampleRateCurrent = 0.0;

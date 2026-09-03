@@ -556,6 +556,9 @@ private:
   /// on black. Copies, since m_Image usually just points at core memory.
   QImage composedFrame(void);
 
+  /// Builds the audio object for a core sample rate, carrying mute across.
+  void createAudio(double sample_rate);
+
   QRetroAudio *m_Audio = nullptr;
   QRetroAudioVideoEnable m_AudioVideoEnable;
   QRetroCamera m_Camera;
