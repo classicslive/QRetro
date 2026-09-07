@@ -23,6 +23,12 @@
 #include "QRetro.h"
 #include "QRetroCommon.h"
 #include "QRetroEnvironment.h"
+
+#ifdef Q_OS_MACOS
+/* Swap interval is a CGL context parameter here, not a GL extension entry point.
+ * Included after QRetro.h so Qt has already settled which GL headers are in use. */
+#include <OpenGL/OpenGL.h>
+#endif
 #if QRETRO_HAVE_SDL3
 #include "QRetroInputBackendSDL3.h"
 #elif QRETRO_HAVE_GAMEPAD
@@ -38,15 +44,30 @@ using namespace std;
 using namespace std::chrono;
 
 #if QRETRO_HAVE_OPENGL
+QSurface *QRetro::glCoreSurface(void)
+{
+#ifdef Q_OS_MACOS
+  if (m_OpenGlSurface)
+    return m_OpenGlSurface;
+#endif
+  return this;
+}
+
 void QRetro::glInitCoreContext(QThread *thread)
 {
   if (m_OpenGlContextCore)
     return;
+
   m_OpenGlContextCore = new QOpenGLContext();
   m_OpenGlContextCore->moveToThread(thread);
   m_OpenGlContextCore->setFormat(requestedFormat());
+#ifdef Q_OS_MACOS
+  /* The GUI thread blits the core's texture into the window, so the two contexts
+   * have to share an object namespace. initVideo() set both up. */
+  m_OpenGlContextCore->setShareContext(m_OpenGlContext);
+#endif
   m_OpenGlContextCore->create();
-  m_OpenGlContextCore->makeCurrent(this);
+  m_OpenGlContextCore->makeCurrent(glCoreSurface());
   initializeOpenGLFunctions();
 }
 #endif
@@ -60,7 +81,7 @@ long long unsigned QRetro::glGetCurrentFramebuffer(void)
   {
     if (m_OpenGlContextCore->thread() != QThread::currentThread())
       return m_OpenGlFbo ? m_OpenGlFbo->handle() : 0;
-    if (!m_OpenGlContextCore->makeCurrent(this))
+    if (!m_OpenGlContextCore->makeCurrent(glCoreSurface()))
       return 0;
   }
 
@@ -385,17 +406,86 @@ void QRetro::setImagePtr(const void *data, unsigned width, unsigned height, unsi
   else if (surfaceType() == QSurface::OpenGLSurface && m_OpenGlContextCore &&
            m_DeviceRect.isValid())
   {
+    int sw = (width > 0) ? static_cast<int>(width) : m_BaseRect.width();
+    int sh = (height > 0) ? static_cast<int>(height) : m_BaseRect.height();
+
+    auto *ef = m_OpenGlContextCore->extraFunctions();
+
+#ifdef Q_OS_MACOS
+    /* Cocoa forbids touching the window's drawable from this thread, so publish
+     * the finished frame's texture and let the GUI thread blit and swap it.
+     * Textures are shared between the two contexts; FBO names are not. */
+    if (ef && sw > 0 && sh > 0)
+    {
+      GLuint texture = 0;
+      bool bottom_left = false;
+
+      if (m_FboRequestedThisFrame && m_OpenGlFbo && m_OpenGlFbo->isValid())
+      {
+        texture = m_OpenGlFbo->texture();
+        bottom_left = m_Core.hw_render.bottom_left_origin;
+      }
+      else
+      {
+        /* The core drew into the offscreen surface's default framebuffer, which
+         * the GUI thread has no way to read, so copy it into an FBO first. */
+        if (!m_OpenGlFboIntermediate || m_OpenGlFboIntermediate->size() != m_BaseRect.size())
+        {
+          delete m_OpenGlFboIntermediate;
+          m_OpenGlFboIntermediate = new QOpenGLFramebufferObject(m_BaseRect.size());
+        }
+        if (m_OpenGlFboIntermediate->isValid())
+        {
+          /* Hack -- temporarily disable GL scissor test so our FBO doesn't get clipped */
+          GLboolean scissor_was_enabled = glIsEnabled(GL_SCISSOR_TEST);
+          GLint scissor_box[4];
+          glGetIntegerv(GL_SCISSOR_BOX, scissor_box);
+          glDisable(GL_SCISSOR_TEST);
+
+          ef->glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+          ef->glBindFramebuffer(GL_DRAW_FRAMEBUFFER, m_OpenGlFboIntermediate->handle());
+          ef->glBlitFramebuffer(0, 0, sw, sh, 0, 0, sw, sh, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+
+          /* Hack -- restore the scissor test so the core can use it again */
+          if (scissor_was_enabled)
+          {
+            glScissor(scissor_box[0], scissor_box[1], scissor_box[2], scissor_box[3]);
+            glEnable(GL_SCISSOR_TEST);
+          }
+
+          texture = m_OpenGlFboIntermediate->texture();
+          bottom_left = true;
+        }
+      }
+
+      if (texture)
+      {
+        /* Order the GUI thread's reads after this frame's drawing. */
+        GLsync fence = ef->glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+        ef->glFlush();
+
+        {
+          QMutexLocker lock(&m_PresentMutex);
+          if (m_PresentFence)
+            ef->glDeleteSync(m_PresentFence); /* a frame the GUI thread never took */
+          m_PresentTexture = texture;
+          m_PresentSize = QSize(sw, sh);
+          m_PresentBottomLeft = bottom_left;
+          m_PresentFence = fence;
+        }
+
+        QMetaObject::invokeMethod(this, [this]() { presentPendingFrame(); }, Qt::QueuedConnection);
+      }
+    }
+#else
     /* The default framebuffer is sized in device pixels and its origin is
      * bottom-left, so the destination comes from m_DeviceRect, flipped. */
     int h = deviceSize().height();
-    int sw = (width > 0) ? static_cast<int>(width) : m_BaseRect.width();
-    int sh = (height > 0) ? static_cast<int>(height) : m_BaseRect.height();
     int dx0 = m_DeviceRect.x();
     int dy0 = h - m_DeviceRect.y() - m_DeviceRect.height();
     int dx1 = m_DeviceRect.x() + m_DeviceRect.width();
     int dy1 = h - m_DeviceRect.y();
 
-    auto *ef = m_OpenGlContextCore->extraFunctions();
     GLenum filter = m_BilinearFilter ? GL_LINEAR : GL_NEAREST;
     if (ef && sw > 0 && sh > 0)
     {
@@ -460,6 +550,7 @@ void QRetro::setImagePtr(const void *data, unsigned width, unsigned height, unsi
     if (m_pfnSwapInterval)
       m_pfnSwapInterval(m_FastForwarding ? 0 : 1);
     m_OpenGlContextCore->swapBuffers(this);
+#endif
   }
 #endif
   /* Pre-poll input immediately after vsync */
@@ -468,6 +559,95 @@ void QRetro::setImagePtr(const void *data, unsigned width, unsigned height, unsi
 
   QMetaObject::invokeMethod(this, [this]() { requestUpdate(); }, Qt::QueuedConnection);
 }
+
+#if QRETRO_HAVE_OPENGL
+#ifdef Q_OS_MACOS
+void QRetro::presentPendingFrame(void)
+{
+  GLuint texture;
+  QSize source;
+  bool bottom_left;
+  GLsync fence;
+
+  /* Everything that can bail happens before the frame is taken: leaving it
+   * published means the next call presents it, and the timing thread disposes
+   * of its fence when it publishes the one after. */
+  if (!isExposed() || !m_DeviceRect.isValid() || !m_OpenGlContext ||
+      !m_OpenGlContext->makeCurrent(this))
+    return;
+
+  auto *ef = m_OpenGlContext->extraFunctions();
+  if (!ef)
+    return;
+
+  {
+    QMutexLocker lock(&m_PresentMutex);
+    if (!m_PresentTexture)
+      return;
+    texture = m_PresentTexture;
+    source = m_PresentSize;
+    bottom_left = m_PresentBottomLeft;
+    fence = m_PresentFence;
+    m_PresentTexture = 0;
+    m_PresentFence = nullptr;
+  }
+
+  /* Wait for the timing thread's drawing to land before reading its texture. */
+  if (fence)
+  {
+    ef->glWaitSync(fence, 0, GL_TIMEOUT_IGNORED);
+    ef->glDeleteSync(fence);
+  }
+
+  /* FBO names are per-context, so wrap the shared texture in one of our own. */
+  if (!m_PresentFbo)
+    ef->glGenFramebuffers(1, &m_PresentFbo);
+
+  const int h = deviceSize().height();
+  const int sw = source.width();
+  const int sh = source.height();
+  const int dx0 = m_DeviceRect.x();
+  const int dy0 = h - m_DeviceRect.y() - m_DeviceRect.height();
+  const int dx1 = m_DeviceRect.x() + m_DeviceRect.width();
+  const int dy1 = h - m_DeviceRect.y();
+  const GLenum filter = m_BilinearFilter ? GL_LINEAR : GL_NEAREST;
+
+  ef->glDisable(GL_SCISSOR_TEST);
+  ef->glBindFramebuffer(GL_READ_FRAMEBUFFER, m_PresentFbo);
+  ef->glFramebufferTexture2D(GL_READ_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture, 0);
+  ef->glReadBuffer(GL_COLOR_ATTACHMENT0);
+  ef->glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+  ef->glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+  ef->glClear(GL_COLOR_BUFFER_BIT);
+
+  if (bottom_left)
+    ef->glBlitFramebuffer(0, 0, sw, sh, dx0, dy0, dx1, dy1, GL_COLOR_BUFFER_BIT, filter);
+  else
+    ef->glBlitFramebuffer(0, sh, sw, 0, dx0, dy0, dx1, dy1, GL_COLOR_BUFFER_BIT, filter);
+
+  ef->glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+
+  /* Answer a pending grabFrame() from the finished back buffer, while it is
+   * still the one holding this frame. */
+  if (m_GrabRequested.exchange(false))
+    emit frameGrabbed(readbackFrame());
+
+  /* Drop vsync while fast-forwarding so the timing thread's own pacing decides
+   * the rate, and restore it afterwards. */
+  const GLint interval = m_FastForwarding ? 0 : 1;
+  if (interval != m_SwapInterval)
+  {
+    CGLContextObj cgl = CGLGetCurrentContext();
+
+    if (cgl && CGLSetParameter(cgl, kCGLCPSwapInterval, &interval) == kCGLNoError)
+      m_SwapInterval = interval;
+  }
+
+  m_OpenGlContext->swapBuffers(this);
+  m_FramePresented.release();
+}
+#endif
+#endif
 
 void QRetro::updateMouse(void)
 {
@@ -534,11 +714,14 @@ QImage QRetro::composedFrame(void)
 QImage QRetro::readbackFrame(void)
 {
   QSize dev_size = deviceSize();
+  /* The presenting context is the core's everywhere but macOS, where the GUI
+   * thread owns the window's drawable and calls this instead. */
+  QOpenGLContext *ctx = QOpenGLContext::currentContext();
 
-  if (dev_size.isEmpty() || !m_OpenGlContextCore)
+  if (dev_size.isEmpty() || !ctx)
     return QImage();
 
-  auto *ef = m_OpenGlContextCore->extraFunctions();
+  auto *ef = ctx->extraFunctions();
   QImage image(dev_size, QImage::Format_RGBA8888);
 
   if (!ef)
@@ -548,8 +731,9 @@ QImage QRetro::readbackFrame(void)
    * have left pointing at an FBO. */
   ef->glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
   ef->glReadBuffer(GL_BACK);
-  glPixelStorei(GL_PACK_ALIGNMENT, 4);
-  glReadPixels(0, 0, dev_size.width(), dev_size.height(), GL_RGBA, GL_UNSIGNED_BYTE, image.bits());
+  ef->glPixelStorei(GL_PACK_ALIGNMENT, 4);
+  ef->glReadPixels(
+    0, 0, dev_size.width(), dev_size.height(), GL_RGBA, GL_UNSIGNED_BYTE, image.bits());
 
   /* GL rows run bottom-up. */
 #if QT_VERSION >= QT_VERSION_CHECK(6, 9, 0)
@@ -881,7 +1065,7 @@ void QRetro::unloadCore(void)
 
     if (m_OpenGlContextCore->thread() == QThread::currentThread())
     {
-      m_OpenGlContextCore->makeCurrent(this);
+      m_OpenGlContextCore->makeCurrent(glCoreSurface());
       if (m_Core.hw_render.context_destroy)
         m_Core.hw_render.context_destroy();
       if (m_Core.inited)
@@ -903,8 +1087,29 @@ void QRetro::unloadCore(void)
       }
     }
 
+#ifdef Q_OS_MACOS
+    /* Drop any frame the GUI thread never picked up, then release the scratch
+     * FBO from the context that owns it. */
+    {
+      QMutexLocker lock(&m_PresentMutex);
+      m_PresentTexture = 0;
+      m_PresentFence = nullptr;
+    }
+    if (m_PresentFbo && m_OpenGlContext && m_OpenGlContext->makeCurrent(this))
+    {
+      m_OpenGlContext->extraFunctions()->glDeleteFramebuffers(1, &m_PresentFbo);
+      m_OpenGlContext->doneCurrent();
+    }
+    m_PresentFbo = 0;
+#endif
+
     delete m_OpenGlContextCore;
     m_OpenGlContextCore = nullptr;
+
+#ifdef Q_OS_MACOS
+    delete m_OpenGlSurface;
+    m_OpenGlSurface = nullptr;
+#endif
   }
   else
 #endif
@@ -1100,9 +1305,12 @@ void QRetro::timing()
        * This prevents the main thread's m_OpenGlContext from stealing the surface. */
       if (surfaceType() == QSurface::OpenGLSurface && m_OpenGlContextCore)
       {
-        m_OpenGlContextCore->makeCurrent(this);
+        m_OpenGlContextCore->makeCurrent(glCoreSurface());
         m_FboRequestedThisFrame = false;
 
+#ifndef Q_OS_MACOS
+        /* No glX/wgl on macOS; presentPendingFrame() sets the swap interval
+         * through CGL on the GUI thread's context instead. */
         if (!m_SwapIntervalFetched)
         {
           m_SwapIntervalFetched = true;
@@ -1111,6 +1319,7 @@ void QRetro::timing()
             p = m_OpenGlContextCore->getProcAddress("wglSwapIntervalEXT");
           m_pfnSwapInterval = reinterpret_cast<SwapIntervalFn>(p);
         }
+#endif
       }
 #endif
 
@@ -1144,12 +1353,14 @@ void QRetro::timing()
       m_Core.audio_callback.callback();
     m_Audio->playFrame();
 
-#if QRETRO_HAVE_OPENGL
+#if QRETRO_HAVE_OPENGL && !defined(Q_OS_MACOS)
     /* At normal speed, swapBuffers in setImagePtr already provided vsync pacing — no sleep needed.
      * When fast-forwarding, vsync is disabled so fall through to the sleep
      * logic below which respects m_FastForwardRatio. */
     if (surfaceType() == QSurface::OpenGLSurface && m_OpenGlContextCore && !m_FastForwarding)
       continue;
+    /* On macOS the GUI thread does the swap, so fall through and wait on
+     * m_FramePresented for it instead. */
 #endif
 
     if (m_FastForwarding && m_FastForwardRatio <= 1.0f)
@@ -1608,6 +1819,19 @@ bool QRetro::initVideo(retro_hw_context_type format)
 
   QSurfaceFormat settings;
   settings.setSwapInterval(1);
+
+#if QRETRO_HAVE_OPENGL && defined(Q_OS_MACOS)
+  /* macOS caps the compatibility profile at 2.1, which is below what any of the
+   * hardware-rendering cores need, so the only usable context is a core-profile
+   * one. Cores that genuinely require legacy GL cannot run here. */
+  if (format != RETRO_HW_CONTEXT_NONE)
+  {
+    settings.setRenderableType(QSurfaceFormat::OpenGL);
+    settings.setProfile(QSurfaceFormat::CoreProfile);
+    settings.setVersion(4, 1);
+  }
+#endif
+
   setFormat(settings);
 
   switch (format)
@@ -1635,6 +1859,18 @@ bool QRetro::initVideo(retro_hw_context_type format)
       m_OpenGlContext->setFormat(requestedFormat());
       m_OpenGlContext->create();
     }
+
+#ifdef Q_OS_MACOS
+    /* Built here rather than lazily from the timing thread: it is window-backed
+     * on macOS and so has to come from the GUI thread, and blocking on the GUI
+     * thread from the timing thread would deadlock against execOnTimingThread. */
+    if (!m_OpenGlSurface)
+    {
+      m_OpenGlSurface = new QOffscreenSurface(screen());
+      m_OpenGlSurface->setFormat(requestedFormat());
+      m_OpenGlSurface->create();
+    }
+#endif
 
     break;
 #endif

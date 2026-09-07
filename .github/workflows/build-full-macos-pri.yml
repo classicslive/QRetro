@@ -1,0 +1,41 @@
+name: macOS include build with all optional modules
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+jobs:
+  build:
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Qt 6 on Apple Silicon is what consumers actually ship. Qt 5's macOS
+          # binaries are x86_64 only, so its coverage has to run on an Intel
+          # runner -- a label that goes away when Apple support ends in 2027.
+          - runner: macos-15
+            qt: '6.8.*'
+            archives: 'qtbase'
+            modules: 'qtmultimedia'
+          - runner: macos-15-intel
+            qt: '5.15.2'
+            archives: 'qtbase qtmultimedia qtgamepad qtlocation qtsensors'
+            modules: ''
+
+    runs-on: ${{ matrix.runner }}
+
+    steps:
+    - uses: actions/checkout@v4
+    - uses: jurplel/install-qt-action@v4
+      with:
+        version: ${{ matrix.qt }}
+        host: 'mac'
+        target: 'desktop'
+        arch: 'clang_64'
+        archives: ${{ matrix.archives }}
+        modules: ${{ matrix.modules }}
+    - name: Build
+      run: qmake && make -j"$(sysctl -n hw.ncpu)"
