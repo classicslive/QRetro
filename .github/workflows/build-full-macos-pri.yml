@@ -13,17 +13,17 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # Qt 5's macOS binaries are x86_64 only, so Qt 5 is covered on the
-          # Intel runner and Qt 6 on the Apple Silicon one. Between them every
-          # Q_OS_MACOS path gets compiled on both Qt majors and both arches.
-          - runner: macos-13
-            qt: '5.15.2'
-            archives: 'qtbase qtmultimedia qtgamepad qtlocation qtsensors'
-            modules: ''
-          - runner: macos-14
+          # Qt 6 on Apple Silicon is what consumers actually ship. Qt 5's macOS
+          # binaries are x86_64 only, so its coverage has to run on an Intel
+          # runner -- a label that goes away when Apple support ends in 2027.
+          - runner: macos-15
             qt: '6.8.*'
             archives: 'qtbase'
             modules: 'qtmultimedia'
+          - runner: macos-15-intel
+            qt: '5.15.2'
+            archives: 'qtbase qtmultimedia qtgamepad qtlocation qtsensors'
+            modules: ''
 
     runs-on: ${{ matrix.runner }}
 
