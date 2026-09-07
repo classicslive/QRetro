@@ -13,6 +13,9 @@
 #include <QOpenGLFramebufferObject>
 #include <QOpenGLFunctions>
 #include <QOpenGLPaintDevice>
+#ifdef Q_OS_MACOS
+#include <QOffscreenSurface>
+#endif
 #endif
 #include <QWindow>
 
@@ -547,9 +550,19 @@ private:
 #if QRETRO_HAVE_OPENGL
   void glInitCoreContext(QThread *thread);
 
+  /// The surface the core's context renders against. Everywhere but macOS that is
+  /// the window itself; see m_OpenGlSurface for why macOS differs.
+  QSurface *glCoreSurface(void);
+
   /// Reads the GL back buffer into system memory. Only valid on the thread whose
   /// context is current, and only before the buffers are swapped.
   QImage readbackFrame(void);
+
+#ifdef Q_OS_MACOS
+  /// Blits the frame the timing thread published in m_PresentTexture into the
+  /// window and swaps. GUI thread only.
+  void presentPendingFrame(void);
+#endif
 #endif
 
   /// The core's frame laid out the way the window shows it: scaled into m_Rect
@@ -789,6 +802,29 @@ private:
   using SwapIntervalFn = int (*)(int);
   SwapIntervalFn m_pfnSwapInterval = nullptr;
   bool m_SwapIntervalFetched = false;
+
+#ifdef Q_OS_MACOS
+  /// Cocoa only lets a GL context attach to a window's drawable from the main
+  /// thread, so on macOS the core's context renders against this offscreen
+  /// surface and the finished frame is handed to the GUI thread to present.
+  QOffscreenSurface *m_OpenGlSurface = nullptr;
+
+  /// Scratch FBO owned by the GUI thread's context, used to read the published
+  /// texture. FBO names are per-context, but textures are shared, so the
+  /// consumer has to wrap the producer's texture in a framebuffer of its own.
+  GLuint m_PresentFbo = 0;
+
+  /// The frame the timing thread has published for the GUI thread to present.
+  /// Guarded by m_PresentMutex; the texture lives in the shared context group.
+  QMutex m_PresentMutex;
+  GLuint m_PresentTexture = 0;
+  QSize m_PresentSize;
+  bool m_PresentBottomLeft = false;
+  GLsync m_PresentFence = nullptr;
+
+  /// Swap interval currently set on the presenting context, or -1 if unset.
+  int m_SwapInterval = -1;
+#endif
 #endif
   /// Set by grabFrame(), cleared once the timing thread has read the frame back.
   std::atomic<bool> m_GrabRequested{ false };

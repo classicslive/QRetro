@@ -107,6 +107,9 @@ CONFIG(debug, debug|release) {
   linux* {
     LIBS += -lGL
   }
+  macx {
+    LIBS += -framework OpenGL
+  }
   QT += opengl
   DEFINES += QRETRO_HAVE_OPENGL=1
   message("OpenGL module added.")
