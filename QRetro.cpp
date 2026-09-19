@@ -209,6 +209,17 @@ void QRetro::exposeEvent(QExposeEvent *event)
   Q_UNUSED(event)
 }
 
+void QRetro::setIntegerScaling(bool on)
+{
+  m_IntegerScaling = on;
+  updateScaling();
+}
+
+void QRetro::setBilinearFilter(bool on)
+{
+  m_BilinearFilter = on;
+}
+
 void QRetro::setGeometry(const unsigned width, const unsigned height)
 {
   if (m_BaseRect.width() != static_cast<int>(width) ||

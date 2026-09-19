@@ -115,6 +115,9 @@ public:
 
   void setGeometry(const unsigned width, const unsigned height);
   void setAvInfo(const retro_system_av_info *info);
+
+  void setIntegerScaling(bool on);
+  void setBilinearFilter(bool on);
   void setVideoSize(unsigned width, unsigned height)
   {
     m_VideoWidth = width;
