@@ -151,8 +151,10 @@ void QRetro::updateScaling()
   if (win_w <= 0 || win_h <= 0)
     return;
 
-  /* Setup preferred aspect ratio */
-  if (m_UseAspectRatio && m_Core.av_info.geometry.aspect_ratio > 0.0f)
+  /* Setup preferred aspect ratio; a forced one wins over what the core reports. */
+  if (m_ForcedAspectRatio > 0.0)
+    ar = m_ForcedAspectRatio;
+  else if (m_UseAspectRatio && m_Core.av_info.geometry.aspect_ratio > 0.0f)
     ar = static_cast<double>(m_Core.av_info.geometry.aspect_ratio);
   else
     ar = static_cast<double>(bw) / bh;
@@ -169,11 +171,13 @@ void QRetro::updateScaling()
 
   fit_w = swap ? static_cast<double>(win_w) / bh : static_cast<double>(win_w) / (ar * bh);
   fit_h = swap ? static_cast<double>(win_h) / (ar * bh) : static_cast<double>(win_h) / bh;
-  mult = qMin(fit_w, fit_h);
+
+  /* Fit stays inside the window; fill covers it, pushing the overflow off-window. */
+  mult = m_FillWindow ? qMax(fit_w, fit_h) : qMin(fit_w, fit_h);
 
   /* Use integer scaling if requested. Below 1x there is no integer multiple to
    * snap to, so leave the fractional fit alone rather than collapsing to zero. */
-  if (m_IntegerScaling && mult >= 1.0)
+  if (m_IntegerScaling && !m_FillWindow && mult >= 1.0)
     mult = floor(mult);
 
   disp_w = static_cast<int>(ar * bh * mult);
@@ -218,6 +222,57 @@ void QRetro::setIntegerScaling(bool on)
 void QRetro::setBilinearFilter(bool on)
 {
   m_BilinearFilter = on;
+}
+
+QRect QRetro::sourceCropRect(int sw, int sh) const
+{
+  int l, t, r, b;
+
+  if (sw <= 0 || sh <= 0)
+    return QRect(0, 0, sw, sh);
+
+  l = static_cast<int>(sw * m_SourceCrop[0] + 0.5);
+  t = static_cast<int>(sh * m_SourceCrop[1] + 0.5);
+  r = static_cast<int>(sw * m_SourceCrop[2] + 0.5);
+  b = static_cast<int>(sh * m_SourceCrop[3] + 0.5);
+
+  /* One more off each cut edge; GL_LINEAR samples across the cut otherwise. */
+  if (l > 0)
+    l++;
+  if (t > 0)
+    t++;
+  if (r > 0)
+    r++;
+  if (b > 0)
+    b++;
+
+  if (l + r >= sw || t + b >= sh)
+    return QRect(0, 0, sw, sh);
+
+  return QRect(l, t, sw - l - r, sh - t - b);
+}
+
+void QRetro::setSourceCrop(double left, double top, double right, double bottom)
+{
+  const double in[4] = { left, top, right, bottom };
+
+  for (unsigned i = 0; i < 4; i++)
+    m_SourceCrop[i] = (in[i] > 0.0 && in[i] < 0.5) ? in[i] : 0.0;
+  requestUpdate();
+}
+
+void QRetro::setFillWindow(bool on)
+{
+  m_FillWindow = on;
+  updateScaling();
+  requestUpdate();
+}
+
+void QRetro::setForcedAspectRatio(double ratio)
+{
+  m_ForcedAspectRatio = (ratio > 0.0) ? ratio : 0.0;
+  updateScaling();
+  requestUpdate();
 }
 
 void QRetro::setGeometry(const unsigned width, const unsigned height)
@@ -317,7 +372,7 @@ bool QRetro::event(QEvent *ev)
       setupPainter(&painter, m_Rect);
 
       painter.fillRect(0, 0, size().width(), size().height(), Qt::black);
-      painter.drawImage(m_Rect, m_Image);
+      painter.drawImage(m_Rect, m_Image, sourceCropRect(m_Image.width(), m_Image.height()));
 
 #if QRETRO_DEBUG
       painter.setPen(Qt::red);
@@ -356,7 +411,7 @@ bool QRetro::event(QEvent *ev)
         painter.begin(m_OpenGlDevice);
         setupPainter(&painter, m_DeviceRect);
         painter.fillRect(0, 0, dev_size.width(), dev_size.height(), Qt::black);
-        painter.drawImage(m_DeviceRect, m_Image);
+        painter.drawImage(m_DeviceRect, m_Image, sourceCropRect(m_Image.width(), m_Image.height()));
         painter.end();
         m_OpenGlContext->swapBuffers(this);
         m_FramePresented.release();
@@ -401,6 +456,10 @@ void QRetro::setImagePtr(const void *data, unsigned width, unsigned height, unsi
     int h = deviceSize().height();
     int sw = (width > 0) ? static_cast<int>(width) : m_BaseRect.width();
     int sh = (height > 0) ? static_cast<int>(height) : m_BaseRect.height();
+    /* The core may have drawn bars into the frame; take only the live part. */
+    const QRect crop = sourceCropRect(sw, sh);
+    const int sx0 = crop.left(), sx1 = crop.left() + crop.width();
+    const int sy0 = crop.top(), sy1 = crop.top() + crop.height();
     int dx0 = m_DeviceRect.x();
     int dy0 = h - m_DeviceRect.y() - m_DeviceRect.height();
     int dx1 = m_DeviceRect.x() + m_DeviceRect.width();
@@ -425,9 +484,11 @@ void QRetro::setImagePtr(const void *data, unsigned width, unsigned height, unsi
         glClear(GL_COLOR_BUFFER_BIT);
         ef->glBindFramebuffer(GL_READ_FRAMEBUFFER, m_OpenGlFbo->handle());
         if (m_Core.hw_render.bottom_left_origin)
-          ef->glBlitFramebuffer(0, 0, sw, sh, dx0, dy0, dx1, dy1, GL_COLOR_BUFFER_BIT, filter);
+          ef->glBlitFramebuffer(
+            sx0, sy0, sx1, sy1, dx0, dy0, dx1, dy1, GL_COLOR_BUFFER_BIT, filter);
         else
-          ef->glBlitFramebuffer(0, sh, sw, 0, dx0, dy0, dx1, dy1, GL_COLOR_BUFFER_BIT, filter);
+          ef->glBlitFramebuffer(
+            sx0, sy1, sx1, sy0, dx0, dy0, dx1, dy1, GL_COLOR_BUFFER_BIT, filter);
       }
       else
       {
@@ -450,7 +511,8 @@ void QRetro::setImagePtr(const void *data, unsigned width, unsigned height, unsi
           glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
           glClear(GL_COLOR_BUFFER_BIT);
           ef->glBindFramebuffer(GL_READ_FRAMEBUFFER, m_OpenGlFboIntermediate->handle());
-          ef->glBlitFramebuffer(0, 0, sw, sh, dx0, dy0, dx1, dy1, GL_COLOR_BUFFER_BIT, filter);
+          ef->glBlitFramebuffer(
+            sx0, sy0, sx1, sy1, dx0, dy0, dx1, dy1, GL_COLOR_BUFFER_BIT, filter);
         }
       }
 

@@ -118,6 +118,20 @@ public:
 
   void setIntegerScaling(bool on);
   void setBilinearFilter(bool on);
+
+  /** Scales to @p ratio (w / h) rather than the one the core reports; 0 to stop.
+   *  Reshapes only, so a ratio the source does not have will stretch it. */
+  void setForcedAspectRatio(double ratio);
+  double forcedAspectRatio(void) const { return m_ForcedAspectRatio; }
+
+  /** Covers the window rather than fitting inside it, cropping the axis that
+   *  overshoots. Keeps the ratio in use, and overrides integer scaling. */
+  void setFillWindow(bool on);
+  bool fillWindow(void) const { return m_FillWindow; }
+
+  /** Draws only part of each frame, for a border a core left in the picture.
+   *  Each edge a fraction of width or height, below 0.5; 0 to stop. */
+  void setSourceCrop(double left, double top, double right, double bottom);
   void setVideoSize(unsigned width, unsigned height)
   {
     m_VideoWidth = width;
@@ -777,6 +791,15 @@ private:
   unsigned m_Rotation = 0;
   double m_ScalingFactor = 1.0;
   bool m_UseAspectRatio = true;
+  /* Overrides the core's reported ratio when > 0; see setForcedAspectRatio. */
+  double m_ForcedAspectRatio = 0.0;
+  /* Cover the window rather than fit inside it; see setFillWindow. */
+  bool m_FillWindow = false;
+  /* Fraction trimmed off each edge (left, top, right, bottom). */
+  double m_SourceCrop[4] = { 0.0, 0.0, 0.0, 0.0 };
+
+  /* What is left of an sw x sh frame after m_SourceCrop. */
+  QRect sourceCropRect(int sw, int sh) const;
 
   /* Software surface */
   QBackingStore *m_BackingStore = nullptr;
