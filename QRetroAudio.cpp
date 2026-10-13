@@ -264,6 +264,22 @@ void QRetroAudio::setTimingMultiplier(double mult)
   m_SampleRateMultiplier = mult;
 }
 
+void QRetroAudio::stop(void)
+{
+#if QRETRO_HAVE_MULTIMEDIA
+  if (m_AudioOutput)
+  {
+    m_AudioOutput->stop();
+    delete m_AudioOutput;
+    m_AudioOutput = nullptr;
+  }
+  m_AudioDevice = nullptr;
+#endif
+  /* The next device starts its play count from zero. */
+  m_StallTimer.invalidate();
+  m_Restarted = false;
+}
+
 bool QRetroAudio::start(void)
 {
 #if QRETRO_HAVE_MULTIMEDIA

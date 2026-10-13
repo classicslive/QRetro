@@ -76,6 +76,9 @@ public:
 
   bool start(void);
 
+  /* Closes the device, keeping settings, so start() can reopen it. */
+  void stop(void);
+
 signals:
   /* Emitted from the timing thread, as a retro_log_level plus text. */
   void logMessage(int level, const QString &msg);

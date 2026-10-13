@@ -1139,6 +1139,9 @@ void QRetro::timing()
       }
       if (m_Paused)
       {
+        /* Give up the device while paused so parked cores don't pile up open handles. */
+        if (!wasPaused && m_Audio)
+          m_Audio->stop();
         wasPaused = true;
         m_PauseCondition.wait(&m_PendingMutex);
         continue;
@@ -1149,7 +1152,7 @@ void QRetro::timing()
     {
       wasPaused = false;
       if (m_Audio)
-        m_Audio->flush();
+        m_Audio->start();
     }
 
     if (inputReady() && // stall if waiting for input (netplay)
