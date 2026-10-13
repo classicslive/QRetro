@@ -5,8 +5,7 @@
 QRetroInputBackendSDL3::QRetroInputBackendSDL3(QObject *parent)
   : QRetroInputBackend(parent)
 {
-  if (!SDL_WasInit(SDL_INIT_GAMEPAD))
-    SDL_InitSubSystem(SDL_INIT_GAMEPAD);
+  SDL_InitSubSystem(SDL_INIT_GAMEPAD);
 }
 
 QRetroInputBackendSDL3::~QRetroInputBackendSDL3()
