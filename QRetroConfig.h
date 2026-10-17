@@ -116,6 +116,7 @@ private:
   bool m_UseAspectRatio = true;
   bool m_IntegerScaling = false;
   bool m_BilinearFilter = true;
+  int m_TimingMode;
   bool m_AudioEnabled = true;
   float m_AudioVolume = 1.0f;
 

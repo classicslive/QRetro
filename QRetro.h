@@ -53,6 +53,19 @@ class QRETRO_EXPORT QRetro : public QWindow
   Q_OBJECT
 
 public:
+  /// How the timing thread paces calls to retro_run.
+  enum TimingMode
+  {
+    /// Sleep, then spin until the next frame is due.
+    Waitloop = 0,
+
+    /// Wait on the display's vertical sync.
+    VSync,
+
+    /// Run frames to keep the audio queue filled.
+    AudioSync
+  };
+
   /* Initializers and deconstructors */
 
 #if QRETRO_HAVE_OPENGL
@@ -278,6 +291,9 @@ public:
 
   float fastForwardingRatio(void) { return m_FastForwardRatio; }
   void setFastForwardingRatio(float ratio) { m_FastForwardRatio = ratio; }
+
+  TimingMode timingMode(void) { return m_TimingMode; }
+  void setTimingMode(TimingMode mode) { m_TimingMode = mode; }
 
   unsigned frames(void) { return m_Frames; }
 
@@ -625,6 +641,8 @@ private:
 
   /// The maximum amount the frontend will fast-forward
   float m_FastForwardRatio = 0.0;
+
+  std::atomic<TimingMode> m_TimingMode{ Waitloop };
 
   /// Number of calls to retro_run completed
   std::atomic<unsigned long> m_Frames{ 0 };

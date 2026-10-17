@@ -37,6 +37,12 @@
 using namespace std;
 using namespace std::chrono;
 
+/** Video frames of audio kept queued when timing to audio. */
+#define QRETRO_AUDIO_SYNC_FRAMES 3
+
+/** The longest audio timing will wait for the queue to drain, in milliseconds. */
+#define QRETRO_AUDIO_SYNC_TIMEOUT_MS 100
+
 #if QRETRO_HAVE_OPENGL
 void QRetro::glInitCoreContext(QThread *thread)
 {
@@ -531,7 +537,7 @@ void QRetro::setImagePtr(const void *data, unsigned width, unsigned height, unsi
 
     /* Toggle vsync based on fast-forward state, then present. */
     if (m_pfnSwapInterval)
-      m_pfnSwapInterval(m_FastForwarding ? 0 : 1);
+      m_pfnSwapInterval(m_FastForwarding || m_TimingMode != VSync ? 0 : 1);
     m_OpenGlContextCore->swapBuffers(this);
   }
 #endif
@@ -1125,6 +1131,7 @@ void QRetro::timing()
 #endif
 
   bool wasPaused = false;
+  auto next = steady_clock::now();
   while (m_Active)
   {
     frame_timer.restart();
@@ -1153,6 +1160,23 @@ void QRetro::timing()
       wasPaused = false;
       if (m_Audio)
         m_Audio->start();
+    }
+
+    TimingMode mode = m_TimingMode;
+    if (mode == AudioSync && m_Audio->queuedFrames() < 0)
+      mode = Waitloop; /* Nothing drains the queue, so fall back to the clock */
+
+    if (mode == AudioSync && !m_FastForwarding)
+    {
+      QElapsedTimer waited;
+      waited.start();
+      m_Audio->playAvailable();
+      while (m_Active && m_Audio->queuedFrames() >= QRETRO_AUDIO_SYNC_FRAMES &&
+             !waited.hasExpired(QRETRO_AUDIO_SYNC_TIMEOUT_MS))
+      {
+        QThread::msleep(1);
+        m_Audio->playAvailable();
+      }
     }
 
     if (inputReady() && // stall if waiting for input (netplay)
@@ -1218,18 +1242,36 @@ void QRetro::timing()
 
     if (m_Core.audio_callback.callback)
       m_Core.audio_callback.callback();
-    m_Audio->playFrame();
+    if (mode == AudioSync)
+      m_Audio->playAvailable();
+    else
+      m_Audio->playFrame();
 
 #if QRETRO_HAVE_OPENGL
     /* At normal speed, swapBuffers in setImagePtr already provided vsync pacing — no sleep needed.
      * When fast-forwarding, vsync is disabled so fall through to the sleep
      * logic below which respects m_FastForwardRatio. */
-    if (surfaceType() == QSurface::OpenGLSurface && m_OpenGlContextCore && !m_FastForwarding)
+    if (mode == VSync && surfaceType() == QSurface::OpenGLSurface && m_OpenGlContextCore &&
+        !m_FastForwarding)
       continue;
 #endif
 
     if (m_FastForwarding && m_FastForwardRatio <= 1.0f)
       continue; /* Unlimited fast-forward: run as fast as possible */
+
+    if (mode == AudioSync && !m_FastForwarding)
+      continue;
+
+    if (mode == Waitloop && !m_FastForwarding)
+    {
+      if (steady_clock::now() - next > milliseconds(100))
+        next = steady_clock::now(); /* Too far behind to catch up, so start over from now */
+      this_thread::sleep_until(next - milliseconds(2));
+      while (steady_clock::now() < next)
+        ;
+      next += nanoseconds(static_cast<long long>(1000000000.0 / m_TargetRefreshRate));
+      continue;
+    }
 
     {
       int ms = static_cast<int>(1000.0 / m_TargetRefreshRate);
@@ -1683,7 +1725,7 @@ bool QRetro::initVideo(retro_hw_context_type format)
   }
 
   QSurfaceFormat settings;
-  settings.setSwapInterval(1);
+  settings.setSwapInterval(m_TimingMode == VSync ? 1 : 0);
   setFormat(settings);
 
   switch (format)

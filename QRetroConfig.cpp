@@ -152,6 +152,7 @@ QRetroConfig::QRetroConfig(QRetro *owner)
 {
   m_Owner = owner;
   m_Filename = QDir::currentPath() + "/config.ini";
+  m_TimingMode = QRetro::Waitloop;
 
   m_SaveTimer = new QTimer(this);
   m_SaveTimer->setSingleShot(true);
@@ -170,6 +171,7 @@ QRetroConfig::QRetroConfig(QRetro *owner)
   m_Owner->m_UseAspectRatio = m_UseAspectRatio;
   m_Owner->m_BilinearFilter = m_BilinearFilter;
   m_Owner->m_IntegerScaling = m_IntegerScaling;
+  m_Owner->setTimingMode(static_cast<QRetro::TimingMode>(m_TimingMode));
 
   {
     auto *input = m_Owner->input();
@@ -509,6 +511,9 @@ void QRetroConfig::load()
   m_UseAspectRatio = settings.value("useAspectRatio", true).toBool();
   m_IntegerScaling = settings.value("integerScaling", false).toBool();
   m_BilinearFilter = settings.value("bilinearFilter", true).toBool();
+  m_TimingMode = qBound(static_cast<int>(QRetro::Waitloop),
+    settings.value("timingMode", static_cast<int>(QRetro::Waitloop)).toInt(),
+    static_cast<int>(QRetro::AudioSync));
   m_AudioEnabled = settings.value("audioEnabled", true).toBool();
   m_AudioVolume = settings.value("audioVolume", 1.0f).toFloat();
   for (int p = 0; p < QRETRO_INPUT_DEFAULT_MAX_JOYPADS; p++)
@@ -553,6 +558,7 @@ void QRetroConfig::save()
   settings.setValue("useAspectRatio", m_UseAspectRatio);
   settings.setValue("integerScaling", m_IntegerScaling);
   settings.setValue("bilinearFilter", m_BilinearFilter);
+  settings.setValue("timingMode", m_TimingMode);
   settings.setValue("audioEnabled", m_AudioEnabled);
   settings.setValue("audioVolume", m_AudioVolume);
   for (int p = 0; p < QRETRO_INPUT_DEFAULT_MAX_JOYPADS; p++)
@@ -672,6 +678,18 @@ void QRetroConfig::update()
       emit bilinearFilterChanged(m_BilinearFilter);
     });
     form->addRow(tr("Bilinear Filter"), bilinear);
+
+    auto *timing = new QComboBox();
+    timing->addItem(tr("Waitloop"), static_cast<int>(QRetro::Waitloop));
+    timing->addItem(tr("VSync"), static_cast<int>(QRetro::VSync));
+    timing->addItem(tr("Audio"), static_cast<int>(QRetro::AudioSync));
+    timing->setCurrentIndex(timing->findData(m_TimingMode));
+    connect(timing, QOverload<int>::of(&QComboBox::currentIndexChanged), [this, timing](int) {
+      m_TimingMode = timing->currentData().toInt();
+      m_SaveTimer->start();
+      m_Owner->setTimingMode(static_cast<QRetro::TimingMode>(m_TimingMode));
+    });
+    form->addRow(tr("Timing"), timing);
   }
 
   /* ── Audio ─────────────────────────────────────────────────── */

@@ -136,6 +136,34 @@ void QRetroAudio::playFrame(void)
 #endif
 }
 
+void QRetroAudio::playAvailable(void)
+{
+#if QRETRO_HAVE_MULTIMEDIA
+  if (!m_AudioOutput || !m_AudioDevice)
+    return;
+
+  qint64 bytes = qMin<qint64>(m_AudioBuffer.size(), m_AudioOutput->bytesFree());
+  bytes -= bytes % static_cast<qint64>(QRETRO_AUDIO_CHANNELS * sizeof(sample_t));
+  if (bytes > 0)
+  {
+    const qint64 written = m_AudioDevice->write(m_AudioBuffer.constData(), bytes);
+    if (written > 0)
+      m_AudioBuffer.remove(0, static_cast<int>(written));
+  }
+#endif
+}
+
+double QRetroAudio::queuedFrames(void)
+{
+#if QRETRO_HAVE_MULTIMEDIA
+  if (m_AudioOutput && m_AudioDevice && m_SampleRateBytesPerFrame > 0)
+    return static_cast<double>(
+             m_AudioBuffer.size() + m_AudioOutput->bufferSize() - m_AudioOutput->bytesFree()) /
+           m_SampleRateBytesPerFrame;
+#endif
+  return -1.0;
+}
+
 bool QRetroAudio::shouldStallEmulation(void)
 {
 #if QRETRO_HAVE_MULTIMEDIA

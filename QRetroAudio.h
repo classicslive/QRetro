@@ -39,6 +39,15 @@ public:
 
   void playFrame(void);
 
+  /** Writes as much of the queue to the device as it will take. */
+  void playAvailable(void);
+
+  /**
+   * Returns how many video frames of audio are waiting here and in the device,
+   * or a negative value if there is no device to play them.
+   */
+  double queuedFrames(void);
+
   /* Whether emulation should wait for the audio queue to drain. A core may
    * queue as much as it likes; only a queue that stops draining is a fault. */
   bool shouldStallEmulation(void);
