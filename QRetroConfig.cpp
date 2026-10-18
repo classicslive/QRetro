@@ -152,7 +152,7 @@ QRetroConfig::QRetroConfig(QRetro *owner)
 {
   m_Owner = owner;
   m_Filename = QDir::currentPath() + "/config.ini";
-  m_TimingMode = QRetro::Waitloop;
+  m_TimingMode = QRetro::VSync;
 
   m_SaveTimer = new QTimer(this);
   m_SaveTimer->setSingleShot(true);
@@ -512,7 +512,7 @@ void QRetroConfig::load()
   m_IntegerScaling = settings.value("integerScaling", false).toBool();
   m_BilinearFilter = settings.value("bilinearFilter", true).toBool();
   m_TimingMode = qBound(static_cast<int>(QRetro::Waitloop),
-    settings.value("timingMode", static_cast<int>(QRetro::Waitloop)).toInt(),
+    settings.value("timingMode", static_cast<int>(QRetro::VSync)).toInt(),
     static_cast<int>(QRetro::AudioSync));
   m_AudioEnabled = settings.value("audioEnabled", true).toBool();
   m_AudioVolume = settings.value("audioVolume", 1.0f).toFloat();

@@ -644,7 +644,7 @@ private:
   /// The maximum amount the frontend will fast-forward
   float m_FastForwardRatio = 0.0;
 
-  std::atomic<TimingMode> m_TimingMode{ Waitloop };
+  std::atomic<TimingMode> m_TimingMode{ VSync };
 
   /// Number of calls to retro_run completed
   std::atomic<unsigned long> m_Frames{ 0 };
