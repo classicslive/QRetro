@@ -1150,7 +1150,7 @@ void QRetro::timing()
         if (!wasPaused && m_Audio)
           m_Audio->stop();
         wasPaused = true;
-        m_PauseCondition.wait(&m_PendingMutex);
+        m_PauseCondition.wait(&m_PendingMutex, 100);
         continue;
       }
     }

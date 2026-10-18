@@ -518,6 +518,8 @@ public:
   void pause(void) { m_Paused = true; }
   void unpause(void)
   {
+    QMutexLocker lock(&m_PendingMutex);
+
     m_Paused = false;
     m_PauseCondition.wakeAll();
   }
@@ -691,7 +693,7 @@ private:
   int m_Mousewheel[2] = {};
 
   /// Whether the user has paused the frontend. Will halt calls to retro_run
-  bool m_Paused = false;
+  std::atomic<bool> m_Paused{false};
 
   /// Whether battery-save load/autosave runs (see setSavingEnabled).
   bool m_SavingEnabled = true;
