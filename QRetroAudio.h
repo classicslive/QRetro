@@ -95,6 +95,9 @@ signals:
 private:
   void applyVolume(void);
 
+  /* Stops and frees the sink, if there is one. */
+  void releaseSink(void);
+
   bool m_Enabled = true;
   float m_Volume = 1.0f;
   bool m_Muted = false;
@@ -113,6 +116,12 @@ private:
   QElapsedTimer m_StallTimer;
   qint64 m_PlayedUSecs = 0;
   bool m_Restarted = false;
+  /* The device stopped and a restart did not help: nothing is written to it,
+   * and emulation keeps time by the clock until m_RetryTimer passes
+   * m_RetryDelayMs. */
+  bool m_Silenced = false;
+  QElapsedTimer m_RetryTimer;
+  int m_RetryDelayMs = 5000;
   double m_ResampleRatio = 1.0;
   double m_ResamplePhase = 0.0;
   sample_t m_ResamplePrev[2] = { 0, 0 };

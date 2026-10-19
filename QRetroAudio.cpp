@@ -24,6 +24,14 @@
 /* How long the queue may fail to drain before the device is presumed stuck. */
 #define QRETRO_AUDIO_NO_DRAIN_MS 250
 
+/* How long a restarted device must play before it counts as working again. */
+#define QRETRO_AUDIO_RECOVERED_USECS 1000000
+
+/* How long a device that would not play is left alone before another try,
+ * doubling each time it fails again. */
+#define QRETRO_AUDIO_RETRY_MIN_MS 5000
+#define QRETRO_AUDIO_RETRY_MAX_MS 60000
+
 /**
  * Linearly resamples interleaved frames, reading `ratio` input frames per output
  * frame. `phase` carries the fractional read position between calls so blocks
@@ -98,12 +106,25 @@ QRetroAudio::QRetroAudio(double frequency, double core_fps, double emu_fps)
 
 QRetroAudio::~QRetroAudio(void)
 {
+  releaseSink();
+}
+
+void QRetroAudio::releaseSink(void)
+{
 #if QRETRO_HAVE_MULTIMEDIA
   if (m_AudioOutput)
   {
-    m_AudioOutput->stop();
+    /* reset(), not stop(): stop() drains first, and Qt's PipeWire sink only
+     * disconnects its stream once the drained event reaches the event loop of
+     * the thread that started it. The timing thread never runs a loop, so every
+     * stopped sink stayed connected and kept its module-rt and data-loop threads
+     * for good. reset() drops the queue and disconnects right away. */
+    m_AudioOutput->reset();
     delete m_AudioOutput;
+    m_AudioOutput = nullptr;
   }
+  /* The device belongs to the sink, which just took it with it. */
+  m_AudioDevice = nullptr;
 #endif
 }
 
@@ -112,7 +133,7 @@ int QRetroAudio::framesInBuffer(void)
 #if QRETRO_HAVE_MULTIMEDIA
   /* Without a device nothing can drain the queue, so report it empty rather than
    * let emulation be held on audio that will never play. */
-  if (m_AudioOutput && m_AudioDevice)
+  if (m_AudioOutput && m_AudioDevice && !m_Silenced)
     return m_AudioBuffer.size() / m_SampleRateBytesPerFrame;
 #endif
   return 0;
@@ -127,7 +148,8 @@ int QRetroAudio::excessFramesInBuffer(void)
 void QRetroAudio::playFrame(void)
 {
 #if QRETRO_HAVE_MULTIMEDIA
-  if (m_AudioOutput && m_AudioDevice && m_AudioBuffer.size() >= m_SampleRateBytesPerFrame &&
+  if (m_AudioOutput && m_AudioDevice && !m_Silenced &&
+      m_AudioBuffer.size() >= m_SampleRateBytesPerFrame &&
       m_AudioOutput->bytesFree() >= m_SampleRateBytesPerFrame)
   {
     m_AudioDevice->write(m_AudioBuffer.data(), m_SampleRateBytesPerFrame);
@@ -139,7 +161,7 @@ void QRetroAudio::playFrame(void)
 void QRetroAudio::playAvailable(void)
 {
 #if QRETRO_HAVE_MULTIMEDIA
-  if (!m_AudioOutput || !m_AudioDevice)
+  if (!m_AudioOutput || !m_AudioDevice || m_Silenced)
     return;
 
   qint64 bytes = qMin<qint64>(m_AudioBuffer.size(), m_AudioOutput->bytesFree());
@@ -156,7 +178,7 @@ void QRetroAudio::playAvailable(void)
 double QRetroAudio::queuedFrames(void)
 {
 #if QRETRO_HAVE_MULTIMEDIA
-  if (m_AudioOutput && m_AudioDevice && m_SampleRateBytesPerFrame > 0)
+  if (m_AudioOutput && m_AudioDevice && !m_Silenced && m_SampleRateBytesPerFrame > 0)
     return static_cast<double>(
              m_AudioBuffer.size() + m_AudioOutput->bufferSize() - m_AudioOutput->bytesFree()) /
            m_SampleRateBytesPerFrame;
@@ -167,20 +189,45 @@ double QRetroAudio::queuedFrames(void)
 bool QRetroAudio::shouldStallEmulation(void)
 {
 #if QRETRO_HAVE_MULTIMEDIA
-  int frames = excessFramesInBuffer();
+  int frames;
   qint64 played;
 
+  /* A device that would not play is ignored, so emulation keeps time by the
+   * clock, until it is time to try another. */
+  if (m_Silenced)
+  {
+    if (m_RetryTimer.hasExpired(m_RetryDelayMs))
+    {
+      emit logMessage(RETRO_LOG_INFO, "Audio: trying the device again.");
+      m_RetryDelayMs = qMin(m_RetryDelayMs * 2, QRETRO_AUDIO_RETRY_MAX_MS);
+      start();
+      /* If this one does not play either, go straight back to silence. */
+      m_Restarted = true;
+    }
+    return false;
+  }
+
+  played = m_AudioOutput ? m_AudioOutput->processedUSecs() : 0;
+
+  /* Only real playback clears a restart; a queue that drains because it was just
+   * flushed proves nothing, and treating it as recovery restarted the device
+   * about once a second for as long as it stayed broken. */
+  if (m_Restarted && played >= QRETRO_AUDIO_RECOVERED_USECS)
+  {
+    m_Restarted = false;
+    m_RetryDelayMs = QRETRO_AUDIO_RETRY_MIN_MS;
+    emit logMessage(RETRO_LOG_INFO, "Audio: the device is playing again.");
+  }
+
+  frames = excessFramesInBuffer();
   if (!frames)
   {
     m_StallTimer.invalidate();
-    m_Restarted = false;
     return false;
   }
 
   /* The device is the only thing that empties the queue, so if it has not played
    * anything for a while it has stopped, however full the queue looks. */
-  played = m_AudioOutput ? m_AudioOutput->processedUSecs() : 0;
-
   if (!m_StallTimer.isValid() || played != m_PlayedUSecs)
   {
     m_PlayedUSecs = played;
@@ -188,19 +235,29 @@ bool QRetroAudio::shouldStallEmulation(void)
   }
   else if (m_StallTimer.hasExpired(QRETRO_AUDIO_NO_DRAIN_MS))
   {
-    emit logMessage(
-      RETRO_LOG_WARN, QString("Audio device stopped after playing %1 ms, %2 frames queued.")
-                        .arg(played / 1000)
-                        .arg(frames));
     m_StallTimer.invalidate();
 
     /* Never hold emulation on a device that is not playing. Try once to get it
-     * back; after that just keep the queue clear. */
+     * back; if that does not play either, go without sound for a while. */
     flush();
     if (!m_Restarted)
     {
+      emit logMessage(RETRO_LOG_WARN,
+        QString("Audio device stopped after playing %1 ms, %2 frames queued. Restarting it.")
+          .arg(played / 1000)
+          .arg(frames));
       m_Restarted = true;
       start();
+    }
+    else
+    {
+      emit logMessage(RETRO_LOG_WARN,
+        QString("Audio device still is not playing (%1 ms played). Continuing without sound; "
+                "trying again in %2 s.")
+          .arg(played / 1000)
+          .arg(m_RetryDelayMs / 1000));
+      m_Silenced = true;
+      m_RetryTimer.start();
     }
     return false;
   }
@@ -294,15 +351,7 @@ void QRetroAudio::setTimingMultiplier(double mult)
 
 void QRetroAudio::stop(void)
 {
-#if QRETRO_HAVE_MULTIMEDIA
-  if (m_AudioOutput)
-  {
-    m_AudioOutput->stop();
-    delete m_AudioOutput;
-    m_AudioOutput = nullptr;
-  }
-  m_AudioDevice = nullptr;
-#endif
+  releaseSink();
   /* The next device starts its play count from zero. */
   m_StallTimer.invalidate();
   m_Restarted = false;
@@ -310,6 +359,7 @@ void QRetroAudio::stop(void)
 
 bool QRetroAudio::start(void)
 {
+  m_Silenced = false;
 #if QRETRO_HAVE_MULTIMEDIA
   if (m_SampleRateCurrent > 0)
   {
@@ -331,14 +381,7 @@ bool QRetroAudio::start(void)
 #endif
 
     /* Close and free audio handlers if they exist */
-    if (m_AudioOutput)
-    {
-      m_AudioOutput->stop();
-      delete m_AudioOutput;
-      m_AudioOutput = nullptr;
-    }
-    /* The device belongs to the sink, which just took it with it. */
-    m_AudioDevice = nullptr;
+    releaseSink();
 
     /* Fill the buffer with dummy data */
     m_AudioBuffer.clear();
