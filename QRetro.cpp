@@ -18,6 +18,10 @@
 #include <pthread.h>
 #endif
 
+#ifdef __GLIBC__
+#include <malloc.h>
+#endif
+
 #include "math.h"
 
 #include "QRetro.h"
@@ -650,6 +654,9 @@ void QRetro::execOnTimingThread(std::function<void()> action)
     return;
   }
   QMutexLocker lock(&m_PendingMutex);
+  /* No timing thread (never started, or unloaded): nothing would run the action */
+  if (!m_ThreadTiming || !m_Active)
+    return;
   m_PendingAction = std::move(action);
   m_PauseCondition.wakeAll();
   m_PendingDone.wait(&m_PendingMutex);
@@ -932,10 +939,17 @@ void QRetro::unloadCore(void)
     /* Unblock the timing thread if it is waiting on the frame semaphore */
     m_FramePresented.release();
 
-    /* Unblock the timing thread if it is parked on the pause condition */
-    QMutexLocker lock(&m_PendingMutex);
-    m_Paused = false;
-    m_PauseCondition.wakeAll();
+    /* Unblock the timing thread if it is parked on the pause condition. Only hold
+     * the mutex for the wake: the timing loop takes it every iteration (and the
+     * pause wait re-takes it on wakeup), so joining with it held deadlocks. */
+    {
+      QMutexLocker lock(&m_PendingMutex);
+      m_Paused = false;
+      m_PauseCondition.wakeAll();
+      /* Release a caller blocked in execOnTimingThread; its action won't run */
+      m_PendingAction = nullptr;
+      m_PendingDone.wakeAll();
+    }
 
     if (m_ThreadTiming)
     {
@@ -969,6 +983,10 @@ void QRetro::unloadCore(void)
         m_Core.retro_deinit();
         m_Core.inited = false;
       }
+      /* The FBO belongs to this context; a reload makes a new context, and
+       * glGetCurrentFramebuffer would otherwise reuse this one if the size matched */
+      delete m_OpenGlFbo;
+      m_OpenGlFbo = nullptr;
       m_OpenGlContextCore->doneCurrent();
     }
     else
@@ -980,6 +998,8 @@ void QRetro::unloadCore(void)
         m_Core.retro_deinit();
         m_Core.inited = false;
       }
+      /* Can't delete it without its context current; drop it rather than reuse it */
+      m_OpenGlFbo = nullptr;
     }
 
     delete m_OpenGlContextCore;
@@ -1020,6 +1040,22 @@ void QRetro::unloadCore(void)
     QFile::remove(m_CoreTempPath);
     m_CoreTempPath.clear();
   }
+
+  /* Everything the core handed us (function pointers, callbacks, memory maps)
+   * points into the library just unmapped. Forget it all, so a later loadCore()
+   * starts clean and nothing calls into the old mapping. */
+  free(const_cast<void *>(m_Core.game_info.data));
+  memset(&m_Core, 0, sizeof(m_Core));
+  m_Memory.clear();
+  m_Input.setPortDeviceReady(false);
+  m_Input.setControllerPortDevice(nullptr);
+  _qrdelete(this);
+
+#ifdef __GLIBC__
+  /* The core's heap is free now, but glibc keeps freed pages mapped, so a host
+   * that loads and unloads cores would only ever grow. Return them to the OS. */
+  malloc_trim(0);
+#endif
 }
 
 QRetro::~QRetro(void)
@@ -1221,8 +1257,14 @@ void QRetro::timing()
       //m_Camera.update();
 
       emit frameBegin();
-      m_Core.retro_run();
-      emit frameEnd();
+      /* unloadCore() may have stopped this core while a frameBegin handler held
+       * the thread (netplay parks frozen contexts there); don't advance a core
+       * that is being torn down. */
+      if (m_Active)
+      {
+        m_Core.retro_run();
+        emit frameEnd();
+      }
 
 #if QRETRO_HAVE_OPENGL
       if (surfaceType() == QSurface::OpenGLSurface && m_OpenGlContextCore && !m_Active)
@@ -1292,6 +1334,17 @@ void QRetro::timing()
       m_InputPrePolled = true;
     }
   }
+
+#if QRETRO_HAVE_OPENGL
+  /* However the loop ended (paused, or gated before a frame), hand the core's
+   * context back to the main thread so unloadCore can make it current there and
+   * let the core free its GL objects. */
+  if (m_OpenGlContextCore && m_OpenGlContextCore->thread() == QThread::currentThread())
+  {
+    m_OpenGlContextCore->doneCurrent();
+    m_OpenGlContextCore->moveToThread(QCoreApplication::instance()->thread());
+  }
+#endif
 
   /* QAudioOutput is a QObject created on this thread, so it must be deleted
    * here rather than from the main thread to avoid timer warnings. */

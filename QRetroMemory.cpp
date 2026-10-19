@@ -27,8 +27,24 @@ void QRetroMemory::setMemoryData(void *data, size_t size)
   m_SystemRam.len = data ? size : 0;
 }
 
+static void qretro_free_maps(retro_memory_map *maps)
+{
+  for (unsigned i = 0; maps->descriptors && i < maps->num_descriptors; i++)
+    free(const_cast<char *>(maps->descriptors[i].addrspace));
+  free(const_cast<retro_memory_descriptor *>(maps->descriptors));
+  *maps = { nullptr, 0 };
+}
+
+void QRetroMemory::clear(void)
+{
+  qretro_free_maps(&m_MemoryMaps);
+  m_SystemRam = {};
+}
+
 void QRetroMemory::setMemoryMaps(const struct retro_memory_map *maps)
 {
+  /* A core may set its maps more than once; don't leak the previous copy */
+  qretro_free_maps(&m_MemoryMaps);
   m_MemoryMaps.num_descriptors = maps->num_descriptors;
   auto descs = static_cast<retro_memory_descriptor *>(
     calloc(m_MemoryMaps.num_descriptors, sizeof(retro_memory_descriptor)));

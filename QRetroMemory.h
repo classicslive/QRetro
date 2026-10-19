@@ -15,6 +15,12 @@ public:
   void setMemoryData(void *data, size_t size);
 
   /**
+   * Forgets the memory maps and system RAM. Their pointers are into the core,
+   * so this must run when the core is unloaded.
+   */
+  void clear(void);
+
+  /**
    * Reads data from the core's address space into a buffer.
    * @param ptr Pointer to the buffer to read into
    * @param address Address in the core's address space to read from

@@ -1,23 +1,38 @@
+#include <mutex>
+
 #include <QLocale>
 
 #include "QRetroCommon.h"
 
 std::map<std::thread::id, QRetro *> _qr_thread_map;
 
+/* Timing threads look themselves up on every core callback while the GUI thread
+ * registers and removes instances (core unloads), so every access is guarded */
+static std::mutex _qr_thread_map_mutex;
+
 bool _qrdelete(QRetro *retro)
 {
+  bool found = false;
+
   if (!retro)
     return false;
-  for (auto it = _qr_thread_map.begin(); it != _qr_thread_map.end(); it++)
+
+  std::lock_guard<std::mutex> lock(_qr_thread_map_mutex);
+
+  /* Every timing thread a reloaded core ran on left an entry; drop them all so
+   * none dangles after the object is deleted */
+  for (auto it = _qr_thread_map.begin(); it != _qr_thread_map.end();)
   {
     if (it->second == retro)
     {
-      _qr_thread_map.erase(it);
-      return true;
+      it = _qr_thread_map.erase(it);
+      found = true;
     }
+    else
+      it++;
   }
 
-  return false;
+  return found;
 }
 
 QString _qrerror(const char *file, int line, QString msg)
@@ -29,6 +44,7 @@ bool _qrnew(std::thread::id id, QRetro *retro)
 {
   if (!retro)
     return false;
+  std::lock_guard<std::mutex> lock(_qr_thread_map_mutex);
   _qr_thread_map[id] = retro;
   return true;
 }
@@ -46,6 +62,7 @@ bool _qrnew(std::thread::id id, QRetro *retro)
  */
 QRetro *_qrthis()
 {
+  std::lock_guard<std::mutex> lock(_qr_thread_map_mutex);
   auto it = _qr_thread_map.find(std::this_thread::get_id());
 
   /* If the thread is registered and still has a live QRetro, return it. */
