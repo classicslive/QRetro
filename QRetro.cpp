@@ -987,6 +987,8 @@ void QRetro::unloadCore(void)
        * glGetCurrentFramebuffer would otherwise reuse this one if the size matched */
       delete m_OpenGlFbo;
       m_OpenGlFbo = nullptr;
+      delete m_OpenGlFboIntermediate;
+      m_OpenGlFboIntermediate = nullptr;
       m_OpenGlContextCore->doneCurrent();
     }
     else
@@ -998,8 +1000,9 @@ void QRetro::unloadCore(void)
         m_Core.retro_deinit();
         m_Core.inited = false;
       }
-      /* Can't delete it without its context current; drop it rather than reuse it */
+      /* Can't delete them without their context current; drop them rather than reuse them */
       m_OpenGlFbo = nullptr;
+      m_OpenGlFboIntermediate = nullptr;
     }
 
     delete m_OpenGlContextCore;
