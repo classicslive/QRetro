@@ -5,6 +5,8 @@
 QRetroInputBackendSDL3::QRetroInputBackendSDL3(QObject *parent)
   : QRetroInputBackend(parent)
 {
+  /* Keep SDL from turning SIGINT/SIGTERM into an SDL_EVENT_QUIT nobody reads */
+  SDL_SetHint(SDL_HINT_NO_SIGNAL_HANDLERS, "1");
   SDL_InitSubSystem(SDL_INIT_GAMEPAD);
 }
 
