@@ -18,7 +18,7 @@
 #include <pthread.h>
 #endif
 
-#ifdef __GLIBC__
+#if defined(__GLIBC__) || defined(_WIN32)
 #include <malloc.h>
 #endif
 
@@ -1058,6 +1058,11 @@ void QRetro::unloadCore(void)
   /* The core's heap is free now, but glibc keeps freed pages mapped, so a host
    * that loads and unloads cores would only ever grow. Return them to the OS. */
   malloc_trim(0);
+#elif defined(_WIN32)
+  _heapmin();
+  if (HMODULE msvcrt = GetModuleHandleW(L"msvcrt.dll"))
+    if (auto heapmin = reinterpret_cast<int (*)(void)>(GetProcAddress(msvcrt, "_heapmin")))
+      heapmin();
 #endif
 }
 
