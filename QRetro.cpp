@@ -939,9 +939,7 @@ void QRetro::unloadCore(void)
     /* Unblock the timing thread if it is waiting on the frame semaphore */
     m_FramePresented.release();
 
-    /* Unblock the timing thread if it is parked on the pause condition. Only hold
-     * the mutex for the wake: the timing loop takes it every iteration (and the
-     * pause wait re-takes it on wakeup), so joining with it held deadlocks. */
+    /* Unblock the timing thread if it is parked on the pause condition */
     {
       QMutexLocker lock(&m_PendingMutex);
       m_Paused = false;
@@ -975,16 +973,18 @@ void QRetro::unloadCore(void)
     if (m_OpenGlContextCore->thread() == QThread::currentThread())
     {
       m_OpenGlContextCore->makeCurrent(this);
-      if (m_Core.hw_render.context_destroy)
-        m_Core.hw_render.context_destroy();
+
+      /* Close here if a timing thread never started */
       if (m_Core.inited)
       {
+        if (m_Core.hw_render.context_destroy)
+          m_Core.hw_render.context_destroy();
         m_Core.retro_unload_game();
         m_Core.retro_deinit();
         m_Core.inited = false;
       }
-      /* The FBO belongs to this context; a reload makes a new context, and
-       * glGetCurrentFramebuffer would otherwise reuse this one if the size matched */
+
+      /* Destroy FBO */
       delete m_OpenGlFbo;
       m_OpenGlFbo = nullptr;
       delete m_OpenGlFboIntermediate;
@@ -1020,7 +1020,7 @@ void QRetro::unloadCore(void)
   if (m_Library)
   {
 #ifdef _WIN32
-    FreeLibrary(m_Library);
+    /** @todo Temporary hack for Windows to not completely unload here */
 #else
     dlclose(m_Library);
 #endif
@@ -1028,8 +1028,6 @@ void QRetro::unloadCore(void)
   }
 
 #ifdef _WIN32
-  /* Library is unloaded; closing the delete-on-close handle drops the last
-   * reference and removes the temp copy. */
   if (m_CoreDeleteHandle != INVALID_HANDLE_VALUE)
   {
     CloseHandle(m_CoreDeleteHandle);
@@ -1044,9 +1042,7 @@ void QRetro::unloadCore(void)
     m_CoreTempPath.clear();
   }
 
-  /* Everything the core handed us (function pointers, callbacks, memory maps)
-   * points into the library just unmapped. Forget it all, so a later loadCore()
-   * starts clean and nothing calls into the old mapping. */
+  /* Forget variables for next launch */
   free(const_cast<void *>(m_Core.game_info.data));
   memset(&m_Core, 0, sizeof(m_Core));
   m_Memory.clear();
@@ -1054,9 +1050,8 @@ void QRetro::unloadCore(void)
   m_Input.setControllerPortDevice(nullptr);
   _qrdelete(this);
 
+  /* Free heap from core */
 #ifdef __GLIBC__
-  /* The core's heap is free now, but glibc keeps freed pages mapped, so a host
-   * that loads and unloads cores would only ever grow. Return them to the OS. */
   malloc_trim(0);
 #elif defined(_WIN32)
   _heapmin();
@@ -1114,6 +1109,9 @@ void QRetro::timing()
     emit onCoreLog(RETRO_LOG_ERROR, QRETRO_ERROR(QString("Function retro_load_game failed for "
                                                          "an unknown reason:\n%1")
                                         .arg(m_Core.game_info.path)));
+    /* Deinit on the thread that ran retro_init (see the end of this function) */
+    m_Core.retro_deinit();
+    m_Core.inited = false;
     return;
   }
   else if (!m_Core.content_loaded && !m_SupportsNoGame)
@@ -1274,17 +1272,6 @@ void QRetro::timing()
         emit frameEnd();
       }
 
-#if QRETRO_HAVE_OPENGL
-      if (surfaceType() == QSurface::OpenGLSurface && m_OpenGlContextCore && !m_Active)
-      {
-        m_OpenGlContextCore->doneCurrent();
-        /* Move the context back to the main thread while we are still on
-         * the timing thread (its current owner), so the main thread can
-         * safely make it current and delete it without timer warnings. */
-        m_OpenGlContextCore->moveToThread(QCoreApplication::instance()->thread());
-      }
-#endif
-
       m_Frames++;
     }
 
@@ -1343,19 +1330,44 @@ void QRetro::timing()
     }
   }
 
+  /* The saving thread reads SAVE_RAM once more after m_Active drops; let it
+   * finish before the core frees that memory. */
+  if (m_ThreadSaving)
+    m_ThreadSaving->wait();
+
+  /* Tear the core down on the thread that ran init and run */
 #if QRETRO_HAVE_OPENGL
-  /* However the loop ended (paused, or gated before a frame), hand the core's
-   * context back to the main thread so unloadCore can make it current there and
-   * let the core free its GL objects. */
-  if (m_OpenGlContextCore && m_OpenGlContextCore->thread() == QThread::currentThread())
+  const bool ownsContext =
+    m_OpenGlContextCore && m_OpenGlContextCore->thread() == QThread::currentThread();
+
+  if (ownsContext)
   {
+    m_OpenGlContextCore->makeCurrent(this);
+    if (m_Core.inited && m_Core.hw_render.context_destroy)
+      m_Core.hw_render.context_destroy();
+  }
+#endif
+  if (m_Core.inited)
+  {
+    m_Core.retro_unload_game();
+    m_Core.retro_deinit();
+    m_Core.inited = false;
+  }
+#if QRETRO_HAVE_OPENGL
+  if (ownsContext)
+  {
+    /* Destroy FBOs */
+    delete m_OpenGlFbo;
+    m_OpenGlFbo = nullptr;
+    delete m_OpenGlFboIntermediate;
+    m_OpenGlFboIntermediate = nullptr;
+
+    /* Hand the context back to the main thread so unloadCore can delete it there */
     m_OpenGlContextCore->doneCurrent();
     m_OpenGlContextCore->moveToThread(QCoreApplication::instance()->thread());
   }
 #endif
 
-  /* QAudioOutput is a QObject created on this thread, so it must be deleted
-   * here rather than from the main thread to avoid timer warnings. */
   delete m_Audio;
   m_Audio = nullptr;
 }
