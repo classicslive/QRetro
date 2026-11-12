@@ -591,6 +591,12 @@ private:
   /// on black. Copies, since m_Image usually just points at core memory.
   QImage composedFrame(void);
 
+  /// Replaces m_Image; safe to call from any thread.
+  void setImage(QImage image);
+
+  /// A black image of the given size in the current pixel format.
+  QImage blankImage(const QSize &size) const;
+
   /// Builds the audio object for a core sample rate, carrying mute across.
   void createAudio(double sample_rate);
 
@@ -792,6 +798,7 @@ private:
 
   /* General video parameters */
   QImage m_Image;
+  QMutex m_ImageMutex;
   QRect m_BaseRect;
   QRect m_Rect;
   QRect m_DeviceRect;

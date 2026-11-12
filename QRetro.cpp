@@ -291,7 +291,7 @@ void QRetro::setGeometry(const unsigned width, const unsigned height)
       m_BaseRect.height() != static_cast<int>(height))
   {
     m_BaseRect = QRect(0, 0, static_cast<int>(width), static_cast<int>(height));
-    m_Image = QImage(m_BaseRect.size(), m_PixelFormat);
+    setImage(blankImage(m_BaseRect.size()));
     updateScaling();
   }
 }
@@ -358,6 +358,7 @@ bool QRetro::event(QEvent *ev)
   case QEvent::UpdateRequest:
   {
     QPainter painter;
+    QMutexLocker lock(&m_ImageMutex);
 
     if (!isExposed())
       return false;
@@ -450,8 +451,8 @@ void QRetro::setImagePtr(const void *data, unsigned width, unsigned height, unsi
   if (data && data != reinterpret_cast<void *>(RETRO_HW_FRAME_BUFFER_VALID))
   {
     /* Data is a pointer to a new frame image, so use it */
-    m_Image = QImage(reinterpret_cast<const uchar *>(data), static_cast<int>(width),
-      static_cast<int>(height), static_cast<int>(pitch), m_PixelFormat);
+    setImage(QImage(reinterpret_cast<const uchar *>(data), static_cast<int>(width),
+      static_cast<int>(height), static_cast<int>(pitch), m_PixelFormat));
     /* Update on the GUI thread */
     QMetaObject::invokeMethod(this, [this]() { requestUpdate(); }, Qt::QueuedConnection);
 
@@ -598,6 +599,7 @@ void QRetro::grabFrame(void)
 
 QImage QRetro::composedFrame(void)
 {
+  QMutexLocker lock(&m_ImageMutex);
   if (m_Image.isNull() || size().isEmpty())
     return QImage();
 
@@ -1043,7 +1045,7 @@ void QRetro::unloadCore(void)
   }
 
   /* Forget variables for next launch */
-  m_Image = QImage();
+  setImage(QImage());
   free(const_cast<void *>(m_Core.game_info.data));
   memset(&m_Core, 0, sizeof(m_Core));
   m_Memory.clear();
@@ -1379,6 +1381,7 @@ bool QRetro::getCurrentSoftwareFramebuffer(retro_framebuffer *fb)
   auto width = static_cast<int>(fb->width);
   auto height = static_cast<int>(fb->height);
   auto format = lr2qt_pixel(fb->format);
+  QMutexLocker lock(&m_ImageMutex);
 
   /* Free our buffer if it's being reconstructed to a new size */
   if (m_SoftwareFramebuffer &&
@@ -1626,10 +1629,7 @@ bool QRetro::startCore(void)
     /* Paint black immediately so the window doesn't show garbage
        from whatever is underneath while the core initialises. */
     if (size().isValid())
-    {
-      m_Image = QImage(size(), m_PixelFormat);
-      m_Image.fill(Qt::black);
-    }
+      setImage(blankImage(size()));
     QMetaObject::invokeMethod(this, [this]() { requestUpdate(); }, Qt::QueuedConnection);
 
     if (m_SavingEnabled)
@@ -1857,11 +1857,27 @@ void QRetro::setPixelFormat(retro_pixel_format format)
 
 void QRetro::setPixelFormat(QImage::Format format)
 {
-  const uchar *ptr = m_Image.bits();
-  QSize size = m_Image.size();
-
+  QMutexLocker lock(&m_ImageMutex);
   m_PixelFormat = format;
-  m_Image = QImage(ptr, size.width(), size.height(), m_PixelFormat);
+
+  /* Reset image if it exists */
+  if (!m_Image.isNull())
+    m_Image = blankImage(m_Image.size());
+}
+
+void QRetro::setImage(QImage image)
+{
+  QMutexLocker lock(&m_ImageMutex);
+  m_Image = std::move(image);
+}
+
+QImage QRetro::blankImage(const QSize &size) const
+{
+  QImage image(size, m_PixelFormat);
+
+  image.fill(Qt::black);
+
+  return image;
 }
 
 void QRetro::wheelEvent(QWheelEvent *event)
