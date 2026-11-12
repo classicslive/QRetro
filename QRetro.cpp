@@ -1043,6 +1043,7 @@ void QRetro::unloadCore(void)
   }
 
   /* Forget variables for next launch */
+  m_Image = QImage();
   free(const_cast<void *>(m_Core.game_info.data));
   memset(&m_Core, 0, sizeof(m_Core));
   m_Memory.clear();
